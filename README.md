@@ -22,7 +22,10 @@ Embark on your journey through the social web with these core specifications and
 - 🎉 [ActivityStream 2.0](https://www.w3.org/TR/activitystreams-core/) - A JSON-based format for social data.
 - 📢 [Fediverse Enhancement Proposals (FEPs)](https://codeberg.org/fediverse/fep) - Proposals aiming to enhance and evolve the Fediverse.
 
+## 🛠 Guide for New ActivityPub Implementers
 
+Whether you're a seasoned developer or new to the ActivityPub world, this guide offers a wealth of information to assist you in your implementation journey:
+- 📘 [Guide for New ActivityPub Implementers](https://socialhub.activitypub.rocks/pub/guide-for-new-activitypub-implementers) - An invaluable resource for newcomers and veterans alike navigating ActivityPub implementation.
 
 ## 🤝 Contributing
 
