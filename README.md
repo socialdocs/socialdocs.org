@@ -34,6 +34,7 @@ Explore these test suites designed to facilitate the testing of implementations 
 - 🤖 [go-fed-testsuite](https://github.com/go-fed/testsuite) - A test suite repository for federated software, hosted on GitHub.
 - ⛰️ [rocks-testsuite](https://github.com/steve-bate/rocks-testsuite) - An ActivityPub test suite on GitHub designed to validate and assess compliance with the protocol.
 - 🚀 [activitypub-testsuite](https://github.com/steve-bate/activitypub-testsuite) - A robust suite by Steve Bate, offering comprehensive testing tools for validating ActivityPub implementations against the protocol specifications.
+- 🧠 [pubstrate](https://gitlab.com/dustyweb/pubstrate/-/blob/master/pubstrate/aptestsuite.scm) - A scheme-scripted test suite in Pubstrate, providing structured tests for ActivityPub implementations with meticulous protocol adherence checks.
 
 ## 🤝 Contributing
 
