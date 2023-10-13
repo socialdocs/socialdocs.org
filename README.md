@@ -36,6 +36,12 @@ Explore these test suites designed to facilitate the testing of implementations 
 - 🚀 [activitypub-testsuite](https://github.com/steve-bate/activitypub-testsuite) - A robust suite by Steve Bate, offering comprehensive testing tools for validating ActivityPub implementations against the protocol specifications.
 - 🧠 [pubstrate](https://gitlab.com/dustyweb/pubstrate/-/blob/master/pubstrate/aptestsuite.scm) - A scheme-scripted test suite in Pubstrate, providing structured tests for ActivityPub implementations with meticulous protocol adherence checks.
 
+## 🚀 W3C Draft Primer
+
+This primer provides some draft insights:
+
+- 📘 [W3C Activity Streams Primer](https://www.w3.org/wiki/Activity_Streams/Primer) - A draft primer.
+
 ## 🤝 Contributing
 
 We welcome contributions from everyone who wishes to enhance and expand this documentation. Feel free to submit pull requests or create issues to discuss potential improvements 💕.
