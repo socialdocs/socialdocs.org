@@ -27,6 +27,12 @@ Embark on your journey through the social web with these core specifications and
 Whether you're a seasoned developer or new to the ActivityPub world, this guide offers a wealth of information to assist you in your implementation journey:
 - 📘 [Guide for New ActivityPub Implementers](https://socialhub.activitypub.rocks/pub/guide-for-new-activitypub-implementers) - An invaluable resource for newcomers and veterans alike navigating ActivityPub implementation.
 
+## 🧪 Test Suites
+
+Explore these test suites designed to facilitate the testing of implementations and ensure protocol compliance in the Fediverse:
+- 🧰 [Fediverse Test Framework](https://nlnet.nl/project/FediverseTestFramework/) - A project aimed at providing a framework for testing Fediverse technologies.
+- 🤖 [go-fed-testsuite](https://github.com/go-fed/testsuite) - A test suite repository for federated software, hosted on GitHub.
+
 ## 🤝 Contributing
 
 We welcome contributions from everyone who wishes to enhance and expand this documentation. Feel free to submit pull requests or create issues to discuss potential improvements 💕.
