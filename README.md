@@ -32,6 +32,7 @@ Whether you're a seasoned developer or new to the ActivityPub world, this guide 
 Explore these test suites designed to facilitate the testing of implementations and ensure protocol compliance in the Fediverse:
 - 🧰 [Fediverse Test Framework](https://nlnet.nl/project/FediverseTestFramework/) - A project aimed at providing a framework for testing Fediverse technologies.
 - 🤖 [go-fed-testsuite](https://github.com/go-fed/testsuite) - A test suite repository for federated software, hosted on GitHub.
+- ⛰️ [rocks-testsuite](https://github.com/steve-bate/rocks-testsuite) - An ActivityPub test suite on GitHub designed to validate and assess compliance with the protocol.
 
 ## 🤝 Contributing
 
