@@ -1,24 +1,74 @@
 ---
-sidebar_position: 1
-title: Nodeinfo Endpoint
-description: Documentation for Nodeinfo Endpoint
+sidebar_position: 6
+title: NodeInfo Endpoint
+description: Reference for the NodeInfo server metadata endpoint
 ---
 
-# Nodeinfo Endpoint
+# NodeInfo Endpoint
 
-This page is under development. Check back soon for comprehensive documentation.
+NodeInfo provides server metadata—software, version, and statistics.
 
-## Coming Soon
+## Discovery
 
-- Detailed explanations
-- Code examples
-- Best practices
-- Common issues and solutions
+```
+GET /.well-known/nodeinfo
+```
 
-## Contribute
+```json
+{
+  "links": [{
+    "rel": "http://nodeinfo.diaspora.software/ns/schema/2.0",
+    "href": "https://example.com/nodeinfo/2.0"
+  }]
+}
+```
 
-Help us improve this documentation! [Edit this page on GitHub](https://github.com/socialdocs/socialdocs.org).
+## NodeInfo Response
 
-## Related Pages
+```
+GET /nodeinfo/2.0
+```
 
-See the sidebar for related documentation.
+```json
+{
+  "version": "2.0",
+  "software": {
+    "name": "mastodon",
+    "version": "4.2.0"
+  },
+  "protocols": ["activitypub"],
+  "usage": {
+    "users": { "total": 1000 },
+    "localPosts": 50000
+  },
+  "openRegistrations": true
+}
+```
+
+## Fields
+
+| Field | Description |
+|-------|-------------|
+| software.name | Server software |
+| protocols | Supported protocols |
+| usage.users.total | User count |
+| openRegistrations | Signups open |
+
+## Implementation
+
+```javascript
+app.get('/nodeinfo/2.0', (req, res) => {
+  res.json({
+    version: '2.0',
+    software: { name: 'myserver', version: '1.0' },
+    protocols: ['activitypub'],
+    usage: { users: { total: 100 } },
+    openRegistrations: true
+  });
+});
+```
+
+## See Also
+
+- **[NodeInfo Specification](http://nodeinfo.diaspora.software/)**
+- **[Endpoints Overview](/docs/reference/endpoints-overview)**

@@ -1,24 +1,70 @@
 ---
-sidebar_position: 1
+sidebar_position: 2
 title: Inbox Endpoint
-description: Documentation for Inbox Endpoint
+description: Reference for the ActivityPub inbox endpoint
 ---
 
 # Inbox Endpoint
 
-This page is under development. Check back soon for comprehensive documentation.
+The inbox receives activities from remote servers.
 
-## Coming Soon
+## Endpoint
 
-- Detailed explanations
-- Code examples
-- Best practices
-- Common issues and solutions
+```
+POST /users/{username}/inbox
+POST /inbox (shared inbox)
+```
 
-## Contribute
+## Request
 
-Help us improve this documentation! [Edit this page on GitHub](https://github.com/socialdocs/socialdocs.org).
+```http
+POST /users/alice/inbox HTTP/1.1
+Host: example.com
+Content-Type: application/activity+json
+Date: Sun, 15 Jan 2024 10:00:00 GMT
+Digest: SHA-256=X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=
+Signature: keyId="...",algorithm="rsa-sha256",...
 
-## Related Pages
+{
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "type": "Create",
+  "actor": "https://sender.example/users/bob",
+  "object": { "type": "Note", "content": "Hello!" }
+}
+```
 
-See the sidebar for related documentation.
+## Required Headers
+
+| Header | Description |
+|--------|-------------|
+| Content-Type | `application/activity+json` |
+| Date | RFC 2616 timestamp |
+| Digest | SHA-256 body hash |
+| Signature | HTTP Signature |
+
+## Response Codes
+
+| Code | Meaning |
+|------|---------|
+| 202 | Accepted |
+| 400 | Invalid JSON |
+| 401 | Invalid signature |
+| 404 | Actor not found |
+
+## Implementation
+
+```javascript
+app.post('/users/:username/inbox', async (req, res) => {
+  if (!await verifySignature(req)) {
+    return res.status(401).send('Invalid signature');
+  }
+
+  await processActivity(req.body);
+  res.status(202).send('Accepted');
+});
+```
+
+## See Also
+
+- **[HTTP Signatures](/docs/reference/http-signatures-reference)**
+- **[Outbox Endpoint](/docs/reference/outbox-endpoint)**

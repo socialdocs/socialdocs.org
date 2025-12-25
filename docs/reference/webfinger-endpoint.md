@@ -1,24 +1,77 @@
 ---
-sidebar_position: 1
-title: Webfinger Endpoint
-description: Documentation for Webfinger Endpoint
+sidebar_position: 4
+title: WebFinger Endpoint
+description: Reference for the WebFinger discovery endpoint
 ---
 
-# Webfinger Endpoint
+# WebFinger Endpoint
 
-This page is under development. Check back soon for comprehensive documentation.
+WebFinger (RFC 7033) discovers actor profiles from handles.
 
-## Coming Soon
+## Endpoint
 
-- Detailed explanations
-- Code examples
-- Best practices
-- Common issues and solutions
+```
+GET /.well-known/webfinger?resource=acct:{user}@{domain}
+```
 
-## Contribute
+## Request
 
-Help us improve this documentation! [Edit this page on GitHub](https://github.com/socialdocs/socialdocs.org).
+```http
+GET /.well-known/webfinger?resource=acct:alice@example.com
+Accept: application/jrd+json
+```
 
-## Related Pages
+## Response
 
-See the sidebar for related documentation.
+```json
+{
+  "subject": "acct:alice@example.com",
+  "links": [
+    {
+      "rel": "self",
+      "type": "application/activity+json",
+      "href": "https://example.com/users/alice"
+    }
+  ]
+}
+```
+
+## Required Fields
+
+| Field | Description |
+|-------|-------------|
+| subject | Requested resource |
+| links[].rel | `self` for ActivityPub |
+| links[].type | `application/activity+json` |
+| links[].href | Actor URL |
+
+## Implementation
+
+```javascript
+app.get('/.well-known/webfinger', (req, res) => {
+  const resource = req.query.resource;
+  const [, user, domain] = resource.match(/acct:(.+)@(.+)/);
+
+  res.type('application/jrd+json').json({
+    subject: resource,
+    links: [{
+      rel: 'self',
+      type: 'application/activity+json',
+      href: `https://${domain}/users/${user}`
+    }]
+  });
+});
+```
+
+## CORS
+
+Allow cross-origin requests:
+
+```javascript
+res.header('Access-Control-Allow-Origin', '*');
+```
+
+## See Also
+
+- **[WebFinger Lookup Tool](/docs/tools/webfinger-lookup)**
+- **[WebFinger Implementation](/docs/guides/webfinger-implementation)**
