@@ -13,27 +13,27 @@ Federation is what makes the Fediverse work. It's the process by which independe
 When a user on Server A interacts with content from Server B, here's what happens:
 
 ```
-┌────────────────────────────────────────────────────────────────────┐
-│                     FEDERATION FLOW                                 │
-├────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  1. Discovery                                                       │
-│     User searches: @bob@server-b.com                               │
-│     Server A queries: server-b.com/.well-known/webfinger           │
-│                                                                     │
-│  2. Actor Fetch                                                     │
-│     Server A fetches: server-b.com/users/bob                       │
-│     Gets: inbox, outbox, public key                                │
-│                                                                     │
-│  3. Activity Delivery                                               │
-│     Server A sends Follow to: server-b.com/users/bob/inbox         │
-│     Signed with HTTP Signatures                                     │
-│                                                                     │
-│  4. Response                                                        │
-│     Server B verifies signature                                     │
-│     Server B sends Accept to: server-a.com/users/alice/inbox       │
-│                                                                     │
-└────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                      FEDERATION FLOW                         │
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│  1. Discovery                                                │
+│     User searches: @bob@server-b.com                         │
+│     Server A queries: server-b.com/.well-known/webfinger     │
+│                                                              │
+│  2. Actor Fetch                                              │
+│     Server A fetches: server-b.com/users/bob                 │
+│     Gets: inbox, outbox, public key                          │
+│                                                              │
+│  3. Activity Delivery                                        │
+│     Server A sends Follow to: server-b.com/users/bob/inbox   │
+│     Signed with HTTP Signatures                              │
+│                                                              │
+│  4. Response                                                 │
+│     Server B verifies signature                              │
+│     Server B sends Accept to: server-a.com/users/alice/inbox │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ## Step 1: Discovery with WebFinger

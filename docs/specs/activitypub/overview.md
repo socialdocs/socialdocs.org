@@ -19,16 +19,16 @@ ActivityPub is a W3C Recommendation that defines a protocol for decentralized so
 ActivityPub defines two complementary protocols:
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        ActivityPub                               │
-├────────────────────────────┬────────────────────────────────────┤
-│    Client-to-Server (C2S)  │     Server-to-Server (S2S)         │
-├────────────────────────────┼────────────────────────────────────┤
-│ • User posts via app       │ • Server delivers to followers     │
-│ • Read inbox/outbox        │ • Receive activities from others   │
-│ • Manage following         │ • Handle federation                │
-│ • Like, share, reply       │ • Process remote activities        │
-└────────────────────────────┴────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────┐
+│                         ActivityPub                           │
+├─────────────────────────────┬─────────────────────────────────┤
+│    Client-to-Server (C2S)   │     Server-to-Server (S2S)      │
+├─────────────────────────────┼─────────────────────────────────┤
+│ • User posts via app        │ • Server delivers to followers  │
+│ • Read inbox/outbox         │ • Receive activities from others│
+│ • Manage following          │ • Handle federation             │
+│ • Like, share, reply        │ • Process remote activities     │
+└─────────────────────────────┴─────────────────────────────────┘
 ```
 
 ### Client-to-Server (C2S)
@@ -187,16 +187,16 @@ ActivityPub relies on:
 ## Relationship to Other Specs
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                      ActivityPub                             │
-│                   (Federation Protocol)                      │
-├─────────────────────────────────────────────────────────────┤
-│                    ActivityStreams 2.0                       │
-│                    (Data Vocabulary)                         │
-├─────────────────────────────────────────────────────────────┤
-│    WebFinger     │  HTTP Signatures  │    JSON-LD          │
-│   (Discovery)    │   (Authentication)│  (Linked Data)      │
-└─────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────┐
+│                       ActivityPub                         │
+│                   (Federation Protocol)                   │
+├───────────────────────────────────────────────────────────┤
+│                   ActivityStreams 2.0                     │
+│                    (Data Vocabulary)                      │
+├───────────────────┬───────────────────┬───────────────────┤
+│    WebFinger      │  HTTP Signatures  │     JSON-LD       │
+│   (Discovery)     │  (Authentication) │  (Linked Data)    │
+└───────────────────┴───────────────────┴───────────────────┘
 ```
 
 ## Common Extensions

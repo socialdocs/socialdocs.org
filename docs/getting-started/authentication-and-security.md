@@ -13,31 +13,31 @@ Security is critical in federated systems. This guide covers how ActivityPub han
 ActivityPub uses a **decentralized trust model**. There's no central authority — servers verify each other using cryptographic signatures.
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    SECURITY LAYERS                          │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │  Transport Security (HTTPS/TLS)                      │   │
-│  │  - Encrypts data in transit                          │   │
-│  │  - Server identity via TLS certificates              │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                           │                                 │
-│                           ▼                                 │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │  Message Authentication (HTTP Signatures)            │   │
-│  │  - Proves message origin                             │   │
-│  │  - Prevents tampering                                │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                           │                                 │
-│                           ▼                                 │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │  Actor Verification                                  │   │
-│  │  - Fetch actor to verify keyId                       │   │
-│  │  - Check actor ownership of content                  │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────┐
+│                     SECURITY LAYERS                       │
+├───────────────────────────────────────────────────────────┤
+│                                                           │
+│  ┌─────────────────────────────────────────────────────┐  │
+│  │  Transport Security (HTTPS/TLS)                     │  │
+│  │  - Encrypts data in transit                         │  │
+│  │  - Server identity via TLS certificates             │  │
+│  └─────────────────────────────────────────────────────┘  │
+│                           │                               │
+│                           ▼                               │
+│  ┌─────────────────────────────────────────────────────┐  │
+│  │  Message Authentication (HTTP Signatures)           │  │
+│  │  - Proves message origin                            │  │
+│  │  - Prevents tampering                               │  │
+│  └─────────────────────────────────────────────────────┘  │
+│                           │                               │
+│                           ▼                               │
+│  ┌─────────────────────────────────────────────────────┐  │
+│  │  Actor Verification                                 │  │
+│  │  - Fetch actor to verify keyId                      │  │
+│  │  - Check actor ownership of content                 │  │
+│  └─────────────────────────────────────────────────────┘  │
+│                                                           │
+└───────────────────────────────────────────────────────────┘
 ```
 
 ## HTTP Signatures

@@ -11,30 +11,30 @@ Delivery is the process of sending activities from your server to remote inboxes
 ## Delivery Overview
 
 ```
-┌────────────────────────────────────────────────────────────────┐
-│                     DELIVERY PIPELINE                          │
-├────────────────────────────────────────────────────────────────┤
-│                                                                │
-│  1. Activity Created                                           │
-│     ↓                                                          │
-│  2. Resolve Recipients                                         │
-│     - Expand Public address                                    │
-│     - Expand followers collection                              │
-│     - Resolve mentioned actors                                 │
-│     ↓                                                          │
-│  3. Deduplicate Inboxes                                        │
-│     - Use shared inbox when available                          │
-│     - Remove duplicates                                        │
-│     ↓                                                          │
-│  4. Sign and Send                                              │
-│     - Create HTTP Signature                                    │
-│     - POST to each inbox                                       │
-│     ↓                                                          │
-│  5. Handle Failures                                            │
-│     - Retry with backoff                                       │
-│     - Track dead servers                                       │
-│                                                                │
-└────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────┐
+│              DELIVERY PIPELINE                 │
+├────────────────────────────────────────────────┤
+│                                                │
+│  1. Activity Created                           │
+│     ↓                                          │
+│  2. Resolve Recipients                         │
+│     - Expand Public address                    │
+│     - Expand followers collection              │
+│     - Resolve mentioned actors                 │
+│     ↓                                          │
+│  3. Deduplicate Inboxes                        │
+│     - Use shared inbox when available          │
+│     - Remove duplicates                        │
+│     ↓                                          │
+│  4. Sign and Send                              │
+│     - Create HTTP Signature                    │
+│     - POST to each inbox                       │
+│     ↓                                          │
+│  5. Handle Failures                            │
+│     - Retry with backoff                       │
+│     - Track dead servers                       │
+│                                                │
+└────────────────────────────────────────────────┘
 ```
 
 ## Step 1: Resolve Recipients
