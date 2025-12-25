@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <!-- Fediverse-inspired interconnected nodes logo -->
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#6364FF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="45" fill="url(#grad1)"/>
+
+  <!-- Network nodes representing federation -->
+  <!-- Central node -->
+  <circle cx="50" cy="50" r="8" fill="white"/>
+
+  <!-- Outer nodes -->
+  <circle cx="50" cy="22" r="6" fill="white" opacity="0.9"/>
+  <circle cx="74" cy="36" r="6" fill="white" opacity="0.9"/>
+  <circle cx="74" cy="64" r="6" fill="white" opacity="0.9"/>
+  <circle cx="50" cy="78" r="6" fill="white" opacity="0.9"/>
+  <circle cx="26" cy="64" r="6" fill="white" opacity="0.9"/>
+  <circle cx="26" cy="36" r="6" fill="white" opacity="0.9"/>
+
+  <!-- Connection lines -->
+  <line x1="50" y1="42" x2="50" y2="28" stroke="white" stroke-width="2" opacity="0.7"/>
+  <line x1="56" y1="45" x2="68" y2="38" stroke="white" stroke-width="2" opacity="0.7"/>
+  <line x1="56" y1="55" x2="68" y2="62" stroke="white" stroke-width="2" opacity="0.7"/>
+  <line x1="50" y1="58" x2="50" y2="72" stroke="white" stroke-width="2" opacity="0.7"/>
+  <line x1="44" y1="55" x2="32" y2="62" stroke="white" stroke-width="2" opacity="0.7"/>
+  <line x1="44" y1="45" x2="32" y2="38" stroke="white" stroke-width="2" opacity="0.7"/>
+</svg>

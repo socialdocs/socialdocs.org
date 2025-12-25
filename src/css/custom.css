@@ -1,0 +1,227 @@
+/**
+ * SocialDocs Custom Styles
+ * Light mode primary with Fediverse purple accent
+ */
+
+:root {
+  /* Primary brand colors - Fediverse purple */
+  --ifm-color-primary: #6364FF;
+  --ifm-color-primary-dark: #4A4BE6;
+  --ifm-color-primary-darker: #3E3FD9;
+  --ifm-color-primary-darkest: #2E2FB3;
+  --ifm-color-primary-light: #7C7DFF;
+  --ifm-color-primary-lighter: #9596FF;
+  --ifm-color-primary-lightest: #B8B9FF;
+
+  /* Typography */
+  --ifm-font-family-base: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --ifm-font-family-monospace: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+  --ifm-code-font-size: 95%;
+  --ifm-heading-font-weight: 600;
+
+  /* Layout */
+  --ifm-container-width-xl: 1400px;
+  --doc-sidebar-width: 280px;
+
+  /* Code blocks */
+  --docusaurus-highlighted-code-line-bg: rgba(99, 100, 255, 0.1);
+}
+
+/* Dark mode colors */
+[data-theme='dark'] {
+  --ifm-color-primary: #8B8CFF;
+  --ifm-color-primary-dark: #6364FF;
+  --ifm-color-primary-darker: #5253FF;
+  --ifm-color-primary-darkest: #3031FF;
+  --ifm-color-primary-light: #A4A5FF;
+  --ifm-color-primary-lighter: #B5B6FF;
+  --ifm-color-primary-lightest: #D7D8FF;
+  --docusaurus-highlighted-code-line-bg: rgba(139, 140, 255, 0.2);
+}
+
+/* Hero section styles */
+.hero {
+  background: linear-gradient(135deg, #667eea 0%, #6364FF 50%, #764ba2 100%);
+}
+
+.hero__title {
+  font-size: 3.5rem;
+  font-weight: 700;
+}
+
+.hero__subtitle {
+  font-size: 1.5rem;
+  opacity: 0.9;
+}
+
+/* Feature cards on homepage */
+.feature-card {
+  border-radius: 12px;
+  padding: 2rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+}
+
+/* Code block enhancements */
+.prism-code {
+  border-radius: 8px;
+}
+
+/* Language tabs in code blocks */
+.tabs-container .tabs {
+  border-bottom: 2px solid var(--ifm-color-primary-lightest);
+}
+
+.tabs-container .tabs__item--active {
+  border-bottom-color: var(--ifm-color-primary);
+}
+
+/* Admonition styling */
+.admonition {
+  border-radius: 8px;
+  border-left-width: 4px;
+}
+
+/* Table improvements */
+table {
+  display: table;
+  width: 100%;
+}
+
+table th {
+  background-color: var(--ifm-color-primary-lightest);
+}
+
+[data-theme='dark'] table th {
+  background-color: rgba(139, 140, 255, 0.2);
+}
+
+/* API reference specific styles */
+.api-method {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+}
+
+.api-method-get {
+  background-color: #61affe;
+  color: white;
+}
+
+.api-method-post {
+  background-color: #49cc90;
+  color: white;
+}
+
+.api-method-put {
+  background-color: #fca130;
+  color: white;
+}
+
+.api-method-delete {
+  background-color: #f93e3e;
+  color: white;
+}
+
+/* Property tables */
+.property-table td:first-child code {
+  background-color: var(--ifm-color-primary-lightest);
+  color: var(--ifm-color-primary-darkest);
+}
+
+[data-theme='dark'] .property-table td:first-child code {
+  background-color: rgba(139, 140, 255, 0.2);
+  color: var(--ifm-color-primary-lighter);
+}
+
+/* Type badges */
+.type-badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-left: 0.5rem;
+}
+
+.type-badge-required {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.type-badge-optional {
+  background-color: #e0e7ff;
+  color: #4f46e5;
+}
+
+[data-theme='dark'] .type-badge-required {
+  background-color: rgba(220, 38, 38, 0.2);
+  color: #fca5a5;
+}
+
+[data-theme='dark'] .type-badge-optional {
+  background-color: rgba(79, 70, 229, 0.2);
+  color: #a5b4fc;
+}
+
+/* Compatibility matrix */
+.compat-yes {
+  color: #16a34a;
+}
+
+.compat-no {
+  color: #dc2626;
+}
+
+.compat-partial {
+  color: #ca8a04;
+}
+
+/* Navbar adjustments */
+.navbar__title {
+  font-weight: 700;
+}
+
+/* Footer enhancements */
+.footer--dark {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
+/* Announcement bar */
+.announcement-bar-content a {
+  color: white;
+  text-decoration: underline;
+}
+
+/* Search improvements */
+.DocSearch-Button {
+  border-radius: 8px;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 996px) {
+  .hero__title {
+    font-size: 2.5rem;
+  }
+
+  .hero__subtitle {
+    font-size: 1.25rem;
+  }
+}
+
+/* Print styles */
+@media print {
+  .navbar,
+  .footer,
+  .pagination-nav,
+  .theme-doc-toc-mobile {
+    display: none;
+  }
+}
