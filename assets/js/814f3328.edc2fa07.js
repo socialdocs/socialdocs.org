@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunktemp_docs=globalThis.webpackChunktemp_docs||[]).push([[7472],{5513(e){e.exports=JSON.parse('{"title":"Recent posts","items":[{"title":"Welcome to SocialDocs","permalink":"/blog/welcome","unlisted":false,"date":"2024-01-01T00:00:00.000Z"}]}')}}]);

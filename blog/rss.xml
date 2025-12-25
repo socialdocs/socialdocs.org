@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?><?xml-stylesheet type="text/xsl" href="rss.xsl"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+    <channel>
+        <title>SocialDocs Blog</title>
+        <link>https://socialdocs.org/blog</link>
+        <description>SocialDocs Blog</description>
+        <lastBuildDate>Mon, 01 Jan 2024 00:00:00 GMT</lastBuildDate>
+        <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
+        <generator>https://github.com/jpmonette/feed</generator>
+        <language>en</language>
+        <item>
+            <title><![CDATA[Welcome to SocialDocs]]></title>
+            <link>https://socialdocs.org/blog/welcome</link>
+            <guid>https://socialdocs.org/blog/welcome</guid>
+            <pubDate>Mon, 01 Jan 2024 00:00:00 GMT</pubDate>
+            <description><![CDATA[We're excited to launch SocialDocs — the comprehensive developer resource for ActivityPub, Mastodon, and the Fediverse.]]></description>
+            <content:encoded><![CDATA[<p>We're excited to launch <strong>SocialDocs</strong> — the comprehensive developer resource for ActivityPub, Mastodon, and the Fediverse.</p>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="our-mission">Our Mission<a href="https://socialdocs.org/blog/welcome#our-mission" class="hash-link" aria-label="Direct link to Our Mission" title="Direct link to Our Mission" translate="no">​</a></h2>
+<p>Building for the Fediverse should be accessible to every developer. Whether you're creating a new social platform, adding federation to an existing app, or just curious about how it all works, SocialDocs aims to be your go-to resource.</p>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="what-youll-find-here">What You'll Find Here<a href="https://socialdocs.org/blog/welcome#what-youll-find-here" class="hash-link" aria-label="Direct link to What You'll Find Here" title="Direct link to What You'll Find Here" translate="no">​</a></h2>
+<ul>
+<li class=""><strong>Getting Started Guides</strong>: From "What is the Fediverse?" to building your first ActivityPub server</li>
+<li class=""><strong>Protocol Specifications</strong>: Deep dives into ActivityPub, ActivityStreams, WebFinger, and HTTP Signatures</li>
+<li class=""><strong>Implementation Guides</strong>: Step-by-step tutorials for common tasks</li>
+<li class=""><strong>API Reference</strong>: Complete documentation for object types, activities, and endpoints</li>
+<li class=""><strong>Ecosystem Directory</strong>: Overview of server software, libraries, and tools</li>
+<li class=""><strong>Developer Tools</strong>: Validators, inspectors, and testing resources</li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="contributing">Contributing<a href="https://socialdocs.org/blog/welcome#contributing" class="hash-link" aria-label="Direct link to Contributing" title="Direct link to Contributing" translate="no">​</a></h2>
+<p>SocialDocs is open source and community-driven. We welcome contributions from everyone:</p>
+<ul>
+<li class=""><strong>Found an error?</strong> <a href="https://github.com/socialdocs/socialdocs.org/issues" target="_blank" rel="noopener noreferrer" class="">Open an issue</a></li>
+<li class=""><strong>Want to add content?</strong> Check our <a class="" href="https://socialdocs.org/docs/community/contributing">contribution guide</a></li>
+<li class=""><strong>Have feedback?</strong> Reach out on the Fediverse</li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="join-the-community">Join the Community<a href="https://socialdocs.org/blog/welcome#join-the-community" class="hash-link" aria-label="Direct link to Join the Community" title="Direct link to Join the Community" translate="no">​</a></h2>
+<ul>
+<li class=""><a href="https://socialhub.activitypub.rocks/" target="_blank" rel="noopener noreferrer" class="">SocialHub Forum</a> - ActivityPub discussions</li>
+<li class=""><a href="https://fedidevs.org/" target="_blank" rel="noopener noreferrer" class="">Fediverse Developers</a> - Developer community</li>
+<li class=""><a href="https://www.w3.org/community/socialcg/" target="_blank" rel="noopener noreferrer" class="">W3C Social CG</a> - Standards development</li>
+</ul>
+<p>Let's build the open social web together!</p>]]></content:encoded>
+            <category>announcement</category>
+            <category>fediverse</category>
+            <category>activitypub</category>
+        </item>
+    </channel>
+</rss>

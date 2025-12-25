@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunktemp_docs=globalThis.webpackChunktemp_docs||[]).push([[8947],{6600(o){o.exports=JSON.parse('{"authors":[{"name":"SocialDocs Team","title":"Documentation Team","url":"https://socialdocs.org","imageURL":"https://socialdocs.org/img/logo.svg","key":"socialdocs","page":null,"count":1}]}')}}]);
