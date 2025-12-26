@@ -112,6 +112,7 @@ const sidebars: SidebarsConfig = {
   ],
 
   referenceSidebar: [
+    'reference/glossary',
     {
       type: 'category',
       label: 'Types Reference',
