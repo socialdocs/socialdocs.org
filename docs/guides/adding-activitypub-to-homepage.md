@@ -34,6 +34,52 @@ This is the Solid convention: the document and the thing it describes are distin
 
 The `id` can be relative — just `"#me"` — and resolves against the document URL.
 
+## Content Negotiation
+
+The standards-compliant approach is **content negotiation**: the same URL serves different representations based on the `Accept` header.
+
+```
+GET /alice
+Accept: text/html           →  HTML page
+Accept: application/ld+json →  JSON-LD actor
+```
+
+However, **static hosts can't do content negotiation** — they serve the same file regardless of headers. And some ActivityPub implementations expect JSON when they request it, even though JSON-LD data islands in HTML are valid per the JSON-LD spec.
+
+### How Fedbox Solves This
+
+Fedbox fetches your static HTML profile, extracts the JSON-LD data island, and serves it with proper content negotiation:
+
+```
+Mastodon                        Fedbox                      Your Homepage
+────────                        ──────                      ─────────────
+GET actor (Accept: JSON) ──────► extracts data island ◄──── static HTML
+                          ◄───── returns JSON-LD
+```
+
+This means your homepage stays static, but Fedbox provides the content negotiation layer.
+
+### Alternative: Proxy-Based Content Negotiation
+
+If you want content negotiation without Fedbox in the middle, you can configure a reverse proxy:
+
+```nginx
+# Nginx content negotiation
+location /alice {
+    if ($http_accept ~* "application/.*json") {
+        rewrite ^ /alice.jsonld last;
+    }
+    # Default: serve HTML
+    try_files /alice.html =404;
+}
+```
+
+Then maintain two files:
+- `/alice.html` — your profile page
+- `/alice.jsonld` — the actor JSON-LD
+
+This is more work but gives you full control without a separate AP server.
+
 ## Step 1: Add JSON-LD to Your Homepage
 
 Add a data island to your existing HTML:
