@@ -12,55 +12,62 @@ Use this checklist to verify your ActivityPub implementation meets the specifica
 
 ### WebFinger (Discovery)
 
-```
-┌────────────────────────────────────────────────────────────┐
-│                    WEBFINGER                               │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│  [ ] /.well-known/webfinger endpoint exists               │
-│  [ ] Accepts ?resource=acct:user@domain parameter          │
-│  [ ] Returns application/jrd+json content type             │
-│  [ ] Response includes subject matching request            │
-│  [ ] Response includes self link                           │
-│  [ ] Self link has type: application/activity+json        │
-│  [ ] Self link href points to actor                        │
-│  [ ] CORS headers allow cross-origin requests              │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
-```
+<svg viewBox="0 0 480 200" style={{maxWidth: '480px', width: '100%', height: 'auto'}}>
+  <defs>
+    <linearGradient id="wfcGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style={{stopColor: '#6364FF', stopOpacity: 0.12}}/>
+      <stop offset="100%" style={{stopColor: '#8b5cf6', stopOpacity: 0.12}}/>
+    </linearGradient>
+  </defs>
+  <rect x="5" y="5" width="470" height="190" rx="10" fill="none" stroke="#6364FF" strokeWidth="2"/>
+  <rect x="5" y="5" width="470" height="26" rx="10" fill="url(#wfcGrad)"/>
+  <text x="240" y="23" textAnchor="middle" fill="currentColor" fontSize="13" fontWeight="700">WEBFINGER</text>
+
+  <text x="25" y="50" fill="currentColor" fontSize="10">☐ /.well-known/webfinger endpoint exists</text>
+  <text x="25" y="68" fill="currentColor" fontSize="10">☐ Accepts ?resource=acct:user@domain parameter</text>
+  <text x="25" y="86" fill="currentColor" fontSize="10">☐ Returns application/jrd+json content type</text>
+  <text x="25" y="104" fill="currentColor" fontSize="10">☐ Response includes subject matching request</text>
+  <text x="25" y="122" fill="currentColor" fontSize="10">☐ Response includes self link</text>
+  <text x="25" y="140" fill="currentColor" fontSize="10">☐ Self link has type: application/activity+json</text>
+  <text x="25" y="158" fill="currentColor" fontSize="10">☐ Self link href points to actor</text>
+  <text x="25" y="176" fill="currentColor" fontSize="10">☐ CORS headers allow cross-origin requests</text>
+</svg>
 
 ### Actor
 
-```
-┌────────────────────────────────────────────────────────────┐
-│                      ACTOR                                 │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│  Required:                                                 │
-│  [ ] id - HTTPS URL, dereferenceable                      │
-│  [ ] type - Person, Group, Service, etc.                  │
-│  [ ] inbox - URL for receiving activities                  │
-│  [ ] outbox - URL for published activities                 │
-│                                                            │
-│  Recommended:                                              │
-│  [ ] preferredUsername - the @handle                       │
-│  [ ] name - display name                                   │
-│  [ ] summary - bio (HTML)                                  │
-│  [ ] publicKey - for HTTP Signatures                       │
-│  [ ] publicKey.id - key identifier                         │
-│  [ ] publicKey.owner - matches actor id                    │
-│  [ ] publicKey.publicKeyPem - PEM format                   │
-│  [ ] followers - collection URL                            │
-│  [ ] following - collection URL                            │
-│  [ ] endpoints.sharedInbox - for efficient delivery        │
-│                                                            │
-│  Optional:                                                 │
-│  [ ] icon - avatar image                                   │
-│  [ ] image - header/banner image                           │
-│  [ ] url - profile page URL                                │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
-```
+<svg viewBox="0 0 520 320" style={{maxWidth: '520px', width: '100%', height: 'auto'}}>
+  <defs>
+    <linearGradient id="actcGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style={{stopColor: '#6364FF', stopOpacity: 0.12}}/>
+      <stop offset="100%" style={{stopColor: '#8b5cf6', stopOpacity: 0.12}}/>
+    </linearGradient>
+  </defs>
+  <rect x="5" y="5" width="510" height="310" rx="10" fill="none" stroke="#6364FF" strokeWidth="2"/>
+  <rect x="5" y="5" width="510" height="26" rx="10" fill="url(#actcGrad)"/>
+  <text x="260" y="23" textAnchor="middle" fill="currentColor" fontSize="13" fontWeight="700">ACTOR</text>
+
+  <text x="25" y="50" fill="#6364FF" fontSize="11" fontWeight="600">Required:</text>
+  <text x="25" y="68" fill="currentColor" fontSize="10">☐ id - HTTPS URL, dereferenceable</text>
+  <text x="25" y="84" fill="currentColor" fontSize="10">☐ type - Person, Group, Service, etc.</text>
+  <text x="25" y="100" fill="currentColor" fontSize="10">☐ inbox - URL for receiving activities</text>
+  <text x="25" y="116" fill="currentColor" fontSize="10">☐ outbox - URL for published activities</text>
+
+  <text x="25" y="140" fill="#6364FF" fontSize="11" fontWeight="600">Recommended:</text>
+  <text x="25" y="158" fill="currentColor" fontSize="10">☐ preferredUsername - the @handle</text>
+  <text x="25" y="174" fill="currentColor" fontSize="10">☐ name - display name</text>
+  <text x="25" y="190" fill="currentColor" fontSize="10">☐ summary - bio (HTML)</text>
+  <text x="25" y="206" fill="currentColor" fontSize="10">☐ publicKey - for HTTP Signatures</text>
+  <text x="260" y="158" fill="currentColor" fontSize="10">☐ publicKey.id - key identifier</text>
+  <text x="260" y="174" fill="currentColor" fontSize="10">☐ publicKey.owner - matches actor id</text>
+  <text x="260" y="190" fill="currentColor" fontSize="10">☐ publicKey.publicKeyPem - PEM format</text>
+  <text x="260" y="206" fill="currentColor" fontSize="10">☐ followers/following - collection URLs</text>
+  <text x="260" y="222" fill="currentColor" fontSize="10">☐ endpoints.sharedInbox - efficient delivery</text>
+
+  <text x="25" y="250" fill="#6364FF" fontSize="11" fontWeight="600">Optional:</text>
+  <text x="25" y="268" fill="currentColor" fontSize="10">☐ icon - avatar image</text>
+  <text x="25" y="284" fill="currentColor" fontSize="10">☐ image - header/banner image</text>
+  <text x="25" y="300" fill="currentColor" fontSize="10">☐ url - profile page URL</text>
+</svg>
 
 ### Content Negotiation
 

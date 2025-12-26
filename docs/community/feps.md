@@ -10,24 +10,44 @@ Fediverse Enhancement Proposals (FEPs) are documents that provide information to
 
 ## What is a FEP?
 
-```
-┌────────────────────────────────────────────────────────────┐
-│                   FEP LIFECYCLE                            │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│  ┌─────────┐    ┌─────────┐    ┌─────────┐               │
-│  │  DRAFT  │───▶│  FINAL  │    │WITHDRAWN│               │
-│  └─────────┘    └─────────┘    └─────────┘               │
-│       │              ▲              ▲                     │
-│       │              │              │                     │
-│       └──────────────┴──────────────┘                     │
-│                                                            │
-│  DRAFT     - Under discussion and development             │
-│  FINAL     - Accepted specification                        │
-│  WITHDRAWN - No longer maintained                          │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
-```
+<svg viewBox="0 0 500 180" style={{maxWidth: '500px', width: '100%', height: 'auto'}}>
+  <defs>
+    <linearGradient id="fepGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style={{stopColor: '#6364FF', stopOpacity: 0.12}}/>
+      <stop offset="100%" style={{stopColor: '#8b5cf6', stopOpacity: 0.12}}/>
+    </linearGradient>
+  </defs>
+  <rect x="5" y="5" width="490" height="170" rx="10" fill="none" stroke="#6364FF" strokeWidth="2"/>
+  <rect x="5" y="5" width="490" height="26" rx="10" fill="url(#fepGrad)"/>
+  <text x="250" y="23" textAnchor="middle" fill="currentColor" fontSize="13" fontWeight="700">FEP LIFECYCLE</text>
+
+  {/* Draft */}
+  <rect x="30" y="50" width="100" height="36" rx="6" fill="url(#fepGrad)" stroke="#6364FF" strokeWidth="2"/>
+  <text x="80" y="73" textAnchor="middle" fill="currentColor" fontSize="12" fontWeight="600">DRAFT</text>
+
+  {/* Arrow to Final */}
+  <line x1="130" y1="68" x2="170" y2="68" stroke="#6364FF" strokeWidth="2"/>
+  <polygon points="167,64 177,68 167,72" fill="#6364FF"/>
+
+  {/* Final */}
+  <rect x="180" y="50" width="100" height="36" rx="6" fill="#6364FF"/>
+  <text x="230" y="73" textAnchor="middle" fill="white" fontSize="12" fontWeight="600">FINAL</text>
+
+  {/* Withdrawn */}
+  <rect x="320" y="50" width="110" height="36" rx="6" fill="url(#fepGrad)" stroke="#6364FF" strokeWidth="1.5"/>
+  <text x="375" y="73" textAnchor="middle" fill="currentColor" fontSize="12" fontWeight="600">WITHDRAWN</text>
+
+  {/* Arrows from Draft */}
+  <path d="M 80 86 L 80 105 L 200 105" fill="none" stroke="#6364FF" strokeWidth="1.5" strokeDasharray="4,2"/>
+  <path d="M 80 105 L 340 105" fill="none" stroke="#6364FF" strokeWidth="1.5" strokeDasharray="4,2"/>
+  <polygon points="200,101 200,109 210,105" fill="#6364FF"/>
+  <polygon points="337,101 337,109 347,105" fill="#6364FF"/>
+
+  {/* Labels */}
+  <text x="30" y="140" fill="currentColor" fontSize="10"><tspan fontWeight="500">DRAFT</tspan> - Under discussion</text>
+  <text x="30" y="158" fill="currentColor" fontSize="10"><tspan fontWeight="500">FINAL</tspan> - Accepted specification</text>
+  <text x="260" y="140" fill="currentColor" fontSize="10"><tspan fontWeight="500">WITHDRAWN</tspan> - No longer maintained</text>
+</svg>
 
 A FEP can:
 - Propose a new feature or extension
@@ -228,29 +248,40 @@ These drafts are actively being developed:
 
 ## Relationship to Standards
 
-```
-┌────────────────────────────────────────────────────────────┐
-│                 STANDARDS HIERARCHY                        │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│  W3C Recommendations                                       │
-│  ├── ActivityPub (W3C REC)                                │
-│  └── ActivityStreams 2.0 (W3C REC)                        │
-│       │                                                    │
-│       ▼                                                    │
-│  Fediverse Enhancement Proposals                          │
-│  ├── Extensions to ActivityPub                            │
-│  ├── Interoperability requirements                        │
-│  └── Best practices                                        │
-│       │                                                    │
-│       ▼                                                    │
-│  Implementation-Specific Extensions                        │
-│  ├── Mastodon (toot: namespace)                           │
-│  ├── Lemmy (lemmy: namespace)                             │
-│  └── Others                                                │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
-```
+<svg viewBox="0 0 480 260" style={{maxWidth: '480px', width: '100%', height: 'auto'}}>
+  <defs>
+    <linearGradient id="stdGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style={{stopColor: '#6364FF', stopOpacity: 0.12}}/>
+      <stop offset="100%" style={{stopColor: '#8b5cf6', stopOpacity: 0.12}}/>
+    </linearGradient>
+  </defs>
+  <rect x="5" y="5" width="470" height="250" rx="10" fill="none" stroke="#6364FF" strokeWidth="2"/>
+  <rect x="5" y="5" width="470" height="26" rx="10" fill="url(#stdGrad)"/>
+  <text x="240" y="23" textAnchor="middle" fill="currentColor" fontSize="13" fontWeight="700">STANDARDS HIERARCHY</text>
+
+  {/* W3C Layer */}
+  <rect x="25" y="45" width="430" height="55" rx="6" fill="#6364FF"/>
+  <text x="240" y="65" textAnchor="middle" fill="white" fontSize="11" fontWeight="600">W3C Recommendations</text>
+  <text x="240" y="82" textAnchor="middle" fill="white" fontSize="10" opacity="0.9">ActivityPub • ActivityStreams 2.0</text>
+
+  {/* Arrow */}
+  <line x1="240" y1="100" x2="240" y2="115" stroke="#6364FF" strokeWidth="2"/>
+  <polygon points="237,112 240,122 243,112" fill="#6364FF"/>
+
+  {/* FEP Layer */}
+  <rect x="25" y="125" width="430" height="55" rx="6" fill="url(#stdGrad)" stroke="#6364FF" strokeWidth="1.5"/>
+  <text x="240" y="145" textAnchor="middle" fill="#6364FF" fontSize="11" fontWeight="600">Fediverse Enhancement Proposals</text>
+  <text x="240" y="162" textAnchor="middle" fill="currentColor" fontSize="10" opacity="0.9">Extensions • Interoperability • Best practices</text>
+
+  {/* Arrow */}
+  <line x1="240" y1="180" x2="240" y2="195" stroke="#6364FF" strokeWidth="2"/>
+  <polygon points="237,192 240,202 243,192" fill="#6364FF"/>
+
+  {/* Implementation Layer */}
+  <rect x="25" y="205" width="430" height="40" rx="6" fill="url(#stdGrad)" stroke="#6364FF" strokeWidth="1"/>
+  <text x="240" y="222" textAnchor="middle" fill="currentColor" fontSize="11" fontWeight="600">Implementation-Specific Extensions</text>
+  <text x="240" y="238" textAnchor="middle" fill="currentColor" fontSize="10" opacity="0.8">Mastodon (toot:) • Lemmy (lemmy:) • Others</text>
+</svg>
 
 FEPs bridge the gap between W3C specifications and implementation-specific extensions, providing community-driven standards.
 
