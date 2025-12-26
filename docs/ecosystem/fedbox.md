@@ -137,6 +137,20 @@ https://me.example.com               https://fedbox.example.com
 
 The profile can be hosted on GitHub Pages, S3, or any static server.
 
+### Remote Profile via Data Island
+
+Fedbox can fetch identity from a static HTML page with embedded JSON-LD:
+
+```json
+{
+  "username": "alice",
+  "profileUrl": "https://me.example.com/alice",
+  "domain": "fedbox.example.com"
+}
+```
+
+Fedbox extracts the `<script type="application/ld+json">` data island, merges with local AP endpoints, and serves with proper content negotiation.
+
 ## Nostr Identity
 
 Link your Nostr pubkey (64-char hex):
@@ -235,6 +249,7 @@ fedbox clean --all      # Remove all data
 |-------|-------------|
 | `domain` | Public domain for federation |
 | `apServer` | External AP server URL (separated mode) |
+| `profileUrl` | Remote HTML profile URL (extracts JSON-LD data island) |
 | `nostrPubkey` | 64-char hex Nostr pubkey |
 | `avatar` | Avatar filename in `public/` |
 
@@ -268,6 +283,12 @@ Fedbox uses [microfed](https://github.com/micro-fed/microfed.org) for ActivityPu
 - ✅ WebID at `#me` fragment
 - ✅ JSON-LD profile document
 - ✅ Content negotiation (HTML/JSON-LD)
+
+### With Nostr
+
+- ✅ `did:nostr` in `alsoKnownAs`
+- ✅ Hex pubkey linking (64-char)
+- ✅ Cross-protocol identity
 
 ## See Also
 
