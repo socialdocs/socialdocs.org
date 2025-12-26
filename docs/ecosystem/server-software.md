@@ -35,6 +35,15 @@ The Fediverse consists of many different server software implementations, each w
 | Funkwhale | Python | Music streaming |
 | Owncast | Go | Live streaming |
 
+### Minimal / Single-User
+
+| Software | Language | Description |
+|----------|----------|-------------|
+| [Fedbox](https://github.com/micro-fed/fedbox) | JavaScript | Zero to Fediverse in 60 seconds |
+| [microfed](https://github.com/micro-fed/microfed.org) | JavaScript | Modular ActivityPub library |
+| Takahē | Python | Multi-domain, single-user |
+| Ktistec | Crystal | Single-user, lightweight |
+
 ### Other
 
 | Software | Language | Description |
@@ -53,6 +62,7 @@ Consider:
 - **Mastodon** - Most features, biggest network effect
 - **GoToSocial** - Lightweight, privacy-focused
 - **Pleroma** - Customizable, lower resources
+- **Fedbox** - Minimal CLI-first, Solid-compatible
 
 ### For Communities
 
@@ -85,6 +95,7 @@ Consider:
 
 ### Low (Single-user or small)
 
+- **Fedbox**: Minimal RAM, Node.js, SQLite
 - **GoToSocial**: 256MB RAM, single binary
 - **Pleroma**: 512MB RAM
 - **Akkoma**: 512MB RAM
