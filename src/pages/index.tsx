@@ -174,21 +174,57 @@ function HomepageFeatures() {
   );
 }
 
+type PlatformItem = {
+  name: string;
+  color: string;
+  users: string;
+  link: string;
+};
+
+const platforms: PlatformItem[] = [
+  { name: 'Mastodon', color: '#6364FF', users: '10M+', link: '/docs/ecosystem/mastodon' },
+  { name: 'Lemmy', color: '#00bc8c', users: '500K+', link: '/docs/ecosystem/lemmy' },
+  { name: 'Pixelfed', color: '#e44a8d', users: '300K+', link: '/docs/ecosystem/pixelfed' },
+  { name: 'PeerTube', color: '#f2690d', users: '400K+', link: '/docs/ecosystem/peertube' },
+  { name: 'Misskey', color: '#96d04a', users: '1M+', link: '/docs/ecosystem/misskey' },
+  { name: 'Pleroma', color: '#fba457', users: '100K+', link: '/docs/ecosystem/pleroma' },
+  { name: 'GoToSocial', color: '#df8958', users: '50K+', link: '/docs/ecosystem/gotosocial' },
+  { name: 'Friendica', color: '#3f8dba', users: '30K+', link: '/docs/ecosystem/mastodon' },
+];
+
+function PlatformLogo({ name, color }: { name: string; color: string }) {
+  return (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      <circle cx="24" cy="24" r="22" fill={color} fillOpacity="0.15" stroke={color} strokeWidth="2"/>
+      <text x="24" y="29" textAnchor="middle" fill={color} fontSize="16" fontWeight="bold" fontFamily="system-ui">
+        {name.charAt(0)}
+      </text>
+    </svg>
+  );
+}
+
 function CompatibilitySection() {
   return (
     <section className={styles.compatibility}>
       <div className="container">
-        <Heading as="h2" className={styles.sectionTitle}>Fediverse Compatibility</Heading>
+        <Heading as="h2" className={styles.sectionTitle}>Trusted Across the Fediverse</Heading>
         <p className={styles.sectionSubtitle}>
-          Build software that works with the entire Fediverse ecosystem
+          Build software compatible with 13+ million users across these platforms
         </p>
         <div className={styles.platformGrid}>
-          {['Mastodon', 'Lemmy', 'Pixelfed', 'PeerTube', 'Misskey', 'Pleroma', 'GoToSocial', 'Friendica'].map((platform) => (
-            <div key={platform} className={styles.platformBadge}>
-              {platform}
-            </div>
+          {platforms.map((platform) => (
+            <Link key={platform.name} to={platform.link} className={styles.platformCard}>
+              <PlatformLogo name={platform.name} color={platform.color} />
+              <div className={styles.platformInfo}>
+                <span className={styles.platformName}>{platform.name}</span>
+                <span className={styles.platformUsers}>{platform.users} users</span>
+              </div>
+            </Link>
           ))}
         </div>
+        <p className={styles.trustNote}>
+          ActivityPub is a <a href="https://www.w3.org/TR/activitypub/">W3C Recommendation</a> — the open standard powering the decentralized social web.
+        </p>
       </div>
     </section>
   );
