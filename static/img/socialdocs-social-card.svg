@@ -1,0 +1,84 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e"/>
+      <stop offset="50%" style="stop-color:#16213e"/>
+      <stop offset="100%" style="stop-color:#0f0f23"/>
+    </linearGradient>
+    <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#6364FF"/>
+      <stop offset="100%" style="stop-color:#a855f7"/>
+    </linearGradient>
+    <linearGradient id="nodeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6364FF"/>
+      <stop offset="100%" style="stop-color:#8b5cf6"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bgGradient)"/>
+
+  <!-- Decorative grid pattern -->
+  <g opacity="0.05">
+    <line x1="0" y1="100" x2="1200" y2="100" stroke="white" stroke-width="1"/>
+    <line x1="0" y1="200" x2="1200" y2="200" stroke="white" stroke-width="1"/>
+    <line x1="0" y1="300" x2="1200" y2="300" stroke="white" stroke-width="1"/>
+    <line x1="0" y1="400" x2="1200" y2="400" stroke="white" stroke-width="1"/>
+    <line x1="0" y1="500" x2="1200" y2="500" stroke="white" stroke-width="1"/>
+    <line x1="200" y1="0" x2="200" y2="630" stroke="white" stroke-width="1"/>
+    <line x1="400" y1="0" x2="400" y2="630" stroke="white" stroke-width="1"/>
+    <line x1="600" y1="0" x2="600" y2="630" stroke="white" stroke-width="1"/>
+    <line x1="800" y1="0" x2="800" y2="630" stroke="white" stroke-width="1"/>
+    <line x1="1000" y1="0" x2="1000" y2="630" stroke="white" stroke-width="1"/>
+  </g>
+
+  <!-- Federation network visualization -->
+  <g opacity="0.6">
+    <!-- Connection lines -->
+    <line x1="950" y1="120" x2="1050" y2="200" stroke="#6364FF" stroke-width="2" opacity="0.5"/>
+    <line x1="1050" y1="200" x2="1100" y2="320" stroke="#6364FF" stroke-width="2" opacity="0.5"/>
+    <line x1="1100" y1="320" x2="1000" y2="420" stroke="#6364FF" stroke-width="2" opacity="0.5"/>
+    <line x1="1000" y1="420" x2="900" y2="350" stroke="#6364FF" stroke-width="2" opacity="0.5"/>
+    <line x1="900" y1="350" x2="950" y2="120" stroke="#6364FF" stroke-width="2" opacity="0.5"/>
+    <line x1="900" y1="350" x2="1050" y2="200" stroke="#6364FF" stroke-width="2" opacity="0.3"/>
+    <line x1="950" y1="120" x2="1100" y2="320" stroke="#6364FF" stroke-width="2" opacity="0.3"/>
+
+    <!-- Nodes -->
+    <circle cx="950" cy="120" r="20" fill="url(#nodeGradient)"/>
+    <circle cx="1050" cy="200" r="16" fill="url(#nodeGradient)"/>
+    <circle cx="1100" cy="320" r="24" fill="url(#nodeGradient)"/>
+    <circle cx="1000" cy="420" r="18" fill="url(#nodeGradient)"/>
+    <circle cx="900" cy="350" r="14" fill="url(#nodeGradient)"/>
+
+    <!-- Small decorative nodes -->
+    <circle cx="870" cy="150" r="6" fill="#6364FF" opacity="0.4"/>
+    <circle cx="1130" cy="250" r="8" fill="#6364FF" opacity="0.4"/>
+    <circle cx="850" cy="450" r="5" fill="#6364FF" opacity="0.4"/>
+    <circle cx="1080" cy="480" r="7" fill="#6364FF" opacity="0.4"/>
+  </g>
+
+  <!-- Accent line -->
+  <rect x="80" y="240" width="80" height="6" rx="3" fill="url(#accentGradient)"/>
+
+  <!-- Main title -->
+  <text x="80" y="320" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="72" font-weight="700" fill="white">
+    SocialDocs
+  </text>
+
+  <!-- Tagline -->
+  <text x="80" y="380" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="28" font-weight="400" fill="#a1a1aa">
+    The Developer Resource for
+  </text>
+  <text x="80" y="420" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="28" font-weight="600" fill="url(#accentGradient)">
+    ActivityPub &amp; the Fediverse
+  </text>
+
+  <!-- URL -->
+  <text x="80" y="540" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="24" font-weight="500" fill="#6364FF">
+    socialdocs.org
+  </text>
+
+  <!-- Bottom accent bar -->
+  <rect x="0" y="620" width="1200" height="10" fill="url(#accentGradient)"/>
+</svg>
