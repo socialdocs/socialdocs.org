@@ -39,7 +39,7 @@ The Fediverse consists of many different server software implementations, each w
 
 | Software | Language | Description |
 |----------|----------|-------------|
-| [Fedbox](https://github.com/micro-fed/fedbox) | JavaScript | Zero to Fediverse in 60 seconds |
+| [Fedbox](/docs/ecosystem/fedbox) | JavaScript | Zero to Fediverse in 60 seconds |
 | [microfed](https://github.com/micro-fed/microfed.org) | JavaScript | Modular ActivityPub library |
 | Takahē | Python | Multi-domain, single-user |
 | Ktistec | Crystal | Single-user, lightweight |

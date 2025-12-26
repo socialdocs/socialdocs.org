@@ -87,6 +87,66 @@ app.route(apex.routes.inbox)
   .post(apex.net.inbox.post);
 ```
 
+## microfed
+
+Minimal, modular ActivityPub microservices library.
+
+| Property | Value |
+|----------|-------|
+| Repository | [github.com/micro-fed/microfed.org](https://github.com/micro-fed/microfed.org) |
+| npm | `microfed` |
+| License | MIT |
+| Status | Active |
+
+### Features
+
+- Zero dependencies (uses Node.js crypto)
+- Modular exports (profile, auth, webfinger, inbox, outbox)
+- HTTP Signature signing and verification
+- WebFinger resolution
+- Activity creation and delivery
+
+### Example
+
+```javascript
+import { profile, auth, webfinger, outbox } from 'microfed';
+
+// Generate keypair
+const { publicKey, privateKey } = auth.generateKeypair();
+
+// Create actor
+const actor = profile.createActor({
+  id: 'https://example.com/alice#me',
+  username: 'alice',
+  name: 'Alice',
+  publicKey
+});
+
+// Create and sign a post
+const note = outbox.createNote({
+  actor: actor.id,
+  content: '<p>Hello!</p>'
+});
+
+// Sign HTTP request
+const headers = auth.sign({
+  privateKey,
+  keyId: 'https://example.com/alice#main-key',
+  method: 'POST',
+  url: 'https://remote.example/inbox',
+  body: JSON.stringify(note)
+});
+```
+
+### Modular Imports
+
+```javascript
+// Import only what you need
+import { sign, verify } from 'microfed/auth';
+import { createActor } from 'microfed/profile';
+import { resolve } from 'microfed/webfinger';
+```
+
 ## as2
 
 ActivityStreams 2.0 vocabulary library.
@@ -179,6 +239,7 @@ const compacted = await jsonld.compact(expanded, {
 |---------|----------|------------|----------|
 | Fedify | Full server | High | Complete framework |
 | activitypub-express | Express apps | Medium | Middleware |
+| microfed | Minimal server | Low | Modular primitives |
 | as2 | Types only | Low | Vocabulary |
 | http-signature | Signing | Low | HTTP Signatures |
 
@@ -187,6 +248,8 @@ const compacted = await jsonld.compact(expanded, {
 **For new projects**: Use Fedify for comprehensive TypeScript support.
 
 **For existing Express apps**: Use activitypub-express.
+
+**For minimal/single-user**: Use microfed with Fedbox.
 
 **For manual implementation**: Combine http-signature + jsonld + custom code.
 
