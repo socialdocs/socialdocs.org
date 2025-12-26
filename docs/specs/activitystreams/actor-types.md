@@ -10,19 +10,47 @@ Actors are the entities that perform activities in ActivityPub. They represent u
 
 ## Actor Types Overview
 
-```
-┌────────────────────────────────────────────────────────────┐
-│                      ACTOR TYPES                           │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│  Person       - Individual human user                      │
-│  Group        - Collection of actors (communities)         │
-│  Organization - Business or organization                   │
-│  Application  - Software application (bots)                │
-│  Service      - Automated service                          │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
-```
+<svg viewBox="0 0 520 160" style={{maxWidth: '520px', width: '100%', height: 'auto'}}>
+  <defs>
+    <linearGradient id="actorGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style={{stopColor: '#6364FF', stopOpacity: 0.12}}/>
+      <stop offset="100%" style={{stopColor: '#8b5cf6', stopOpacity: 0.12}}/>
+    </linearGradient>
+  </defs>
+  <rect x="5" y="5" width="510" height="150" rx="12" fill="none" stroke="#6364FF" strokeWidth="2"/>
+  <rect x="5" y="5" width="510" height="32" rx="12" fill="url(#actorGrad2)"/>
+  <text x="260" y="26" textAnchor="middle" fill="currentColor" fontSize="14" fontWeight="700">ACTOR TYPES</text>
+
+  {/* Person */}
+  <rect x="20" y="50" width="90" height="44" rx="6" fill="url(#actorGrad2)" stroke="#6364FF" strokeWidth="1.5"/>
+  <text x="65" y="68" textAnchor="middle" fill="#6364FF" fontSize="12" fontWeight="600">Person</text>
+  <text x="65" y="84" textAnchor="middle" fill="currentColor" fontSize="9" opacity="0.7">Human user</text>
+
+  {/* Group */}
+  <rect x="120" y="50" width="90" height="44" rx="6" fill="url(#actorGrad2)" stroke="#6364FF" strokeWidth="1.5"/>
+  <text x="165" y="68" textAnchor="middle" fill="#6364FF" fontSize="12" fontWeight="600">Group</text>
+  <text x="165" y="84" textAnchor="middle" fill="currentColor" fontSize="9" opacity="0.7">Communities</text>
+
+  {/* Organization */}
+  <rect x="220" y="50" width="90" height="44" rx="6" fill="url(#actorGrad2)" stroke="#6364FF" strokeWidth="1.5"/>
+  <text x="265" y="68" textAnchor="middle" fill="#6364FF" fontSize="11" fontWeight="600">Organization</text>
+  <text x="265" y="84" textAnchor="middle" fill="currentColor" fontSize="9" opacity="0.7">Business</text>
+
+  {/* Application */}
+  <rect x="320" y="50" width="90" height="44" rx="6" fill="url(#actorGrad2)" stroke="#6364FF" strokeWidth="1.5"/>
+  <text x="365" y="68" textAnchor="middle" fill="#6364FF" fontSize="11" fontWeight="600">Application</text>
+  <text x="365" y="84" textAnchor="middle" fill="currentColor" fontSize="9" opacity="0.7">Bots</text>
+
+  {/* Service */}
+  <rect x="420" y="50" width="90" height="44" rx="6" fill="url(#actorGrad2)" stroke="#6364FF" strokeWidth="1.5"/>
+  <text x="465" y="68" textAnchor="middle" fill="#6364FF" fontSize="12" fontWeight="600">Service</text>
+  <text x="465" y="84" textAnchor="middle" fill="currentColor" fontSize="9" opacity="0.7">Automated</text>
+
+  {/* Descriptions */}
+  <text x="20" y="115" fill="currentColor" fontSize="10" opacity="0.8">👤 Person: Individual accounts</text>
+  <text x="20" y="130" fill="currentColor" fontSize="10" opacity="0.8">👥 Group: Lemmy communities, PeerTube channels</text>
+  <text x="20" y="145" fill="currentColor" fontSize="10" opacity="0.8">🤖 Application/Service: Bots, relays, system actors</text>
+</svg>
 
 ## Person
 

@@ -10,32 +10,77 @@ ActivityStreams 2.0 defines a small set of core types that form the foundation f
 
 ## Type Hierarchy
 
-```
-┌────────────────────────────────────────────────────────────┐
-│                 ACTIVITYSTREAMS TYPE HIERARCHY             │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│  Object (base type)                                        │
-│  ├── Activity                                              │
-│  │   ├── IntransitiveActivity                              │
-│  │   └── (All activity types)                              │
-│  ├── Actor                                                 │
-│  │   ├── Person                                            │
-│  │   ├── Group                                             │
-│  │   ├── Application                                       │
-│  │   ├── Service                                           │
-│  │   └── Organization                                      │
-│  ├── Collection                                            │
-│  │   ├── OrderedCollection                                 │
-│  │   ├── CollectionPage                                    │
-│  │   └── OrderedCollectionPage                             │
-│  └── (Content types: Note, Article, etc.)                  │
-│                                                            │
-│  Link (separate from Object)                               │
-│  └── Mention                                               │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
-```
+<svg viewBox="0 0 500 340" style={{maxWidth: '500px', width: '100%', height: 'auto'}}>
+  <defs>
+    <linearGradient id="typeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style={{stopColor: '#6364FF', stopOpacity: 0.12}}/>
+      <stop offset="100%" style={{stopColor: '#8b5cf6', stopOpacity: 0.12}}/>
+    </linearGradient>
+  </defs>
+  <rect x="5" y="5" width="490" height="330" rx="12" fill="none" stroke="#6364FF" strokeWidth="2"/>
+  <rect x="5" y="5" width="490" height="32" rx="12" fill="url(#typeGrad)"/>
+  <text x="250" y="26" textAnchor="middle" fill="currentColor" fontSize="14" fontWeight="700">ACTIVITYSTREAMS TYPE HIERARCHY</text>
+
+  {/* Object - root */}
+  <rect x="20" y="50" width="110" height="28" rx="6" fill="url(#typeGrad)" stroke="#6364FF" strokeWidth="2"/>
+  <text x="75" y="69" textAnchor="middle" fill="currentColor" fontSize="12" fontWeight="600">Object</text>
+  <text x="135" y="69" fill="currentColor" fontSize="10" opacity="0.7">(base type)</text>
+
+  {/* Activity branch */}
+  <line x1="40" y1="78" x2="40" y2="100" stroke="#6364FF" strokeWidth="1.5"/>
+  <line x1="40" y1="100" x2="55" y2="100" stroke="#6364FF" strokeWidth="1.5"/>
+  <rect x="55" y="88" width="90" height="24" rx="5" fill="url(#typeGrad)" stroke="#6364FF" strokeWidth="1"/>
+  <text x="100" y="105" textAnchor="middle" fill="currentColor" fontSize="11" fontWeight="500">Activity</text>
+
+  <line x1="70" y1="112" x2="70" y2="130" stroke="#6364FF" strokeWidth="1" opacity="0.6"/>
+  <line x1="70" y1="130" x2="85" y2="130" stroke="#6364FF" strokeWidth="1" opacity="0.6"/>
+  <text x="90" y="134" fill="currentColor" fontSize="10" opacity="0.7">├ IntransitiveActivity</text>
+  <line x1="70" y1="130" x2="70" y2="148" stroke="#6364FF" strokeWidth="1" opacity="0.6"/>
+  <line x1="70" y1="148" x2="85" y2="148" stroke="#6364FF" strokeWidth="1" opacity="0.6"/>
+  <text x="90" y="152" fill="currentColor" fontSize="10" opacity="0.7">└ (All activity types)</text>
+
+  {/* Actor branch */}
+  <line x1="40" y1="100" x2="40" y2="175" stroke="#6364FF" strokeWidth="1.5"/>
+  <line x1="40" y1="175" x2="55" y2="175" stroke="#6364FF" strokeWidth="1.5"/>
+  <rect x="55" y="163" width="90" height="24" rx="5" fill="url(#typeGrad)" stroke="#6364FF" strokeWidth="1"/>
+  <text x="100" y="180" textAnchor="middle" fill="currentColor" fontSize="11" fontWeight="500">Actor</text>
+
+  <text x="155" y="168" fill="currentColor" fontSize="9" opacity="0.7">Person, Group,</text>
+  <text x="155" y="180" fill="currentColor" fontSize="9" opacity="0.7">Application, Service,</text>
+  <text x="155" y="192" fill="currentColor" fontSize="9" opacity="0.7">Organization</text>
+
+  {/* Collection branch */}
+  <line x1="40" y1="175" x2="40" y2="225" stroke="#6364FF" strokeWidth="1.5"/>
+  <line x1="40" y1="225" x2="55" y2="225" stroke="#6364FF" strokeWidth="1.5"/>
+  <rect x="55" y="213" width="90" height="24" rx="5" fill="url(#typeGrad)" stroke="#6364FF" strokeWidth="1"/>
+  <text x="100" y="230" textAnchor="middle" fill="currentColor" fontSize="11" fontWeight="500">Collection</text>
+
+  <text x="155" y="223" fill="currentColor" fontSize="9" opacity="0.7">OrderedCollection,</text>
+  <text x="155" y="235" fill="currentColor" fontSize="9" opacity="0.7">CollectionPage, ...</text>
+
+  {/* Content types */}
+  <line x1="40" y1="225" x2="40" y2="260" stroke="#6364FF" strokeWidth="1.5"/>
+  <line x1="40" y1="260" x2="55" y2="260" stroke="#6364FF" strokeWidth="1.5"/>
+  <text x="60" y="264" fill="currentColor" fontSize="10" opacity="0.7">└ (Note, Article, Image, Video...)</text>
+
+  {/* Link - separate */}
+  <rect x="300" y="50" width="90" height="28" rx="6" fill="url(#typeGrad)" stroke="#6364FF" strokeWidth="2"/>
+  <text x="345" y="69" textAnchor="middle" fill="currentColor" fontSize="12" fontWeight="600">Link</text>
+  <text x="395" y="69" fill="currentColor" fontSize="10" opacity="0.7">(separate)</text>
+
+  <line x1="320" y1="78" x2="320" y2="100" stroke="#6364FF" strokeWidth="1.5"/>
+  <line x1="320" y1="100" x2="335" y2="100" stroke="#6364FF" strokeWidth="1.5"/>
+  <rect x="335" y="88" width="80" height="24" rx="5" fill="url(#typeGrad)" stroke="#6364FF" strokeWidth="1"/>
+  <text x="375" y="105" textAnchor="middle" fill="currentColor" fontSize="11" fontWeight="500">Mention</text>
+
+  {/* Legend */}
+  <rect x="300" y="280" width="180" height="45" rx="6" fill="url(#typeGrad)" stroke="#6364FF" strokeWidth="1" opacity="0.5"/>
+  <text x="310" y="298" fill="currentColor" fontSize="10" fontWeight="500">Legend:</text>
+  <rect x="310" y="305" width="12" height="12" rx="2" fill="url(#typeGrad)" stroke="#6364FF" strokeWidth="2"/>
+  <text x="328" y="315" fill="currentColor" fontSize="9">Base type</text>
+  <rect x="390" y="305" width="12" height="12" rx="2" fill="url(#typeGrad)" stroke="#6364FF" strokeWidth="1"/>
+  <text x="408" y="315" fill="currentColor" fontSize="9">Subtype</text>
+</svg>
 
 ## Object
 

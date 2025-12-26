@@ -10,32 +10,57 @@ Delivery is the process of sending activities from your server to remote inboxes
 
 ## Delivery Overview
 
-```
-┌────────────────────────────────────────────────┐
-│              DELIVERY PIPELINE                 │
-├────────────────────────────────────────────────┤
-│                                                │
-│  1. Activity Created                           │
-│     ↓                                          │
-│  2. Resolve Recipients                         │
-│     - Expand Public address                    │
-│     - Expand followers collection              │
-│     - Resolve mentioned actors                 │
-│     ↓                                          │
-│  3. Deduplicate Inboxes                        │
-│     - Use shared inbox when available          │
-│     - Remove duplicates                        │
-│     ↓                                          │
-│  4. Sign and Send                              │
-│     - Create HTTP Signature                    │
-│     - POST to each inbox                       │
-│     ↓                                          │
-│  5. Handle Failures                            │
-│     - Retry with backoff                       │
-│     - Track dead servers                       │
-│                                                │
-└────────────────────────────────────────────────┘
-```
+<svg viewBox="0 0 440 320" style={{maxWidth: '440px', width: '100%', height: 'auto'}}>
+  <defs>
+    <linearGradient id="delGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style={{stopColor: '#6364FF', stopOpacity: 0.12}}/>
+      <stop offset="100%" style={{stopColor: '#8b5cf6', stopOpacity: 0.12}}/>
+    </linearGradient>
+  </defs>
+  <rect x="5" y="5" width="430" height="310" rx="12" fill="none" stroke="#6364FF" strokeWidth="2"/>
+  <rect x="5" y="5" width="430" height="32" rx="12" fill="url(#delGrad)"/>
+  <text x="220" y="26" textAnchor="middle" fill="currentColor" fontSize="14" fontWeight="700">DELIVERY PIPELINE</text>
+
+  {/* Step 1 */}
+  <circle cx="30" cy="60" r="12" fill="#6364FF"/><text x="30" y="64" textAnchor="middle" fill="white" fontSize="11" fontWeight="600">1</text>
+  <text x="50" y="64" fill="currentColor" fontSize="12" fontWeight="600">Activity Created</text>
+
+  {/* Arrow */}
+  <line x1="30" y1="75" x2="30" y2="95" stroke="#6364FF" strokeWidth="2" strokeDasharray="3,2"/>
+  <polygon points="27,92 30,100 33,92" fill="#6364FF"/>
+
+  {/* Step 2 */}
+  <circle cx="30" cy="115" r="12" fill="#6364FF"/><text x="30" y="119" textAnchor="middle" fill="white" fontSize="11" fontWeight="600">2</text>
+  <text x="50" y="112" fill="currentColor" fontSize="12" fontWeight="600">Resolve Recipients</text>
+  <text x="50" y="128" fill="currentColor" fontSize="10" opacity="0.7">Expand Public, followers, mentions</text>
+
+  {/* Arrow */}
+  <line x1="30" y1="135" x2="30" y2="155" stroke="#6364FF" strokeWidth="2" strokeDasharray="3,2"/>
+  <polygon points="27,152 30,160 33,152" fill="#6364FF"/>
+
+  {/* Step 3 */}
+  <circle cx="30" cy="175" r="12" fill="#6364FF"/><text x="30" y="179" textAnchor="middle" fill="white" fontSize="11" fontWeight="600">3</text>
+  <text x="50" y="172" fill="currentColor" fontSize="12" fontWeight="600">Deduplicate Inboxes</text>
+  <text x="50" y="188" fill="currentColor" fontSize="10" opacity="0.7">Use shared inbox, remove duplicates</text>
+
+  {/* Arrow */}
+  <line x1="30" y1="195" x2="30" y2="215" stroke="#6364FF" strokeWidth="2" strokeDasharray="3,2"/>
+  <polygon points="27,212 30,220 33,212" fill="#6364FF"/>
+
+  {/* Step 4 */}
+  <circle cx="30" cy="235" r="12" fill="#6364FF"/><text x="30" y="239" textAnchor="middle" fill="white" fontSize="11" fontWeight="600">4</text>
+  <text x="50" y="232" fill="currentColor" fontSize="12" fontWeight="600">Sign and Send</text>
+  <text x="50" y="248" fill="currentColor" fontSize="10" opacity="0.7">Create HTTP Signature, POST to inboxes</text>
+
+  {/* Arrow */}
+  <line x1="30" y1="255" x2="30" y2="275" stroke="#6364FF" strokeWidth="2" strokeDasharray="3,2"/>
+  <polygon points="27,272 30,280 33,272" fill="#6364FF"/>
+
+  {/* Step 5 */}
+  <circle cx="30" cy="295" r="12" fill="#6364FF"/><text x="30" y="299" textAnchor="middle" fill="white" fontSize="11" fontWeight="600">5</text>
+  <text x="50" y="292" fill="currentColor" fontSize="12" fontWeight="600">Handle Failures</text>
+  <text x="50" y="308" fill="currentColor" fontSize="10" opacity="0.7">Retry with backoff, track dead servers</text>
+</svg>
 
 ## Step 1: Resolve Recipients
 

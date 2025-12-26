@@ -15,17 +15,48 @@ WebFinger is a protocol for discovering information about users and resources us
 
 ## How It Works
 
-```
-User searches: @alice@example.com
-         ↓
-Server queries: example.com/.well-known/webfinger?resource=acct:alice@example.com
-         ↓
-Response: { links: [{ rel: "self", href: "https://example.com/users/alice" }] }
-         ↓
-Server fetches: https://example.com/users/alice
-         ↓
-Gets: ActivityPub Actor
-```
+<svg viewBox="0 0 500 280" style={{maxWidth: '500px', width: '100%', height: 'auto'}}>
+  <defs>
+    <linearGradient id="wfGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style={{stopColor: '#6364FF', stopOpacity: 0.12}}/>
+      <stop offset="100%" style={{stopColor: '#8b5cf6', stopOpacity: 0.12}}/>
+    </linearGradient>
+  </defs>
+  <rect x="5" y="5" width="490" height="270" rx="12" fill="none" stroke="#6364FF" strokeWidth="2"/>
+  <rect x="5" y="5" width="490" height="28" rx="12" fill="url(#wfGrad)"/>
+  <text x="250" y="24" textAnchor="middle" fill="currentColor" fontSize="13" fontWeight="700">WEBFINGER DISCOVERY FLOW</text>
+
+  {/* Step 1: User Search */}
+  <rect x="20" y="45" width="180" height="40" rx="6" fill="url(#wfGrad)" stroke="#6364FF" strokeWidth="1.5"/>
+  <text x="110" y="60" textAnchor="middle" fill="currentColor" fontSize="10" opacity="0.7">User searches:</text>
+  <text x="110" y="76" textAnchor="middle" fill="#6364FF" fontSize="11" fontWeight="600">@alice@example.com</text>
+
+  {/* Arrow 1 */}
+  <line x1="110" y1="88" x2="110" y2="108" stroke="#6364FF" strokeWidth="2"/>
+  <polygon points="107,105 110,115 113,105" fill="#6364FF"/>
+
+  {/* Step 2: Query */}
+  <rect x="20" y="118" width="460" height="36" rx="6" fill="url(#wfGrad)" stroke="#6364FF" strokeWidth="1.5"/>
+  <text x="250" y="132" textAnchor="middle" fill="currentColor" fontSize="10" opacity="0.7">Server queries:</text>
+  <text x="250" y="147" textAnchor="middle" fill="#6364FF" fontSize="10" fontWeight="500" fontFamily="monospace">example.com/.well-known/webfinger?resource=acct:alice@example.com</text>
+
+  {/* Arrow 2 */}
+  <line x1="250" y1="156" x2="250" y2="168" stroke="#6364FF" strokeWidth="2"/>
+  <polygon points="247,165 250,175 253,165" fill="#6364FF"/>
+
+  {/* Step 3: Response */}
+  <rect x="80" y="178" width="340" height="36" rx="6" fill="url(#wfGrad)" stroke="#6364FF" strokeWidth="1.5"/>
+  <text x="250" y="192" textAnchor="middle" fill="currentColor" fontSize="10" opacity="0.7">Response contains:</text>
+  <text x="250" y="207" textAnchor="middle" fill="#6364FF" fontSize="10" fontWeight="500" fontFamily="monospace">href: "https://example.com/users/alice"</text>
+
+  {/* Arrow 3 */}
+  <line x1="250" y1="216" x2="250" y2="228" stroke="#6364FF" strokeWidth="2"/>
+  <polygon points="247,225 250,235 253,225" fill="#6364FF"/>
+
+  {/* Step 4: Actor */}
+  <rect x="150" y="238" width="200" height="30" rx="6" fill="#6364FF"/>
+  <text x="250" y="258" textAnchor="middle" fill="white" fontSize="12" fontWeight="600">ActivityPub Actor Retrieved</text>
+</svg>
 
 ## Request Format
 

@@ -10,25 +10,71 @@ The follow mechanism is fundamental to ActivityPub. It establishes relationships
 
 ## The Follow Flow
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                      FOLLOW FLOW                        │
-├─────────────────────────────────────────────────────────┤
-│                                                         │
-│  1. Alice sends Follow to Bob's inbox                   │
-│     ↓                                                   │
-│  2. Bob's server validates the request                  │
-│     ↓                                                   │
-│  3. Bob's server decides: Accept or Reject              │
-│     ↓                                                   │
-│  4. Bob sends Accept/Reject to Alice's inbox            │
-│     ↓                                                   │
-│  5. Alice's server updates following list               │
-│     ↓                                                   │
-│  6. Bob's posts now delivered to Alice                  │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
-```
+<svg viewBox="0 0 500 280" style={{maxWidth: '500px', width: '100%', height: 'auto'}}>
+  <defs>
+    <linearGradient id="followGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style={{stopColor: '#6364FF', stopOpacity: 0.12}}/>
+      <stop offset="100%" style={{stopColor: '#8b5cf6', stopOpacity: 0.12}}/>
+    </linearGradient>
+  </defs>
+  <rect x="5" y="5" width="490" height="270" rx="12" fill="none" stroke="#6364FF" strokeWidth="2"/>
+  <rect x="5" y="5" width="490" height="28" rx="12" fill="url(#followGrad)"/>
+  <text x="250" y="24" textAnchor="middle" fill="currentColor" fontSize="14" fontWeight="700">FOLLOW FLOW</text>
+
+  {/* Step 1 */}
+  <circle cx="30" cy="55" r="12" fill="#6364FF"/>
+  <text x="30" y="59" textAnchor="middle" fill="white" fontSize="10" fontWeight="600">1</text>
+  <text x="50" y="59" fill="currentColor" fontSize="11" fontWeight="500">Alice sends Follow to Bob's inbox</text>
+
+  {/* Arrow */}
+  <line x1="30" y1="70" x2="30" y2="85" stroke="#6364FF" strokeWidth="2" strokeDasharray="3,2"/>
+  <polygon points="27,82 30,92 33,82" fill="#6364FF"/>
+
+  {/* Step 2 */}
+  <circle cx="30" cy="105" r="12" fill="#6364FF"/>
+  <text x="30" y="109" textAnchor="middle" fill="white" fontSize="10" fontWeight="600">2</text>
+  <text x="50" y="109" fill="currentColor" fontSize="11" fontWeight="500">Bob's server validates the request</text>
+
+  {/* Arrow */}
+  <line x1="30" y1="120" x2="30" y2="135" stroke="#6364FF" strokeWidth="2" strokeDasharray="3,2"/>
+  <polygon points="27,132 30,142 33,132" fill="#6364FF"/>
+
+  {/* Step 3 */}
+  <circle cx="30" cy="155" r="12" fill="#6364FF"/>
+  <text x="30" y="159" textAnchor="middle" fill="white" fontSize="10" fontWeight="600">3</text>
+  <text x="50" y="159" fill="currentColor" fontSize="11" fontWeight="500">Bob's server decides: Accept or Reject</text>
+
+  {/* Right column */}
+  {/* Step 4 */}
+  <circle cx="280" cy="55" r="12" fill="#6364FF"/>
+  <text x="280" y="59" textAnchor="middle" fill="white" fontSize="10" fontWeight="600">4</text>
+  <text x="300" y="59" fill="currentColor" fontSize="11" fontWeight="500">Bob sends Accept/Reject</text>
+
+  <line x1="280" y1="70" x2="280" y2="85" stroke="#6364FF" strokeWidth="2" strokeDasharray="3,2"/>
+  <polygon points="277,82 280,92 283,82" fill="#6364FF"/>
+
+  {/* Step 5 */}
+  <circle cx="280" cy="105" r="12" fill="#6364FF"/>
+  <text x="280" y="109" textAnchor="middle" fill="white" fontSize="10" fontWeight="600">5</text>
+  <text x="300" y="109" fill="currentColor" fontSize="11" fontWeight="500">Alice updates following list</text>
+
+  <line x1="280" y1="120" x2="280" y2="135" stroke="#6364FF" strokeWidth="2" strokeDasharray="3,2"/>
+  <polygon points="277,132 280,142 283,132" fill="#6364FF"/>
+
+  {/* Step 6 */}
+  <circle cx="280" cy="155" r="12" fill="#6364FF"/>
+  <text x="280" y="159" textAnchor="middle" fill="white" fontSize="10" fontWeight="600">6</text>
+  <text x="300" y="159" fill="currentColor" fontSize="11" fontWeight="500">Posts now delivered to Alice</text>
+
+  {/* Connection */}
+  <line x1="180" y1="155" x2="265" y2="55" stroke="#6364FF" strokeWidth="1.5" strokeDasharray="5,3"/>
+
+  {/* Result */}
+  <rect x="130" y="195" width="240" height="65" rx="8" fill="url(#followGrad)" stroke="#6364FF" strokeWidth="1.5"/>
+  <text x="250" y="218" textAnchor="middle" fill="#6364FF" fontSize="12" fontWeight="600">Follow Relationship Established</text>
+  <text x="250" y="238" textAnchor="middle" fill="currentColor" fontSize="10" opacity="0.8">Alice now receives Bob's public posts</text>
+  <text x="250" y="252" textAnchor="middle" fill="currentColor" fontSize="10" opacity="0.8">and followers-only content</text>
+</svg>
 
 ## Sending a Follow Request
 

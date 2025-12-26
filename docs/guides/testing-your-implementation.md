@@ -10,23 +10,37 @@ Building an ActivityPub implementation requires thorough testing to ensure compa
 
 ## Testing Levels
 
-```
-┌────────────────────────────────────────────────────────────┐
-│                    TESTING PYRAMID                         │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│                    ┌─────────┐                             │
-│                    │ E2E     │  Federation tests           │
-│                   ┌┴─────────┴┐                            │
-│                   │Integration│  Component tests           │
-│                  ┌┴───────────┴┐                           │
-│                  │  Unit Tests  │  Function tests          │
-│                 ┌┴──────────────┴┐                         │
-│                 │  Static Analysis │  Linting, types       │
-│                 └────────────────┘                         │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
-```
+<svg viewBox="0 0 460 220" style={{maxWidth: '460px', width: '100%', height: 'auto'}}>
+  <defs>
+    <linearGradient id="testGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style={{stopColor: '#6364FF', stopOpacity: 0.12}}/>
+      <stop offset="100%" style={{stopColor: '#8b5cf6', stopOpacity: 0.12}}/>
+    </linearGradient>
+  </defs>
+  <rect x="5" y="5" width="450" height="210" rx="12" fill="none" stroke="#6364FF" strokeWidth="2"/>
+  <rect x="5" y="5" width="450" height="28" rx="12" fill="url(#testGrad)"/>
+  <text x="230" y="24" textAnchor="middle" fill="currentColor" fontSize="14" fontWeight="700">TESTING PYRAMID</text>
+
+  {/* E2E - Top */}
+  <polygon points="230,50 280,90 180,90" fill="url(#testGrad)" stroke="#6364FF" strokeWidth="1.5"/>
+  <text x="230" y="78" textAnchor="middle" fill="currentColor" fontSize="10" fontWeight="500">E2E</text>
+  <text x="340" y="75" fill="currentColor" fontSize="10" opacity="0.8">Federation tests</text>
+
+  {/* Integration */}
+  <polygon points="180,90 280,90 310,130 150,130" fill="url(#testGrad)" stroke="#6364FF" strokeWidth="1.5"/>
+  <text x="230" y="117" textAnchor="middle" fill="currentColor" fontSize="10" fontWeight="500">Integration</text>
+  <text x="370" y="115" fill="currentColor" fontSize="10" opacity="0.8">Component tests</text>
+
+  {/* Unit Tests */}
+  <polygon points="150,130 310,130 350,170 110,170" fill="url(#testGrad)" stroke="#6364FF" strokeWidth="1.5"/>
+  <text x="230" y="157" textAnchor="middle" fill="currentColor" fontSize="10" fontWeight="500">Unit Tests</text>
+  <text x="390" y="155" fill="currentColor" fontSize="10" opacity="0.8">Function tests</text>
+
+  {/* Static Analysis - Base */}
+  <polygon points="110,170 350,170 380,200 80,200" fill="url(#testGrad)" stroke="#6364FF" strokeWidth="2"/>
+  <text x="230" y="192" textAnchor="middle" fill="currentColor" fontSize="10" fontWeight="600">Static Analysis</text>
+  <text x="25" y="192" fill="currentColor" fontSize="9" opacity="0.8">Linting, types</text>
+</svg>
 
 ## Test Suites
 

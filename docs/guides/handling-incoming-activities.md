@@ -10,19 +10,52 @@ When other servers send activities to your inbox, you need to verify them and pr
 
 ## Inbox Processing Flow
 
-```
-Activity arrives at inbox
-         ↓
-Verify HTTP Signature
-         ↓
-Validate Activity
-         ↓
-Check Blocks/Spam
-         ↓
-Process by Type
-         ↓
-Return 202 Accepted
-```
+<svg viewBox="0 0 400 280" style={{maxWidth: '400px', width: '100%', height: 'auto'}}>
+  <defs>
+    <linearGradient id="inboxGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style={{stopColor: '#6364FF', stopOpacity: 0.12}}/>
+      <stop offset="100%" style={{stopColor: '#8b5cf6', stopOpacity: 0.12}}/>
+    </linearGradient>
+  </defs>
+  <rect x="5" y="5" width="390" height="270" rx="12" fill="none" stroke="#6364FF" strokeWidth="2"/>
+
+  {/* Step 1 */}
+  <rect x="100" y="15" width="200" height="32" rx="6" fill="url(#inboxGrad)" stroke="#6364FF" strokeWidth="1.5"/>
+  <text x="200" y="36" textAnchor="middle" fill="currentColor" fontSize="11" fontWeight="600">Activity arrives at inbox</text>
+
+  <line x1="200" y1="47" x2="200" y2="60" stroke="#6364FF" strokeWidth="2"/>
+  <polygon points="197,57 200,67 203,57" fill="#6364FF"/>
+
+  {/* Step 2 */}
+  <rect x="100" y="68" width="200" height="32" rx="6" fill="url(#inboxGrad)" stroke="#6364FF" strokeWidth="1.5"/>
+  <text x="200" y="89" textAnchor="middle" fill="currentColor" fontSize="11" fontWeight="600">Verify HTTP Signature</text>
+
+  <line x1="200" y1="100" x2="200" y2="113" stroke="#6364FF" strokeWidth="2"/>
+  <polygon points="197,110 200,120 203,110" fill="#6364FF"/>
+
+  {/* Step 3 */}
+  <rect x="100" y="121" width="200" height="32" rx="6" fill="url(#inboxGrad)" stroke="#6364FF" strokeWidth="1.5"/>
+  <text x="200" y="142" textAnchor="middle" fill="currentColor" fontSize="11" fontWeight="600">Validate Activity</text>
+
+  <line x1="200" y1="153" x2="200" y2="166" stroke="#6364FF" strokeWidth="2"/>
+  <polygon points="197,163 200,173 203,163" fill="#6364FF"/>
+
+  {/* Step 4 */}
+  <rect x="100" y="174" width="200" height="32" rx="6" fill="url(#inboxGrad)" stroke="#6364FF" strokeWidth="1.5"/>
+  <text x="200" y="195" textAnchor="middle" fill="currentColor" fontSize="11" fontWeight="600">Check Blocks/Spam</text>
+
+  <line x1="200" y1="206" x2="200" y2="219" stroke="#6364FF" strokeWidth="2"/>
+  <polygon points="197,216 200,226 203,216" fill="#6364FF"/>
+
+  {/* Step 5 */}
+  <rect x="100" y="227" width="200" height="32" rx="6" fill="#6364FF"/>
+  <text x="200" y="248" textAnchor="middle" fill="white" fontSize="11" fontWeight="600">Return 202 Accepted</text>
+
+  {/* Side annotations */}
+  <text x="315" y="89" fill="currentColor" fontSize="9" opacity="0.7">→ 401 if invalid</text>
+  <text x="315" y="142" fill="currentColor" fontSize="9" opacity="0.7">→ 400 if malformed</text>
+  <text x="315" y="195" fill="currentColor" fontSize="9" opacity="0.7">→ 403 if blocked</text>
+</svg>
 
 ## Setting Up the Inbox
 

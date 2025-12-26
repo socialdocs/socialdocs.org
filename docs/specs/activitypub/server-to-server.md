@@ -10,15 +10,31 @@ The Server-to-Server protocol is how ActivityPub servers federate with each othe
 
 ## Overview
 
-```
-┌─────────────────┐                    ┌─────────────────┐
-│    Server A     │  POST to inbox     │    Server B     │
-│   (Sender)      │───────────────────►│   (Receiver)    │
-│                 │  with HTTP Sig     │                 │
-│                 │                    │                 │
-│   alice@a.com   │                    │   bob@b.com     │
-└─────────────────┘                    └─────────────────┘
-```
+<svg viewBox="0 0 480 120" style={{maxWidth: '480px', width: '100%', height: 'auto'}}>
+  <defs>
+    <linearGradient id="s2sGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style={{stopColor: '#6364FF', stopOpacity: 0.15}}/>
+      <stop offset="100%" style={{stopColor: '#8b5cf6', stopOpacity: 0.15}}/>
+    </linearGradient>
+  </defs>
+  {/* Server A */}
+  <rect x="10" y="15" width="140" height="90" rx="10" fill="url(#s2sGrad)" stroke="#6364FF" strokeWidth="2"/>
+  <text x="80" y="45" textAnchor="middle" fill="currentColor" fontSize="14" fontWeight="600">Server A</text>
+  <text x="80" y="65" textAnchor="middle" fill="currentColor" fontSize="11" opacity="0.7">(Sender)</text>
+  <text x="80" y="90" textAnchor="middle" fill="#6364FF" fontSize="10">alice@a.com</text>
+
+  {/* Server B */}
+  <rect x="330" y="15" width="140" height="90" rx="10" fill="url(#s2sGrad)" stroke="#6364FF" strokeWidth="2"/>
+  <text x="400" y="45" textAnchor="middle" fill="currentColor" fontSize="14" fontWeight="600">Server B</text>
+  <text x="400" y="65" textAnchor="middle" fill="currentColor" fontSize="11" opacity="0.7">(Receiver)</text>
+  <text x="400" y="90" textAnchor="middle" fill="#6364FF" fontSize="10">bob@b.com</text>
+
+  {/* Arrow */}
+  <line x1="150" y1="60" x2="320" y2="60" stroke="#6364FF" strokeWidth="2"/>
+  <polygon points="320,56 332,60 320,64" fill="#6364FF"/>
+  <text x="240" y="50" textAnchor="middle" fill="currentColor" fontSize="10" fontWeight="500">POST to inbox</text>
+  <text x="240" y="75" textAnchor="middle" fill="currentColor" fontSize="9" opacity="0.7">with HTTP Signature</text>
+</svg>
 
 ## Core Operations
 

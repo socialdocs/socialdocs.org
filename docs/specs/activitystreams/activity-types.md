@@ -10,31 +10,54 @@ ActivityStreams 2.0 defines a comprehensive set of activity types for describing
 
 ## Activity Categories
 
-```
-┌────────────────────────────────────────────────────────────┐
-│                  ACTIVITY TYPE CATEGORIES                  │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│  Content Activities:                                       │
-│  Create, Update, Delete                                    │
-│                                                            │
-│  Relationship Activities:                                  │
-│  Follow, Accept, Reject, Block, Ignore                     │
-│                                                            │
-│  Reaction Activities:                                      │
-│  Like, Dislike, Announce                                   │
-│                                                            │
-│  Collection Activities:                                    │
-│  Add, Remove                                               │
-│                                                            │
-│  Notification Activities:                                  │
-│  Offer, Invite, Flag                                       │
-│                                                            │
-│  Negation Activities:                                      │
-│  Undo                                                      │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
-```
+<svg viewBox="0 0 520 240" style={{maxWidth: '520px', width: '100%', height: 'auto'}}>
+  <defs>
+    <linearGradient id="actGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style={{stopColor: '#6364FF', stopOpacity: 0.12}}/>
+      <stop offset="100%" style={{stopColor: '#8b5cf6', stopOpacity: 0.12}}/>
+    </linearGradient>
+  </defs>
+  <rect x="5" y="5" width="510" height="230" rx="12" fill="none" stroke="#6364FF" strokeWidth="2"/>
+  <rect x="5" y="5" width="510" height="32" rx="12" fill="url(#actGrad)"/>
+  <text x="260" y="26" textAnchor="middle" fill="currentColor" fontSize="14" fontWeight="700">ACTIVITY TYPE CATEGORIES</text>
+
+  {/* Row 1 */}
+  {/* Content */}
+  <rect x="20" y="50" width="155" height="55" rx="8" fill="url(#actGrad)" stroke="#6364FF" strokeWidth="1.5"/>
+  <text x="97" y="70" textAnchor="middle" fill="#6364FF" fontSize="11" fontWeight="600">Content</text>
+  <text x="97" y="88" textAnchor="middle" fill="currentColor" fontSize="10">Create, Update, Delete</text>
+
+  {/* Relationship */}
+  <rect x="185" y="50" width="155" height="55" rx="8" fill="url(#actGrad)" stroke="#6364FF" strokeWidth="1.5"/>
+  <text x="262" y="70" textAnchor="middle" fill="#6364FF" fontSize="11" fontWeight="600">Relationship</text>
+  <text x="262" y="88" textAnchor="middle" fill="currentColor" fontSize="10">Follow, Accept, Reject,</text>
+  <text x="262" y="100" textAnchor="middle" fill="currentColor" fontSize="10">Block, Ignore</text>
+
+  {/* Reaction */}
+  <rect x="350" y="50" width="155" height="55" rx="8" fill="url(#actGrad)" stroke="#6364FF" strokeWidth="1.5"/>
+  <text x="427" y="70" textAnchor="middle" fill="#6364FF" fontSize="11" fontWeight="600">Reaction</text>
+  <text x="427" y="88" textAnchor="middle" fill="currentColor" fontSize="10">Like, Dislike, Announce</text>
+
+  {/* Row 2 */}
+  {/* Collection */}
+  <rect x="20" y="115" width="155" height="55" rx="8" fill="url(#actGrad)" stroke="#6364FF" strokeWidth="1.5"/>
+  <text x="97" y="135" textAnchor="middle" fill="#6364FF" fontSize="11" fontWeight="600">Collection</text>
+  <text x="97" y="153" textAnchor="middle" fill="currentColor" fontSize="10">Add, Remove, Move</text>
+
+  {/* Notification */}
+  <rect x="185" y="115" width="155" height="55" rx="8" fill="url(#actGrad)" stroke="#6364FF" strokeWidth="1.5"/>
+  <text x="262" y="135" textAnchor="middle" fill="#6364FF" fontSize="11" fontWeight="600">Notification</text>
+  <text x="262" y="153" textAnchor="middle" fill="currentColor" fontSize="10">Offer, Invite, Flag</text>
+
+  {/* Negation */}
+  <rect x="350" y="115" width="155" height="55" rx="8" fill="url(#actGrad)" stroke="#6364FF" strokeWidth="1.5"/>
+  <text x="427" y="135" textAnchor="middle" fill="#6364FF" fontSize="11" fontWeight="600">Negation</text>
+  <text x="427" y="153" textAnchor="middle" fill="currentColor" fontSize="10">Undo</text>
+
+  {/* Bottom info */}
+  <text x="260" y="195" textAnchor="middle" fill="currentColor" fontSize="11" opacity="0.8">Most common: Create, Follow, Like, Announce, Undo</text>
+  <text x="260" y="212" textAnchor="middle" fill="currentColor" fontSize="10" opacity="0.6">Each category serves a specific purpose in federated social networking</text>
+</svg>
 
 ## Content Activities
 
