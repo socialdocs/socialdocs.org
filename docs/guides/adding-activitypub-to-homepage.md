@@ -6,7 +6,9 @@ description: Use Fedbox to federate your existing static profile
 
 # Adding ActivityPub to Your Homepage
 
-Already have a personal homepage? This guide shows how to add ActivityPub federation using Fedbox while keeping your identity on your own domain.
+Already have a Solid profile or personal homepage? This guide shows how to add ActivityPub federation using Fedbox, allowing your existing WebID to participate in the Fediverse.
+
+The goal is to **unify Solid and ActivityPub with minimal bridging** — your identity lives in one place, and Fedbox handles federation.
 
 ## Overview
 
@@ -19,7 +21,18 @@ https://you.example.com            https://ap.example.com
                                        /you/followers
 ```
 
-Your homepage hosts your identity. Fedbox handles ActivityPub federation.
+Your homepage hosts your identity. Fedbox handles ActivityPub federation. A single Fedbox instance can handle multiple users.
+
+## URI Fragment Identifiers
+
+Both Solid and this approach use **URI fragment identifiers** (`#me`) for identity:
+
+- `https://you.example.com/` — The profile document
+- `https://you.example.com/#me` — The WebID (the Person)
+
+This is the Solid convention: the document and the thing it describes are distinct. The fragment `#me` identifies the person *within* the document. This allows the same URL to serve both HTML (for browsers) and JSON-LD (for machines) via content negotiation.
+
+The `id` can be relative — just `"#me"` — and resolves against the document URL.
 
 ## Step 1: Add JSON-LD to Your Homepage
 
@@ -37,8 +50,8 @@ Add a data island to your existing HTML:
       "https://w3id.org/security/v1"
     ],
     "type": "Person",
-    "id": "https://you.example.com/#me",
-    "url": "https://you.example.com/",
+    "id": "#me",
+    "url": "./",
     "preferredUsername": "you",
     "name": "Your Name",
     "summary": "<p>Your bio here</p>",
@@ -47,8 +60,8 @@ Add a data island to your existing HTML:
     "followers": "https://ap.example.com/you/followers",
     "following": "https://ap.example.com/you/following",
     "publicKey": {
-      "id": "https://you.example.com/#main-key",
-      "owner": "https://you.example.com/#me",
+      "id": "#main-key",
+      "owner": "#me",
       "publicKeyPem": "-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----"
     }
   }
@@ -61,11 +74,33 @@ Add a data island to your existing HTML:
 ```
 
 Key points:
-- `id` uses `#me` fragment (Solid-compatible WebID)
+- `id` uses relative `#me` — resolves to `https://you.example.com/#me`
+- Fragment IDs are Solid-compatible WebIDs
 - `inbox`, `outbox`, `followers` point to your Fedbox server
 - `publicKey` must match your Fedbox keypair
 
 ## Step 2: Set Up Fedbox
+
+### Deployment Options
+
+**Dedicated server** (e.g., `ap.example.com`):
+- Point DNS A record to your server
+- Fedbox listens on port 443 (or use a reverse proxy)
+- Simplest setup — no path routing needed
+
+**Shared server** (e.g., `example.com/ap/`):
+- Add proxy rules to your existing web server:
+
+```nginx
+# Nginx example
+location /you/inbox { proxy_pass http://localhost:3000; }
+location /you/outbox { proxy_pass http://localhost:3000; }
+location /you/followers { proxy_pass http://localhost:3000; }
+location /you/following { proxy_pass http://localhost:3000; }
+location /inbox { proxy_pass http://localhost:3000; }
+```
+
+### Installation
 
 On your server (VPS, cloud instance, etc.):
 
