@@ -181,6 +181,26 @@ type PlatformItem = {
   link: string;
 };
 
+// Simple icon paths for each platform (scaled for 48x48 viewBox, centered around 24,24)
+const platformIcons: Record<string, string> = {
+  // Mastodon: simplified elephant/trunk shape
+  Mastodon: 'M24 14c-5.5 0-10 4-10 9v8h4v-7c0-2 1.5-3.5 3.5-3.5s3.5 1.5 3.5 3.5v7h4v-7c0-2 1.5-3.5 3.5-3.5s3.5 1.5 3.5 3.5v7h4v-8c0-5-4.5-9-10-9h-6z',
+  // Lemmy: speech bubble
+  Lemmy: 'M24 13c-6.1 0-11 4-11 9 0 2.4 1.1 4.6 3 6.3V34l4.5-2.7c1.1.3 2.3.4 3.5.4 6.1 0 11-4 11-9s-4.9-9.7-11-9.7z',
+  // Pixelfed: camera aperture
+  Pixelfed: 'M24 15a9 9 0 1 0 0 18 9 9 0 0 0 0-18zm0 3a6 6 0 1 1 0 12 6 6 0 0 1 0-12zm0 2a4 4 0 1 0 0 8 4 4 0 0 0 0-8z',
+  // PeerTube: play button
+  PeerTube: 'M19 15v18l14-9-14-9z',
+  // Misskey: star/note
+  Misskey: 'M24 14l2.5 5 5.5.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.5-.8z',
+  // Pleroma: sun/burst
+  Pleroma: 'M24 16v-3m0 22v-3m8-8h3m-22 0h3m12.5-5.5l2-2m-15 15l2-2m11 0l2 2m-15-15l2 2M24 19a5 5 0 1 0 0 10 5 5 0 0 0 0-10z',
+  // GoToSocial: sloth face simplified
+  GoToSocial: 'M17 22a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zm14 0a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zm-7 4c-2 0-3.5 1-3.5 2s1.5 2 3.5 2 3.5-1 3.5-2-1.5-2-3.5-2z',
+  // Friendica: flower/community
+  Friendica: 'M24 14a3 3 0 0 0 0 6 3 3 0 0 0 0-6zm-7 7a3 3 0 0 0 0 6 3 3 0 0 0 0-6zm14 0a3 3 0 0 0 0 6 3 3 0 0 0 0-6zm-7 7a3 3 0 0 0 0 6 3 3 0 0 0 0-6z',
+};
+
 const platforms: PlatformItem[] = [
   { name: 'Mastodon', color: '#6364FF', users: '10M+', link: '/docs/ecosystem/mastodon' },
   { name: 'Lemmy', color: '#00bc8c', users: '500K+', link: '/docs/ecosystem/lemmy' },
@@ -193,12 +213,25 @@ const platforms: PlatformItem[] = [
 ];
 
 function PlatformLogo({ name, color }: { name: string; color: string }) {
+  const iconPath = platformIcons[name];
+  const isStroke = name === 'Pleroma'; // Pleroma uses stroke-based sun icon
+
   return (
     <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
       <circle cx="24" cy="24" r="22" fill={color} fillOpacity="0.15" stroke={color} strokeWidth="2"/>
-      <text x="24" y="29" textAnchor="middle" fill={color} fontSize="16" fontWeight="bold" fontFamily="system-ui">
-        {name.charAt(0)}
-      </text>
+      {iconPath ? (
+        <path
+          d={iconPath}
+          fill={isStroke ? 'none' : color}
+          stroke={isStroke ? color : 'none'}
+          strokeWidth={isStroke ? 2 : 0}
+          strokeLinecap="round"
+        />
+      ) : (
+        <text x="24" y="29" textAnchor="middle" fill={color} fontSize="16" fontWeight="bold" fontFamily="system-ui">
+          {name.charAt(0)}
+        </text>
+      )}
     </svg>
   );
 }
