@@ -64,11 +64,52 @@ Bridgy Fed provides the primary bridge:
 
 ### Nostr
 
-Bridgy Fed also bridges Nostr:
+Two main bridges connect Nostr to the Fediverse:
+
+#### Mostr
+
+Native Nostr-Fediverse bridge by Soapbox.
+
+| Property | Value |
+|----------|-------|
+| Website | [mostr.pub](https://mostr.pub/) |
+| Documentation | [soapbox.pub/blog/mostr-fediverse-nostr-bridge](https://soapbox.pub/blog/mostr-fediverse-nostr-bridge/) |
+| Status | Active |
+
+How it works:
+- Nostr users appear as `npub...@mostr.pub` on the Fediverse
+- Fediverse users can follow Nostr accounts directly
+- Posts sync bidirectionally
+- Uses Nostr relays for message transport
 
 ```
-npub...@mostr.pub ← Nostr user on Fediverse
+Nostr user:     npub1abc...@mostr.pub
+Fediverse user: @alice@mastodon.social (follow npub via mostr.pub)
 ```
+
+#### Bridgy Fed (Nostr)
+
+Bridgy Fed also supports Nostr alongside Bluesky and IndieWeb:
+
+```
+npub...@nostr.brid.gy ← Nostr user on Fediverse
+```
+
+#### Identity Linking (Alternative to Bridging)
+
+Instead of bridging content, you can link identities across protocols using `alsoKnownAs`:
+
+```json
+{
+  "type": "Person",
+  "id": "https://example.com/alice#me",
+  "alsoKnownAs": ["did:nostr:abc123..."]
+}
+```
+
+This approach (used by [Fedbox](/docs/ecosystem/fedbox)) declares "I am the same person on both networks" without duplicating content. Users can then choose which protocol to interact with you on.
+
+See the [did:nostr spec](https://nostrcg.github.io/did-nostr/) for the DID format.
 
 ### Twitter/X
 
