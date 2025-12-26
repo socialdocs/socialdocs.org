@@ -184,6 +184,7 @@ const sidebars: SidebarsConfig = {
       collapsed: false,
       items: [
         'ecosystem/libraries-overview',
+        'ecosystem/fedify',
         'ecosystem/javascript-libraries',
         'ecosystem/python-libraries',
         'ecosystem/go-libraries',

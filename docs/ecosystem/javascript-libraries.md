@@ -10,7 +10,7 @@ JavaScript/TypeScript libraries for implementing ActivityPub.
 
 ## Fedify
 
-Modern TypeScript framework for ActivityPub servers.
+Comprehensive TypeScript framework for ActivityPub servers.
 
 | Property | Value |
 |----------|-------|
@@ -21,30 +21,14 @@ Modern TypeScript framework for ActivityPub servers.
 
 ### Features
 
-- Full TypeScript support
+- Full TypeScript support with type-safe Activity Vocabulary
 - Deno, Node.js, and Bun compatible
+- Framework adapters (Express, Fastify, Hono, Koa, SvelteKit)
+- HTTP Signatures, LD Signatures, Object Integrity Proofs
+- Database integrations (PostgreSQL, SQLite, Redis)
 - Built-in WebFinger, NodeInfo
-- HTTP Signature handling
-- Actor and activity management
 
-### Example
-
-```typescript
-import { createFederation, Person } from "@fedify/fedify";
-
-const federation = createFederation({
-  kv: new MemoryKvStore(),
-});
-
-federation.setActorDispatcher("/users/{handle}", async (ctx, handle) => {
-  return new Person({
-    id: ctx.getActorUri(handle),
-    preferredUsername: handle,
-    inbox: ctx.getInboxUri(handle),
-    outbox: ctx.getOutboxUri(handle),
-  });
-});
-```
+**See [dedicated Fedify page](/docs/ecosystem/fedify) for full documentation.**
 
 ## activitypub-express
 
