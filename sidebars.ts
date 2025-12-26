@@ -89,6 +89,7 @@ const sidebars: SidebarsConfig = {
       label: 'Advanced Topics',
       collapsed: true,
       items: [
+        'guides/adding-activitypub-to-homepage',
         'guides/content-moderation',
         'guides/account-migration',
         'guides/custom-emoji',
@@ -172,6 +173,7 @@ const sidebars: SidebarsConfig = {
         'ecosystem/misskey',
         'ecosystem/pleroma',
         'ecosystem/gotosocial',
+        'ecosystem/fedbox',
         'ecosystem/other-servers',
       ],
     },
