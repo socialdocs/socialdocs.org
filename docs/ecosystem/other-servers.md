@@ -26,6 +26,39 @@ Features:
 - Markdown/BBCode
 - MRF (Message Rewrite Facility)
 
+### Rebased (Soapbox)
+
+Pleroma fork with Soapbox frontend and enhanced features.
+
+| Property | Value |
+|----------|-------|
+| Language | Elixir |
+| License | AGPL-3.0 |
+| Website | [soapbox.pub](https://soapbox.pub/) |
+| Repository | [gitlab.com/soapbox-pub/rebased](https://gitlab.com/soapbox-pub/rebased) |
+
+Features:
+- Modern React frontend (Soapbox FE)
+- Quote posts and reactions
+- Improved moderation tools
+- Nostr integration via Mostr
+
+### Ditto
+
+Nostr-native server with ActivityPub support.
+
+| Property | Value |
+|----------|-------|
+| Language | TypeScript (Deno) |
+| License | AGPL-3.0 |
+| Repository | [gitlab.com/soapbox-pub/ditto](https://gitlab.com/soapbox-pub/ditto) |
+
+Features:
+- Nostr as primary protocol
+- ActivityPub federation bridge
+- Soapbox FE compatible
+- Lightweight, single binary
+
 ### Honk
 
 Minimalist ActivityPub server.
@@ -210,6 +243,8 @@ Modern relay implementation.
 | Server | Focus | Language | Resources |
 |--------|-------|----------|-----------|
 | Akkoma | Microblog | Elixir | Medium |
+| Rebased | Microblog | Elixir | Medium |
+| Ditto | Nostr+AP | TypeScript | Low |
 | Honk | Minimal | Go | Very Low |
 | WriteFreely | Blogging | Go | Low |
 | BookWyrm | Books | Python | Medium |
