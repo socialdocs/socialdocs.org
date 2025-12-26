@@ -12,29 +12,41 @@ Federation is what makes the Fediverse work. It's the process by which independe
 
 When a user on Server A interacts with content from Server B, here's what happens:
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                      FEDERATION FLOW                         │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  1. Discovery                                                │
-│     User searches: @bob@server-b.com                         │
-│     Server A queries: server-b.com/.well-known/webfinger     │
-│                                                              │
-│  2. Actor Fetch                                              │
-│     Server A fetches: server-b.com/users/bob                 │
-│     Gets: inbox, outbox, public key                          │
-│                                                              │
-│  3. Activity Delivery                                        │
-│     Server A sends Follow to: server-b.com/users/bob/inbox   │
-│     Signed with HTTP Signatures                              │
-│                                                              │
-│  4. Response                                                 │
-│     Server B verifies signature                              │
-│     Server B sends Accept to: server-a.com/users/alice/inbox │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
-```
+<svg viewBox="0 0 540 280" style={{maxWidth: '540px', width: '100%', height: 'auto'}}>
+  <defs>
+    <linearGradient id="fedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style={{stopColor: '#6364FF', stopOpacity: 0.12}}/>
+      <stop offset="100%" style={{stopColor: '#8b5cf6', stopOpacity: 0.12}}/>
+    </linearGradient>
+  </defs>
+  <rect x="5" y="5" width="530" height="270" rx="12" fill="none" stroke="#6364FF" strokeWidth="2"/>
+  <rect x="5" y="5" width="530" height="35" rx="12" fill="url(#fedGrad)"/>
+  <text x="270" y="28" textAnchor="middle" fill="currentColor" fontSize="14" fontWeight="700">FEDERATION FLOW</text>
+
+  {/* Step 1 */}
+  <circle cx="35" cy="70" r="14" fill="#6364FF"/><text x="35" y="75" textAnchor="middle" fill="white" fontSize="12" fontWeight="600">1</text>
+  <text x="60" y="65" fill="currentColor" fontSize="13" fontWeight="600">Discovery</text>
+  <text x="60" y="82" fill="currentColor" fontSize="11" opacity="0.7">User searches @bob@server-b.com → WebFinger query</text>
+
+  {/* Step 2 */}
+  <circle cx="35" cy="120" r="14" fill="#6364FF"/><text x="35" y="125" textAnchor="middle" fill="white" fontSize="12" fontWeight="600">2</text>
+  <text x="60" y="115" fill="currentColor" fontSize="13" fontWeight="600">Actor Fetch</text>
+  <text x="60" y="132" fill="currentColor" fontSize="11" opacity="0.7">Server A fetches actor → Gets inbox, outbox, public key</text>
+
+  {/* Step 3 */}
+  <circle cx="35" cy="170" r="14" fill="#6364FF"/><text x="35" y="175" textAnchor="middle" fill="white" fontSize="12" fontWeight="600">3</text>
+  <text x="60" y="165" fill="currentColor" fontSize="13" fontWeight="600">Activity Delivery</text>
+  <text x="60" y="182" fill="currentColor" fontSize="11" opacity="0.7">Server A sends Follow to inbox (signed with HTTP Signatures)</text>
+
+  {/* Step 4 */}
+  <circle cx="35" cy="220" r="14" fill="#6364FF"/><text x="35" y="225" textAnchor="middle" fill="white" fontSize="12" fontWeight="600">4</text>
+  <text x="60" y="215" fill="currentColor" fontSize="13" fontWeight="600">Response</text>
+  <text x="60" y="232" fill="currentColor" fontSize="11" opacity="0.7">Server B verifies signature → Sends Accept back to Server A</text>
+
+  {/* Flow arrows */}
+  <path d="M520 70 L520 220" stroke="#6364FF" strokeWidth="2" strokeDasharray="4,3" opacity="0.5"/>
+  <polygon points="517,215 520,225 523,215" fill="#6364FF" opacity="0.5"/>
+</svg>
 
 ## Step 1: Discovery with WebFinger
 

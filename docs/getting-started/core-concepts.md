@@ -10,28 +10,49 @@ Before diving into implementation, you need to understand the fundamental buildi
 
 ## The ActivityPub Model
 
-```
-┌───────────────────────────────────────────────────────────┐
-│                          ACTOR                            │
-│   (Person, Organization, Application, Service, Group)     │
-├───────────────────────────────────────────────────────────┤
-│                                                           │
-│   ┌─────────┐    performs    ┌──────────────┐             │
-│   │  Actor  │───────────────►│   Activity   │             │
-│   └─────────┘                └──────────────┘             │
-│                                     │                     │
-│                                     │ targets             │
-│                                     ▼                     │
-│                              ┌──────────────┐             │
-│                              │    Object    │             │
-│                              └──────────────┘             │
-│                                                           │
-│   ┌─────────────────────────────────────────────────┐     │
-│   │                   Collections                   │     │
-│   │  inbox │ outbox │ followers │ following │ liked │     │
-│   └─────────────────────────────────────────────────┘     │
-└───────────────────────────────────────────────────────────┘
-```
+<svg viewBox="0 0 520 320" style={{maxWidth: '520px', width: '100%', height: 'auto'}}>
+  <defs>
+    <linearGradient id="boxGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style={{stopColor: '#6364FF', stopOpacity: 0.15}}/>
+      <stop offset="100%" style={{stopColor: '#8b5cf6', stopOpacity: 0.15}}/>
+    </linearGradient>
+  </defs>
+
+  {/* Main container */}
+  <rect x="10" y="10" width="500" height="300" rx="12" fill="none" stroke="#6364FF" strokeWidth="2"/>
+
+  {/* Header */}
+  <rect x="10" y="10" width="500" height="45" rx="12" fill="url(#boxGrad)"/>
+  <path d="M10 43 L510 43" stroke="#6364FF" strokeWidth="1" opacity="0.3"/>
+  <text x="260" y="30" textAnchor="middle" fill="currentColor" fontSize="16" fontWeight="700">ACTOR</text>
+  <text x="260" y="48" textAnchor="middle" fill="currentColor" fontSize="10" opacity="0.7">(Person, Organization, Application, Service, Group)</text>
+
+  {/* Actor box */}
+  <rect x="40" y="90" width="100" height="45" rx="8" fill="url(#boxGrad)" stroke="#6364FF" strokeWidth="2"/>
+  <text x="90" y="118" textAnchor="middle" fill="currentColor" fontSize="14" fontWeight="600">Actor</text>
+
+  {/* Activity box */}
+  <rect x="250" y="90" width="100" height="45" rx="8" fill="url(#boxGrad)" stroke="#6364FF" strokeWidth="2"/>
+  <text x="300" y="118" textAnchor="middle" fill="currentColor" fontSize="14" fontWeight="600">Activity</text>
+
+  {/* Object box */}
+  <rect x="250" y="200" width="100" height="45" rx="8" fill="url(#boxGrad)" stroke="#6364FF" strokeWidth="2"/>
+  <text x="300" y="228" textAnchor="middle" fill="currentColor" fontSize="14" fontWeight="600">Object</text>
+
+  {/* Arrows */}
+  <line x1="140" y1="112" x2="245" y2="112" stroke="#6364FF" strokeWidth="2" markerEnd="url(#arrowhead)"/>
+  <text x="192" y="105" textAnchor="middle" fill="currentColor" fontSize="11" opacity="0.7">performs</text>
+  <polygon points="245,109 255,112 245,115" fill="#6364FF"/>
+
+  <line x1="300" y1="135" x2="300" y2="195" stroke="#6364FF" strokeWidth="2"/>
+  <text x="320" y="168" fill="currentColor" fontSize="11" opacity="0.7">targets</text>
+  <polygon points="297,195 300,205 303,195" fill="#6364FF"/>
+
+  {/* Collections bar */}
+  <rect x="40" y="260" width="440" height="40" rx="8" fill="url(#boxGrad)" stroke="#6364FF" strokeWidth="1"/>
+  <text x="260" y="275" textAnchor="middle" fill="currentColor" fontSize="12" fontWeight="600">Collections</text>
+  <text x="260" y="292" textAnchor="middle" fill="currentColor" fontSize="11" opacity="0.7">inbox  •  outbox  •  followers  •  following  •  liked</text>
+</svg>
 
 ## Actors
 

@@ -10,19 +10,48 @@ The **Fediverse** (a portmanteau of "federation" and "universe") is a network of
 
 ## How It Works
 
-```
-┌─────────────┐     ActivityPub      ┌─────────────┐
-│  Server A   │◄────────────────────►│  Server B   │
-│ (Mastodon)  │                      │  (Pixelfed) │
-└─────────────┘                      └─────────────┘
-       ▲                                    ▲
-       │                                    │
-       ▼                                    ▼
-┌─────────────┐                      ┌─────────────┐
-│  Server C   │◄────────────────────►│  Server D   │
-│  (Lemmy)    │                      │ (PeerTube)  │
-└─────────────┘                      └─────────────┘
-```
+<svg viewBox="0 0 500 280" className="diagram" style={{maxWidth: '500px', width: '100%', height: 'auto'}}>
+  <defs>
+    <linearGradient id="serverGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style={{stopColor: '#6364FF', stopOpacity: 0.1}}/>
+      <stop offset="100%" style={{stopColor: '#8b5cf6', stopOpacity: 0.1}}/>
+    </linearGradient>
+  </defs>
+
+  {/* Server A - Mastodon */}
+  <rect x="20" y="20" width="120" height="60" rx="8" fill="url(#serverGrad)" stroke="#6364FF" strokeWidth="2"/>
+  <text x="80" y="45" textAnchor="middle" fill="currentColor" fontSize="14" fontWeight="600">Server A</text>
+  <text x="80" y="65" textAnchor="middle" fill="currentColor" fontSize="11" opacity="0.7">(Mastodon)</text>
+
+  {/* Server B - Pixelfed */}
+  <rect x="360" y="20" width="120" height="60" rx="8" fill="url(#serverGrad)" stroke="#6364FF" strokeWidth="2"/>
+  <text x="420" y="45" textAnchor="middle" fill="currentColor" fontSize="14" fontWeight="600">Server B</text>
+  <text x="420" y="65" textAnchor="middle" fill="currentColor" fontSize="11" opacity="0.7">(Pixelfed)</text>
+
+  {/* Server C - Lemmy */}
+  <rect x="20" y="180" width="120" height="60" rx="8" fill="url(#serverGrad)" stroke="#6364FF" strokeWidth="2"/>
+  <text x="80" y="205" textAnchor="middle" fill="currentColor" fontSize="14" fontWeight="600">Server C</text>
+  <text x="80" y="225" textAnchor="middle" fill="currentColor" fontSize="11" opacity="0.7">(Lemmy)</text>
+
+  {/* Server D - PeerTube */}
+  <rect x="360" y="180" width="120" height="60" rx="8" fill="url(#serverGrad)" stroke="#6364FF" strokeWidth="2"/>
+  <text x="420" y="205" textAnchor="middle" fill="currentColor" fontSize="14" fontWeight="600">Server D</text>
+  <text x="420" y="225" textAnchor="middle" fill="currentColor" fontSize="11" opacity="0.7">(PeerTube)</text>
+
+  {/* Connection lines */}
+  <line x1="140" y1="50" x2="360" y2="50" stroke="#6364FF" strokeWidth="2" strokeDasharray="5,3"/>
+  <line x1="140" y1="210" x2="360" y2="210" stroke="#6364FF" strokeWidth="2" strokeDasharray="5,3"/>
+  <line x1="80" y1="80" x2="80" y2="180" stroke="#6364FF" strokeWidth="2" strokeDasharray="5,3"/>
+  <line x1="420" y1="80" x2="420" y2="180" stroke="#6364FF" strokeWidth="2" strokeDasharray="5,3"/>
+
+  {/* ActivityPub label */}
+  <rect x="180" y="35" width="140" height="28" rx="14" fill="#6364FF"/>
+  <text x="250" y="54" textAnchor="middle" fill="white" fontSize="12" fontWeight="500">ActivityPub</text>
+
+  {/* Arrows */}
+  <polygon points="145,47 155,50 145,53" fill="#6364FF"/>
+  <polygon points="355,47 345,50 355,53" fill="#6364FF"/>
+</svg>
 
 Each server (also called an "instance") runs software that implements the **ActivityPub** protocol. This protocol defines how servers:
 

@@ -10,14 +10,33 @@ Actors are entities that can perform activities in the Fediverse.
 
 ## Core Actor Types
 
-```
-┌─────────────────────────────────────────────────────┐
-│                     Actor                           │
-├──────────┬──────────┬───────────┬──────────┬───────┤
-│  Person  │  Group   │  Service  │ Applica- │ Organ-│
-│          │          │           │  tion    │ ization│
-└──────────┴──────────┴───────────┴──────────┴───────┘
-```
+<svg viewBox="0 0 500 100" style={{maxWidth: '500px', width: '100%', height: 'auto'}}>
+  <defs>
+    <linearGradient id="actorGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style={{stopColor: '#6364FF', stopOpacity: 0.15}}/>
+      <stop offset="100%" style={{stopColor: '#8b5cf6', stopOpacity: 0.15}}/>
+    </linearGradient>
+  </defs>
+  <rect x="5" y="5" width="490" height="90" rx="10" fill="none" stroke="#6364FF" strokeWidth="2"/>
+  <rect x="5" y="5" width="490" height="30" rx="10" fill="url(#actorGrad)"/>
+  <text x="250" y="26" textAnchor="middle" fill="currentColor" fontSize="14" fontWeight="700">Actor</text>
+
+  {/* Actor types */}
+  <rect x="15" y="45" width="90" height="40" rx="6" fill="url(#actorGrad)" stroke="#6364FF" strokeWidth="1"/>
+  <text x="60" y="70" textAnchor="middle" fill="currentColor" fontSize="12" fontWeight="500">Person</text>
+
+  <rect x="115" y="45" width="90" height="40" rx="6" fill="url(#actorGrad)" stroke="#6364FF" strokeWidth="1"/>
+  <text x="160" y="70" textAnchor="middle" fill="currentColor" fontSize="12" fontWeight="500">Group</text>
+
+  <rect x="215" y="45" width="90" height="40" rx="6" fill="url(#actorGrad)" stroke="#6364FF" strokeWidth="1"/>
+  <text x="260" y="70" textAnchor="middle" fill="currentColor" fontSize="12" fontWeight="500">Service</text>
+
+  <rect x="315" y="45" width="90" height="40" rx="6" fill="url(#actorGrad)" stroke="#6364FF" strokeWidth="1"/>
+  <text x="360" y="70" textAnchor="middle" fill="currentColor" fontSize="11" fontWeight="500">Application</text>
+
+  <rect x="415" y="45" width="75" height="40" rx="6" fill="url(#actorGrad)" stroke="#6364FF" strokeWidth="1"/>
+  <text x="452" y="70" textAnchor="middle" fill="currentColor" fontSize="10" fontWeight="500">Organization</text>
+</svg>
 
 ## Person
 

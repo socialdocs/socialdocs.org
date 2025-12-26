@@ -18,18 +18,34 @@ ActivityPub is a W3C Recommendation that defines a protocol for decentralized so
 
 ActivityPub defines two complementary protocols:
 
-```
-┌───────────────────────────────────────────────────────────────┐
-│                         ActivityPub                           │
-├─────────────────────────────┬─────────────────────────────────┤
-│    Client-to-Server (C2S)   │     Server-to-Server (S2S)      │
-├─────────────────────────────┼─────────────────────────────────┤
-│ • User posts via app        │ • Server delivers to followers  │
-│ • Read inbox/outbox         │ • Receive activities from others│
-│ • Manage following          │ • Handle federation             │
-│ • Like, share, reply        │ • Process remote activities     │
-└─────────────────────────────┴─────────────────────────────────┘
-```
+<svg viewBox="0 0 520 200" style={{maxWidth: '520px', width: '100%', height: 'auto'}}>
+  <defs>
+    <linearGradient id="apGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style={{stopColor: '#6364FF', stopOpacity: 0.12}}/>
+      <stop offset="100%" style={{stopColor: '#8b5cf6', stopOpacity: 0.12}}/>
+    </linearGradient>
+  </defs>
+  <rect x="5" y="5" width="510" height="190" rx="12" fill="none" stroke="#6364FF" strokeWidth="2"/>
+  <rect x="5" y="5" width="510" height="35" rx="12" fill="url(#apGrad)"/>
+  <text x="260" y="28" textAnchor="middle" fill="currentColor" fontSize="15" fontWeight="700">ActivityPub</text>
+
+  {/* Divider */}
+  <line x1="260" y1="40" x2="260" y2="195" stroke="#6364FF" strokeWidth="1" opacity="0.3"/>
+
+  {/* C2S */}
+  <text x="132" y="60" textAnchor="middle" fill="#6364FF" fontSize="13" fontWeight="600">Client-to-Server (C2S)</text>
+  <text x="30" y="85" fill="currentColor" fontSize="11" opacity="0.8">• User posts via app</text>
+  <text x="30" y="105" fill="currentColor" fontSize="11" opacity="0.8">• Read inbox/outbox</text>
+  <text x="30" y="125" fill="currentColor" fontSize="11" opacity="0.8">• Manage following</text>
+  <text x="30" y="145" fill="currentColor" fontSize="11" opacity="0.8">• Like, share, reply</text>
+
+  {/* S2S */}
+  <text x="388" y="60" textAnchor="middle" fill="#6364FF" fontSize="13" fontWeight="600">Server-to-Server (S2S)</text>
+  <text x="285" y="85" fill="currentColor" fontSize="11" opacity="0.8">• Server delivers to followers</text>
+  <text x="285" y="105" fill="currentColor" fontSize="11" opacity="0.8">• Receive activities from others</text>
+  <text x="285" y="125" fill="currentColor" fontSize="11" opacity="0.8">• Handle federation</text>
+  <text x="285" y="145" fill="currentColor" fontSize="11" opacity="0.8">• Process remote activities</text>
+</svg>
 
 ### Client-to-Server (C2S)
 
@@ -186,18 +202,36 @@ ActivityPub relies on:
 
 ## Relationship to Other Specs
 
-```
-┌───────────────────────────────────────────────────────────┐
-│                       ActivityPub                         │
-│                   (Federation Protocol)                   │
-├───────────────────────────────────────────────────────────┤
-│                   ActivityStreams 2.0                     │
-│                    (Data Vocabulary)                      │
-├───────────────────┬───────────────────┬───────────────────┤
-│    WebFinger      │  HTTP Signatures  │     JSON-LD       │
-│   (Discovery)     │  (Authentication) │  (Linked Data)    │
-└───────────────────┴───────────────────┴───────────────────┘
-```
+<svg viewBox="0 0 480 180" style={{maxWidth: '480px', width: '100%', height: 'auto'}}>
+  <defs>
+    <linearGradient id="stackGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style={{stopColor: '#6364FF', stopOpacity: 0.12}}/>
+      <stop offset="100%" style={{stopColor: '#8b5cf6', stopOpacity: 0.12}}/>
+    </linearGradient>
+  </defs>
+  {/* ActivityPub layer */}
+  <rect x="5" y="5" width="470" height="45" rx="8" fill="url(#stackGrad)" stroke="#6364FF" strokeWidth="2"/>
+  <text x="240" y="23" textAnchor="middle" fill="currentColor" fontSize="14" fontWeight="700">ActivityPub</text>
+  <text x="240" y="40" textAnchor="middle" fill="currentColor" fontSize="10" opacity="0.7">(Federation Protocol)</text>
+
+  {/* ActivityStreams layer */}
+  <rect x="5" y="55" width="470" height="45" rx="8" fill="url(#stackGrad)" stroke="#6364FF" strokeWidth="1.5"/>
+  <text x="240" y="73" textAnchor="middle" fill="currentColor" fontSize="13" fontWeight="600">ActivityStreams 2.0</text>
+  <text x="240" y="90" textAnchor="middle" fill="currentColor" fontSize="10" opacity="0.7">(Data Vocabulary)</text>
+
+  {/* Bottom layer - 3 columns */}
+  <rect x="5" y="105" width="153" height="45" rx="8" fill="url(#stackGrad)" stroke="#6364FF" strokeWidth="1"/>
+  <text x="82" y="123" textAnchor="middle" fill="currentColor" fontSize="12" fontWeight="600">WebFinger</text>
+  <text x="82" y="140" textAnchor="middle" fill="currentColor" fontSize="9" opacity="0.7">(Discovery)</text>
+
+  <rect x="163" y="105" width="154" height="45" rx="8" fill="url(#stackGrad)" stroke="#6364FF" strokeWidth="1"/>
+  <text x="240" y="123" textAnchor="middle" fill="currentColor" fontSize="12" fontWeight="600">HTTP Signatures</text>
+  <text x="240" y="140" textAnchor="middle" fill="currentColor" fontSize="9" opacity="0.7">(Authentication)</text>
+
+  <rect x="322" y="105" width="153" height="45" rx="8" fill="url(#stackGrad)" stroke="#6364FF" strokeWidth="1"/>
+  <text x="398" y="123" textAnchor="middle" fill="currentColor" fontSize="12" fontWeight="600">JSON-LD</text>
+  <text x="398" y="140" textAnchor="middle" fill="currentColor" fontSize="9" opacity="0.7">(Linked Data)</text>
+</svg>
 
 ## Common Extensions
 

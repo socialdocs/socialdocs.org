@@ -12,33 +12,40 @@ Security is critical in federated systems. This guide covers how ActivityPub han
 
 ActivityPub uses a **decentralized trust model**. There's no central authority — servers verify each other using cryptographic signatures.
 
-```
-┌───────────────────────────────────────────────────────────┐
-│                     SECURITY LAYERS                       │
-├───────────────────────────────────────────────────────────┤
-│                                                           │
-│  ┌─────────────────────────────────────────────────────┐  │
-│  │  Transport Security (HTTPS/TLS)                     │  │
-│  │  - Encrypts data in transit                         │  │
-│  │  - Server identity via TLS certificates             │  │
-│  └─────────────────────────────────────────────────────┘  │
-│                           │                               │
-│                           ▼                               │
-│  ┌─────────────────────────────────────────────────────┐  │
-│  │  Message Authentication (HTTP Signatures)           │  │
-│  │  - Proves message origin                            │  │
-│  │  - Prevents tampering                               │  │
-│  └─────────────────────────────────────────────────────┘  │
-│                           │                               │
-│                           ▼                               │
-│  ┌─────────────────────────────────────────────────────┐  │
-│  │  Actor Verification                                 │  │
-│  │  - Fetch actor to verify keyId                      │  │
-│  │  - Check actor ownership of content                 │  │
-│  └─────────────────────────────────────────────────────┘  │
-│                                                           │
-└───────────────────────────────────────────────────────────┘
-```
+<svg viewBox="0 0 480 300" style={{maxWidth: '480px', width: '100%', height: 'auto'}}>
+  <defs>
+    <linearGradient id="secGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style={{stopColor: '#6364FF', stopOpacity: 0.12}}/>
+      <stop offset="100%" style={{stopColor: '#8b5cf6', stopOpacity: 0.12}}/>
+    </linearGradient>
+  </defs>
+  <rect x="5" y="5" width="470" height="290" rx="12" fill="none" stroke="#6364FF" strokeWidth="2"/>
+  <rect x="5" y="5" width="470" height="32" rx="12" fill="url(#secGrad)"/>
+  <text x="240" y="26" textAnchor="middle" fill="currentColor" fontSize="14" fontWeight="700">SECURITY LAYERS</text>
+
+  {/* Layer 1 */}
+  <rect x="25" y="50" width="430" height="60" rx="8" fill="url(#secGrad)" stroke="#6364FF" strokeWidth="1.5"/>
+  <text x="45" y="72" fill="currentColor" fontSize="13" fontWeight="600">Transport Security (HTTPS/TLS)</text>
+  <text x="45" y="90" fill="currentColor" fontSize="11" opacity="0.7">Encrypts data in transit • Server identity via TLS certificates</text>
+
+  {/* Arrow 1 */}
+  <line x1="240" y1="110" x2="240" y2="130" stroke="#6364FF" strokeWidth="2"/>
+  <polygon points="237,125 240,135 243,125" fill="#6364FF"/>
+
+  {/* Layer 2 */}
+  <rect x="25" y="135" width="430" height="60" rx="8" fill="url(#secGrad)" stroke="#6364FF" strokeWidth="1.5"/>
+  <text x="45" y="157" fill="currentColor" fontSize="13" fontWeight="600">Message Authentication (HTTP Signatures)</text>
+  <text x="45" y="175" fill="currentColor" fontSize="11" opacity="0.7">Proves message origin • Prevents tampering</text>
+
+  {/* Arrow 2 */}
+  <line x1="240" y1="195" x2="240" y2="215" stroke="#6364FF" strokeWidth="2"/>
+  <polygon points="237,210 240,220 243,210" fill="#6364FF"/>
+
+  {/* Layer 3 */}
+  <rect x="25" y="220" width="430" height="60" rx="8" fill="url(#secGrad)" stroke="#6364FF" strokeWidth="1.5"/>
+  <text x="45" y="242" fill="currentColor" fontSize="13" fontWeight="600">Actor Verification</text>
+  <text x="45" y="260" fill="currentColor" fontSize="11" opacity="0.7">Fetch actor to verify keyId • Check actor ownership of content</text>
+</svg>
 
 ## HTTP Signatures
 
