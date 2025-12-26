@@ -34,52 +34,6 @@ This is the Solid convention: the document and the thing it describes are distin
 
 The `id` can be relative — just `"#me"` — and resolves against the document URL.
 
-## Content Negotiation
-
-The standards-compliant approach is **content negotiation**: the same URL serves different representations based on the `Accept` header.
-
-```
-GET /alice
-Accept: text/html           →  HTML page
-Accept: application/ld+json →  JSON-LD actor
-```
-
-However, **static hosts can't do content negotiation** — they serve the same file regardless of headers. And some ActivityPub implementations expect JSON when they request it, even though JSON-LD data islands in HTML are valid per the JSON-LD spec.
-
-### How Fedbox Solves This
-
-Fedbox fetches your static HTML profile, extracts the JSON-LD data island, and serves it with proper content negotiation:
-
-```
-Mastodon                        Fedbox                      Your Homepage
-────────                        ──────                      ─────────────
-GET actor (Accept: JSON) ──────► extracts data island ◄──── static HTML
-                          ◄───── returns JSON-LD
-```
-
-This means your homepage stays static, but Fedbox provides the content negotiation layer.
-
-### Alternative: Proxy-Based Content Negotiation
-
-If you want content negotiation without Fedbox in the middle, you can configure a reverse proxy:
-
-```nginx
-# Nginx content negotiation
-location /alice {
-    if ($http_accept ~* "application/.*json") {
-        rewrite ^ /alice.jsonld last;
-    }
-    # Default: serve HTML
-    try_files /alice.html =404;
-}
-```
-
-Then maintain two files:
-- `/alice.html` — your profile page
-- `/alice.jsonld` — the actor JSON-LD
-
-This is more work but gives you full control without a separate AP server.
-
 ## Step 1: Add JSON-LD to Your Homepage
 
 Add a data island to your existing HTML:
@@ -131,20 +85,12 @@ Key points:
 
 **Dedicated server** (e.g., `ap.example.com`):
 - Point DNS A record to your server
-- Fedbox listens on port 443 (or use a reverse proxy)
+- Fedbox listens directly, or use a reverse proxy for TLS
 - Simplest setup — no path routing needed
 
-**Shared server** (e.g., `example.com/ap/`):
-- Add proxy rules to your existing web server:
-
-```nginx
-# Nginx example
-location /you/inbox { proxy_pass http://localhost:3000; }
-location /you/outbox { proxy_pass http://localhost:3000; }
-location /you/followers { proxy_pass http://localhost:3000; }
-location /you/following { proxy_pass http://localhost:3000; }
-location /inbox { proxy_pass http://localhost:3000; }
-```
+**Shared server** (behind existing web server):
+- Add reverse proxy rules to route AP endpoints to Fedbox
+- See [Reverse Proxy Configuration](#reverse-proxy-configuration) for nginx, Caddy, and HAProxy examples
 
 ### Installation
 
@@ -274,6 +220,143 @@ And in `fedbox.json`:
 - Ensure `.well-known/webfinger` is accessible
 - Check CORS headers if on a different domain
 - Some static hosts require special configuration for dotfiles
+
+### Content Negotiation Issues
+
+The standards-compliant approach is **content negotiation**: the same URL serves different representations based on the `Accept` header.
+
+```
+GET /alice
+Accept: text/html           →  HTML page
+Accept: application/ld+json →  JSON-LD actor
+```
+
+**The problem:** Static hosts can't do content negotiation — they serve the same file regardless of headers. And some ActivityPub implementations expect JSON when they request `application/activity+json`, even though JSON-LD data islands in HTML are valid per the JSON-LD spec.
+
+**How Fedbox solves this:** Fedbox fetches your static HTML profile, extracts the JSON-LD data island, and serves it with proper content negotiation:
+
+```
+Mastodon                        Fedbox                      Your Homepage
+────────                        ──────                      ─────────────
+GET actor (Accept: JSON) ──────► extracts data island ◄──── static HTML
+                          ◄───── returns JSON-LD
+```
+
+Your homepage stays static, but Fedbox provides the content negotiation layer.
+
+**Alternative:** Use a reverse proxy for content negotiation (see below).
+
+## Reverse Proxy Configuration
+
+### Proxying to Fedbox
+
+#### Nginx
+
+```nginx
+upstream fedbox {
+    server 127.0.0.1:3000;
+}
+
+server {
+    listen 443 ssl;
+    server_name ap.example.com;
+
+    # ActivityPub endpoints
+    location ~ ^/(inbox|nodeinfo|\.well-known) {
+        proxy_pass http://fedbox;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location ~ ^/(\w+)/(inbox|outbox|followers|following|posts) {
+        proxy_pass http://fedbox;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+#### Caddy
+
+```caddy
+ap.example.com {
+    reverse_proxy /inbox* localhost:3000
+    reverse_proxy /nodeinfo* localhost:3000
+    reverse_proxy /.well-known/* localhost:3000
+    reverse_proxy /*/inbox localhost:3000
+    reverse_proxy /*/outbox localhost:3000
+    reverse_proxy /*/followers localhost:3000
+    reverse_proxy /*/following localhost:3000
+    reverse_proxy /*/posts/* localhost:3000
+}
+```
+
+#### HAProxy
+
+```haproxy
+frontend https
+    bind *:443 ssl crt /etc/ssl/certs/ap.example.com.pem
+    acl is_ap path_beg /inbox /.well-known /nodeinfo
+    acl is_ap_user path_reg ^/\w+/(inbox|outbox|followers|following|posts)
+    use_backend fedbox if is_ap or is_ap_user
+
+backend fedbox
+    server fedbox1 127.0.0.1:3000 check
+```
+
+### Content Negotiation via Proxy
+
+If you want to serve both HTML and JSON-LD from the same URL without Fedbox:
+
+#### Nginx
+
+```nginx
+location /alice {
+    if ($http_accept ~* "application/(activity\+json|ld\+json)") {
+        rewrite ^ /alice.jsonld last;
+    }
+    try_files /alice.html =404;
+}
+
+location /alice.jsonld {
+    default_type application/activity+json;
+}
+```
+
+#### Caddy
+
+```caddy
+example.com {
+    @activitypub {
+        header Accept *activity+json*
+    }
+    @activitypub_ld {
+        header Accept *ld+json*
+    }
+    rewrite @activitypub /alice.jsonld
+    rewrite @activitypub_ld /alice.jsonld
+
+    header /alice.jsonld Content-Type application/activity+json
+    file_server
+}
+```
+
+#### HAProxy
+
+```haproxy
+frontend https
+    bind *:443 ssl crt /etc/ssl/certs/example.com.pem
+    acl accept_json req.hdr(Accept) -m sub activity+json
+    acl accept_json req.hdr(Accept) -m sub ld+json
+
+    http-request set-path %[path].jsonld if accept_json { path /alice }
+    default_backend static
+
+backend static
+    server web1 127.0.0.1:8080 check
+```
 
 ## See Also
 
