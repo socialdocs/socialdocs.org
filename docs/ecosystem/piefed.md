@@ -99,13 +99,12 @@ Communities federate when users from other instances:
 3. Posts sync to subscribers
 
 ```
-┌──────────────┐     Follow      ┌──────────────┐
-│ piefed.social     │◀────────────────│ lemmy.world  │
-│ /c/programming│                │ (subscriber) │
-└──────────────┘                 └──────────────┘
-       │                                ▲
-       │ Announce(Create(Page))         │
-       └────────────────────────────────┘
+┌─────────────────┐                  ┌─────────────────┐
+│  piefed.social  │◄──── Follow ─────│   lemmy.world   │
+│ /c/programming  │                  │  (subscriber)   │
+└────────┬────────┘                  └────────▲────────┘
+         │                                    │
+         └──── Announce(Create(Page)) ────────┘
 ```
 
 ## Custom Extensions
@@ -122,10 +121,10 @@ Communities federate when users from other instances:
 ### Actor Endpoints
 
 ```
-GET /u/{username}          # Person
-GET /c/{community}         # Group
-GET /post/{id}            # Page
-GET /comment/{id}         # Note
+GET /u/{username}     # Person
+GET /c/{community}    # Group
+GET /post/{id}        # Page
+GET /comment/{id}     # Note
 ```
 
 ### Collections
