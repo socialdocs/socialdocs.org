@@ -24,6 +24,7 @@ The Fediverse consists of many different server software implementations, each w
 | Software | Language | Description |
 |----------|----------|-------------|
 | [Lemmy](/docs/ecosystem/lemmy) | Rust | Reddit-like communities |
+| [PieFed](/docs/ecosystem/piefed) | Python | Reddit-like communities |
 | Kbin | PHP | Federated content aggregator |
 
 ### Media
@@ -69,6 +70,7 @@ Consider:
 Consider:
 - **Mastodon** - Established moderation tools
 - **Lemmy** - For Reddit-like discussions
+- **PieFed** - For Reddit-like discussions
 - **Pixelfed** - For photo communities
 
 ### For Developers
@@ -76,6 +78,7 @@ Consider:
 Consider:
 - **GoToSocial** - Clean, well-documented Go codebase
 - **Pleroma** - Flexible, good C2S support
+- **PieFed** - Easier to understand than Lemmy
 - **Custom** - Build your own!
 
 ## Feature Comparison
