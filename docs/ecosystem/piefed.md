@@ -1,5 +1,5 @@
 ---
-sidebar_position: 4
+sidebar_position: 8
 title: PieFed
 description: ActivityPub implementation details for PieFed
 ---

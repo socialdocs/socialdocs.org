@@ -169,6 +169,7 @@ const sidebars: SidebarsConfig = {
         'ecosystem/server-software',
         'ecosystem/mastodon',
         'ecosystem/lemmy',
+        'ecosystem/piefed',
         'ecosystem/pixelfed',
         'ecosystem/peertube',
         'ecosystem/misskey',
