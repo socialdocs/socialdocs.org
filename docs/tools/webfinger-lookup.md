@@ -24,6 +24,20 @@ https://webfinger.net/lookup/?resource=acct:user@example.com
 - Validates response format
 - Highlights errors
 
+### webfinger.js
+
+An open-source JavaScript library with an interactive demo:
+
+```
+https://silverbucket.github.io/webfinger.js/
+```
+
+**Features:**
+- Interactive browser-based lookup tool for testing
+- Open-source library that can be integrated into applications (client-side or backend)
+- Shows formatted profile data and raw JSON
+- Lightweight with no external dependencies
+
 ### Custom Lookup Tool
 
 Build a simple lookup interface:

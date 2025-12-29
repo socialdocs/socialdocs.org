@@ -74,4 +74,5 @@ res.header('Access-Control-Allow-Origin', '*');
 ## See Also
 
 - **[WebFinger Lookup Tool](/docs/tools/webfinger-lookup)**
+- **[webfinger.js](https://silverbucket.github.io/webfinger.js/)** - Open-source JavaScript library
 - **[WebFinger Implementation](/docs/guides/webfinger-implementation)**
