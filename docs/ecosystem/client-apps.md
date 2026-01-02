@@ -46,8 +46,6 @@ Third-party apps for accessing Fediverse platforms.
 |-----|-------|----------|---------|
 | [Whalebird](https://whalebird.social/) | Win/Mac/Linux | Mastodon | MIT |
 | [Sengi](https://github.com/NicolasConstant/sengi) | Win/Mac/Linux | Mastodon | AGPL-3.0 |
-| [Hyperspace](https://github.com/hyperspacedev/hyperspace) | Win/Mac/Linux | Mastodon | NPL |
-| [TheDesk](https://github.com/cutls/TheDesk) | Win/Mac/Linux | Mastodon | GPL-3.0 |
 
 ### Web Clients
 
@@ -84,13 +82,13 @@ Most apps use the Mastodon API:
 
 - Official web interface
 - **NewPipe** (Android) - Supports PeerTube
-- **Thorium** (iOS) - Dedicated client
+- **Thorium** (Android) - Dedicated client
 
 ## Developing a Client
 
 ### API Compatibility
 
-Most clients target the Mastodon API:
+Many clients target the Mastodon API:
 
 ```
 GET /api/v1/accounts/:id
@@ -137,7 +135,7 @@ Currently supported by:
 | Need | Recommendation |
 |------|----------------|
 | iOS, polished | Ivory, Ice Cubes |
-| Android, mature | Tusky, Megalodon |
+| Android, mature | Tusky |
 | Desktop | Whalebird, Elk |
 | Web | Elk, Phanpy |
 
