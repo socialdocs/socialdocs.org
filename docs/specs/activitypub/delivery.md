@@ -83,7 +83,11 @@ function getRecipients(activity) {
 
 ### Expand Collections
 
-Resolve collection URLs to actual actor inboxes:
+Resolve recipient URLs to actual actor inboxes.
+
+:::warning IRI Opacity
+Don't assume URL patterns like `/followers`. IRIs are opaque — always dereference and check the `type`. See [URIs, IRIs & Linked Data](/docs/concepts/uris-iris-linked-data) for details.
+:::
 
 ```javascript
 async function expandRecipients(recipients) {
@@ -95,28 +99,71 @@ async function expandRecipients(recipients) {
       continue;
     }
 
-    // Check if it's a followers collection
-    if (recipient.endsWith('/followers')) {
-      const actorId = recipient.replace('/followers', '');
-      const followers = await db.followers.find({ actor: actorId });
+    // Dereference the recipient to determine what it is
+    const data = await fetchActivityPubObject(recipient);
+    if (!data) continue;
 
-      for (const follow of followers) {
-        const actor = await fetchActor(follow.follower);
+    const type = Array.isArray(data.type) ? data.type[0] : data.type;
+
+    if (type === 'OrderedCollection' || type === 'Collection') {
+      // It's a collection (e.g., followers) — expand its members
+      const members = await expandCollection(data);
+      for (const memberUrl of members) {
+        const actor = await fetchActor(memberUrl);
         if (actor) {
           inboxes.add(getInbox(actor));
         }
       }
-      continue;
-    }
-
-    // It's an individual actor
-    const actor = await fetchActor(recipient);
-    if (actor) {
-      inboxes.add(getInbox(actor));
+    } else if (isActorType(type)) {
+      // It's an actor — use their inbox directly
+      inboxes.add(getInbox(data));
     }
   }
 
   return inboxes;
+}
+
+// Check if a type is an Actor type
+function isActorType(type) {
+  return ['Person', 'Service', 'Application', 'Group', 'Organization'].includes(type);
+}
+
+// Expand a collection to get member URLs
+async function expandCollection(collection) {
+  const members = [];
+
+  // Handle inline items
+  if (collection.orderedItems) {
+    members.push(...collection.orderedItems);
+  } else if (collection.items) {
+    members.push(...collection.items);
+  }
+
+  // Handle paginated collections (fetch first page)
+  if (collection.first) {
+    const pageUrl = typeof collection.first === 'string'
+      ? collection.first
+      : collection.first.id;
+    const page = await fetchActivityPubObject(pageUrl);
+    if (page?.orderedItems) members.push(...page.orderedItems);
+    if (page?.items) members.push(...page.items);
+  }
+
+  // Normalize to URLs
+  return members.map(m => typeof m === 'string' ? m : m.id);
+}
+
+// Fetch an ActivityPub object with proper headers
+async function fetchActivityPubObject(url) {
+  try {
+    const response = await fetch(url, {
+      headers: { 'Accept': 'application/activity+json' }
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
 }
 ```
 
