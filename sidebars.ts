@@ -15,6 +15,14 @@ const sidebars: SidebarsConfig = {
         'getting-started/choosing-your-stack',
       ],
     },
+    {
+      type: 'category',
+      label: 'Linked Data',
+      collapsed: false,
+      items: [
+        'concepts/uris-iris-linked-data',
+      ],
+    },
   ],
 
   specsSidebar: [
