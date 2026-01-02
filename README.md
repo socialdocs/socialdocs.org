@@ -3,7 +3,8 @@
 **The comprehensive developer resource for ActivityPub and the Fediverse.**
 
 [![Website](https://img.shields.io/website?url=https%3A%2F%2Fsocialdocs.org)](https://socialdocs.org)
-[![License: CC BY-SA 4.0](https://img.shields.io/badge/License-CC%20BY--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-sa/4.0/)
+[![License: CC BY-SA 4.0](https://img.shields.io/badge/Docs-CC%20BY--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-sa/4.0/)
+[![License: AGPL-3.0](https://img.shields.io/badge/Code-AGPL--3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 ## About
@@ -81,7 +82,7 @@ socialdocs.org/
 
 Documentation content is licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
 
-Code examples are licensed under [MIT](https://opensource.org/licenses/MIT).
+Code examples are licensed under [AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0), consistent with the Fediverse ecosystem.
 
 ---
 

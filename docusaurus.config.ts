@@ -161,7 +161,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} SocialDocs Contributors. Licensed under MIT. Built with Docusaurus.`,
+      copyright: `Copyright © ${new Date().getFullYear()} SocialDocs Contributors. CC BY-SA 4.0 / AGPL-3.0. Built with Docusaurus.`,
     },
     prism: {
       theme: prismThemes.github,
