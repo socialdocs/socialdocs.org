@@ -243,6 +243,7 @@ But production code should always dereference first.
 - [5-Star Linked Data](https://5stardata.info/) — Tim Berners-Lee's Linked Data principles
 - [httpRange-14](https://www.w3.org/2001/tag/doc/httpRange-14/2007-05-31/HttpRange-14) — W3C TAG resolution
 - [Cool URIs for the Semantic Web](https://www.w3.org/TR/cooluris/) — W3C best practices
+- [Roy Fielding on HTTP Dereference (2002)](https://lists.w3.org/Archives/Public/www-tag/2002Mar/0121.html) — The httpRange-14 debate origins: Fielding (REST creator) argues HTTP URIs don't imply documents; Berners-Lee counters that fragments enable subdividing documents into things. Both perspectives shaped modern Linked Data.
 
 ## See Also
 
