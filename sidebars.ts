@@ -169,6 +169,7 @@ const sidebars: SidebarsConfig = {
   ],
 
   ecosystemSidebar: [
+    'ecosystem/w3c-groups',
     {
       type: 'category',
       label: 'Server Software',
