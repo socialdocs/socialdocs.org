@@ -169,7 +169,6 @@ const sidebars: SidebarsConfig = {
   ],
 
   ecosystemSidebar: [
-    'ecosystem/w3c-groups',
     {
       type: 'category',
       label: 'Server Software',
@@ -216,6 +215,7 @@ const sidebars: SidebarsConfig = {
         'ecosystem/monitoring-tools',
       ],
     },
+    'ecosystem/w3c-groups',
   ],
 
   toolsSidebar: [
