@@ -162,7 +162,9 @@ This is why you'll see patterns like:
 
 ### Fragments in ActivityPub
 
-ActivityPub commonly uses fragments for sub-resources:
+In Linked Data best practices, fragments identify sub-resources within a document. However, the ActivityPub spec doesn't define how fragment URIs should be resolved, and **actual implementation support is limited**.
+
+The most common use is `#main-key` for public keys:
 
 ```json
 {
@@ -179,6 +181,14 @@ ActivityPub commonly uses fragments for sub-resources:
 ```
 
 The `#main-key` fragment identifies the key object within Alice's document.
+
+:::caution Reality vs. Ideal
+While fragments are a Linked Data best practice, their use in ActivityPub is inconsistent:
+- **`#main-key`** is widely used for signing keys, but often special-cased rather than resolved via general fragment handling
+- Some implementations generate fragment IDs for transient activities, but the fragments may not be present in the returned JSON
+- Very few implementations support fetching and resolving arbitrary fragment URIs
+- See [w3c/activitypub#367](https://github.com/w3c/activitypub/issues/367) for ongoing discussion
+:::
 
 ### How Fragments Work
 
