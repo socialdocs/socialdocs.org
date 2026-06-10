@@ -37,25 +37,22 @@ Consider these factors when choosing your stack:
 **Best for:** Quick prototypes, web-focused teams, full-stack development
 
 **Popular libraries:**
-- [activitypub-express](https://github.com/immers-space/activitypub-express) - Express middleware
 - [@fedify/fedify](https://fedify.dev/) - Modern TypeScript framework
 - [ActivityPub.js](https://github.com/nicksellen/activitypub) - General-purpose library
+- [activitypub-express](https://github.com/immers-space/activitypub-express) - Express middleware (unmaintained)
 
-```javascript
-// Example with activitypub-express
-const express = require('express');
-const ActivitypubExpress = require('activitypub-express');
+```typescript
+// Example with Fedify
+import { createFederation, MemoryKvStore, Person } from "@fedify/fedify";
 
-const app = express();
-const apex = ActivitypubExpress({
-  domain: 'example.com',
-  actorParam: 'actor',
-  objectParam: 'id'
+const federation = createFederation({ kv: new MemoryKvStore() });
+
+federation.setActorDispatcher("/users/{identifier}", (ctx, identifier) => {
+  return new Person({
+    id: ctx.getActorUri(identifier),
+    preferredUsername: identifier,
+  });
 });
-
-app.use(apex);
-app.get('/u/:actor', apex.net.actor.get);
-app.post('/u/:actor/inbox', apex.net.inbox.post);
 ```
 
 ### Python
@@ -396,7 +393,7 @@ Serverless can be tricky for ActivityPub due to long-running inbox processing an
 
 ```
 Language: JavaScript/TypeScript
-Framework: Express + activitypub-express
+Framework: Fedify (Node.js, Deno, or Bun)
 Database: SQLite
 Deploy: Local or single VPS
 ```
