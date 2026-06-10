@@ -141,7 +141,7 @@ GET /users/{username}/following
 
 ### Known Issues
 
-- Quote posts not supported (planned)
+- Quote posts supported since v4.5 — quoting requires author approval, federated via `QuoteAuthorization`
 - Reactions not supported (only Like)
 - Local-only posts not federated
 

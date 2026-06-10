@@ -95,14 +95,14 @@ import { resolve } from 'microfed/webfinger';
 Express.js middleware for ActivityPub.
 
 :::caution Unmaintained
-activitypub-express has had no activity since 2023 and is currently unmaintained. It still works for existing projects, but avoid it for new ones — see the [discussion on reviving it](https://github.com/socialdocs/socialdocs.org/issues/17).
+activitypub-express has had no activity since early 2024 and is currently unmaintained. It still works for existing projects, but avoid it for new ones — see the [discussion on reviving it](https://github.com/socialdocs/socialdocs.org/issues/17).
 :::
 
 | Property | Value |
 |----------|-------|
 | Repository | [github.com/immers-space/activitypub-express](https://github.com/immers-space/activitypub-express) |
 | License | MIT |
-| Status | Unmaintained (last activity 2023) |
+| Status | Unmaintained (last activity early 2024) |
 
 ### Features
 

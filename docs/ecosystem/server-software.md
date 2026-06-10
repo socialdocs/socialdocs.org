@@ -12,12 +12,14 @@ The Fediverse consists of many different server software implementations, each w
 
 ### Microblogging
 
-| Software | Language | Description | Active Users |
-|----------|----------|-------------|--------------|
+| Software | Language | Description | Registered Accounts |
+|----------|----------|-------------|---------------------|
 | [Mastodon](/docs/ecosystem/mastodon) | Ruby | Most popular, Twitter-like | ~10M+ |
 | [Pleroma](/docs/ecosystem/pleroma) | Elixir | Lightweight alternative | ~100K+ |
 | [Misskey](/docs/ecosystem/misskey) | TypeScript | Feature-rich, Japanese | ~500K+ |
 | [GoToSocial](/docs/ecosystem/gotosocial) | Go | Privacy-focused, lightweight | ~10K+ |
+
+Account magnitudes are approximate — see [FediDB](https://fedidb.org/) for live numbers.
 
 ### Link Aggregation
 

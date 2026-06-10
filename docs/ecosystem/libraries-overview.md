@@ -24,7 +24,7 @@ This page provides an overview of ActivityPub libraries available for different 
 
 | Library | Description | Status |
 |---------|-------------|--------|
-| [bovine](https://codeberg.org/bovine/bovine) | ActivityPub library | Active |
+| [bovine](https://codeberg.org/bovine/bovine) | ActivityPub library | Maintenance |
 | [little-boxes](https://github.com/tsileo/little-boxes) | ActivityPub toolkit | Maintenance |
 | [Federation](https://federation.readthedocs.io/) | Protocol support | Active |
 
@@ -72,7 +72,7 @@ This page provides an overview of ActivityPub libraries available for different 
 
 - **JavaScript**: Fedify (well-documented, active)
 - **Python**: bovine or little-boxes
-- **Go**: go-fed/activity (most complete)
+- **Go**: go-ap, or go-fed/activity (complete but unmaintained since 2022)
 
 ### For Production
 
@@ -114,7 +114,6 @@ This page provides an overview of ActivityPub libraries available for different 
 ### Production Ready
 
 - activitypub-federation (Rust)
-- go-fed/activity (Go)
 - Fedify (TypeScript)
 
 ### Stable
@@ -127,7 +126,8 @@ This page provides an overview of ActivityPub libraries available for different 
 
 ### Unmaintained
 
-- activitypub-express (JavaScript) — no activity since 2023
+- activitypub-express (JavaScript) — no activity since early 2024
+- go-fed/activity (Go) — no activity since 2022; feature-complete and still widely used
 
 ## Building Without a Library
 

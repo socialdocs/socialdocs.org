@@ -42,7 +42,7 @@ The Fediverse community organizes conferences, unconferences, and meetups throug
 - How the Fediverse Can Help Artists Thrive
 
 **Upcoming Events:**
-- Check [fediforum.org](https://fediforum.org/) for dates
+- Next edition: **October 6-7, 2026** — see [fediforum.org](https://fediforum.org/) for registration and the [events archive](https://fediforum.org/events/) for past sessions
 
 ### FediCon
 
