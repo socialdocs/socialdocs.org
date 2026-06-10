@@ -52,9 +52,9 @@ When other servers send activities to your inbox, you need to verify them and pr
   <text x="200" y="248" textAnchor="middle" fill="white" fontSize="11" fontWeight="600">Return 202 Accepted</text>
 
   {/* Side annotations */}
-  <text x="315" y="89" fill="currentColor" fontSize="9" opacity="0.7">→ 401 if invalid</text>
-  <text x="315" y="142" fill="currentColor" fontSize="9" opacity="0.7">→ 400 if malformed</text>
-  <text x="315" y="195" fill="currentColor" fontSize="9" opacity="0.7">→ 403 if blocked</text>
+  <text x="388" y="89" textAnchor="end" fill="currentColor" fontSize="9" opacity="0.7">→ 401 if invalid</text>
+  <text x="388" y="142" textAnchor="end" fill="currentColor" fontSize="9" opacity="0.7">→ 400 if malformed</text>
+  <text x="388" y="195" textAnchor="end" fill="currentColor" fontSize="9" opacity="0.7">→ 403 if blocked</text>
 </svg>
 
 ## Setting Up the Inbox

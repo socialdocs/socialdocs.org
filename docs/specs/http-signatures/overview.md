@@ -15,14 +15,14 @@ HTTP Signatures provide authentication for ActivityPub federation. When a server
 
 ## How It Works
 
-<svg viewBox="0 0 480 200" style={{maxWidth: '480px', width: '100%', height: 'auto'}}>
+<svg viewBox="0 0 480 330" style={{maxWidth: '480px', width: '100%', height: 'auto'}}>
   <defs>
     <linearGradient id="sigGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style={{stopColor: '#6364FF', stopOpacity: 0.12}}/>
       <stop offset="100%" style={{stopColor: '#8b5cf6', stopOpacity: 0.12}}/>
     </linearGradient>
   </defs>
-  <rect x="5" y="5" width="470" height="190" rx="12" fill="none" stroke="#6364FF" strokeWidth="2"/>
+  <rect x="5" y="5" width="470" height="320" rx="12" fill="none" stroke="#6364FF" strokeWidth="2"/>
 
   {/* Step 1 */}
   <circle cx="30" cy="35" r="14" fill="#6364FF"/>
@@ -47,24 +47,27 @@ HTTP Signatures provide authentication for ActivityPub federation. When a server
   <text x="30" y="140" textAnchor="middle" fill="white" fontSize="11" fontWeight="600">3</text>
   <text x="52" y="140" fill="currentColor" fontSize="11" fontWeight="500">Receiver fetches sender's public key from actor</text>
 
-  {/* Step 4-5 on right */}
-  <circle cx="280" cy="85" r="14" fill="#6364FF"/>
-  <text x="280" y="90" textAnchor="middle" fill="white" fontSize="11" fontWeight="600">4</text>
-  <text x="302" y="90" fill="currentColor" fontSize="11" fontWeight="500">Receiver verifies signature</text>
+  {/* Arrow */}
+  <line x1="30" y1="152" x2="30" y2="165" stroke="#6364FF" strokeWidth="2" strokeDasharray="3,2"/>
+  <polygon points="27,162 30,170 33,162" fill="#6364FF"/>
 
-  <line x1="280" y1="102" x2="280" y2="115" stroke="#6364FF" strokeWidth="2" strokeDasharray="3,2"/>
-  <polygon points="277,112 280,120 283,112" fill="#6364FF"/>
+  {/* Step 4 */}
+  <circle cx="30" cy="185" r="14" fill="#6364FF"/>
+  <text x="30" y="190" textAnchor="middle" fill="white" fontSize="11" fontWeight="600">4</text>
+  <text x="52" y="190" fill="currentColor" fontSize="11" fontWeight="500">Receiver verifies signature</text>
 
-  <circle cx="280" cy="135" r="14" fill="#6364FF"/>
-  <text x="280" y="140" textAnchor="middle" fill="white" fontSize="11" fontWeight="600">5</text>
-  <text x="302" y="140" fill="currentColor" fontSize="11" fontWeight="500">If valid, process request</text>
+  {/* Arrow */}
+  <line x1="30" y1="202" x2="30" y2="215" stroke="#6364FF" strokeWidth="2" strokeDasharray="3,2"/>
+  <polygon points="27,212 30,220 33,212" fill="#6364FF"/>
 
-  {/* Connection line */}
-  <line x1="120" y1="135" x2="265" y2="85" stroke="#6364FF" strokeWidth="1.5" strokeDasharray="5,3"/>
+  {/* Step 5 */}
+  <circle cx="30" cy="235" r="14" fill="#6364FF"/>
+  <text x="30" y="240" textAnchor="middle" fill="white" fontSize="11" fontWeight="600">5</text>
+  <text x="52" y="240" fill="currentColor" fontSize="11" fontWeight="500">If valid, process request</text>
 
   {/* Result indicator */}
-  <rect x="350" y="155" width="110" height="30" rx="6" fill="url(#sigGrad)" stroke="#6364FF" strokeWidth="1"/>
-  <text x="405" y="175" textAnchor="middle" fill="#6364FF" fontSize="11" fontWeight="500">✓ Authenticated</text>
+  <rect x="52" y="270" width="130" height="30" rx="6" fill="url(#sigGrad)" stroke="#6364FF" strokeWidth="1"/>
+  <text x="117" y="290" textAnchor="middle" fill="#6364FF" fontSize="11" fontWeight="500">✓ Authenticated</text>
 </svg>
 
 ## Signature Header Format
