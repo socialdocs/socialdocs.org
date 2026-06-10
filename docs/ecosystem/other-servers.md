@@ -90,6 +90,37 @@ Features:
 - Identity-based federation
 - PostgreSQL database
 
+### Sharkey
+
+The main actively maintained Misskey fork.
+
+| Property | Value |
+|----------|-------|
+| Language | TypeScript |
+| License | AGPL-3.0 |
+| Website | [joinsharkey.org](https://joinsharkey.org/) |
+| Repository | [activitypub.software/TransFem-org/Sharkey](https://activitypub.software/TransFem-org/Sharkey) |
+
+Features:
+- All Misskey features (reactions, quotes, MFM)
+- Mastodon-compatible client API
+- Regular releases
+
+### Iceshrimp.NET
+
+Ground-up .NET rewrite continuing the Iceshrimp project (Misskey lineage).
+
+| Property | Value |
+|----------|-------|
+| Language | C# (.NET) |
+| License | EUPL-1.2 |
+| Repository | [iceshrimp.dev/iceshrimp/Iceshrimp.NET](https://iceshrimp.dev/iceshrimp/Iceshrimp.NET) |
+
+Features:
+- Lightweight compared to Node-based Misskey lineage
+- Mastodon-compatible client API
+- In beta as of 2026
+
 ## Blogging
 
 ### WriteFreely
@@ -116,6 +147,37 @@ Federated blogging engine.
 | Language | Rust |
 | License | AGPL-3.0 |
 | Repository | [github.com/Plume-org/Plume](https://github.com/Plume-org/Plume) |
+
+### Ghost
+
+Major open-source publishing platform with built-in ActivityPub since Ghost 6.0 (August 2025) — free on all sites, both Ghost(Pro) and self-hosted.
+
+| Property | Value |
+|----------|-------|
+| Language | JavaScript (AP service: TypeScript, built with Fedify) |
+| License | MIT |
+| Website | [ghost.org](https://ghost.org/) |
+| AP service | [github.com/TryGhost/ActivityPub](https://github.com/TryGhost/ActivityPub) |
+
+Federation:
+- Long-form posts and short-form notes federate; followers can like and reply
+- Reader splits long-form (Inbox) from short-form (Feed)
+- ActivityPub runs as a separate multi-tenant service; self-hosted installs default to Ghost's hosted gateway, or fully self-host via the Docker `activitypub` profile
+
+### WordPress (ActivityPub plugin)
+
+Automattic-maintained plugin that federates WordPress sites.
+
+| Property | Value |
+|----------|-------|
+| Language | PHP |
+| License | MIT |
+| Repository | [github.com/Automattic/wordpress-activitypub](https://github.com/Automattic/wordpress-activitypub) |
+
+Federation:
+- Author and blog-level actors
+- Posts federate to followers; comments arrive as replies
+- One of the largest fediverse deployments by install base
 
 ## Books & Media
 
@@ -163,6 +225,39 @@ Federation:
 - Stream notifications
 - Follows
 - Chat integration
+
+### Loops
+
+Federated short-form video (TikTok-style), by the Pixelfed team. Open beta.
+
+| Property | Value |
+|----------|-------|
+| Language | PHP (Laravel) + Vue |
+| License | AGPL-3.0 |
+| Website | [joinloops.org](https://joinloops.org/) |
+| Repository | [github.com/joinloops/loops-server](https://github.com/joinloops/loops-server) |
+
+Federation (beta since October 2025):
+- Videos federate as `Note` objects for maximum compatibility
+- Follows, replies, likes, and shares with Mastodon, Pixelfed, PeerTube
+- WebFinger, HTTP Signatures, shared inboxes
+
+## Link Aggregation
+
+### Mbin
+
+Community-maintained fork of /kbin (now abandoned) — combines link aggregation and microblogging.
+
+| Property | Value |
+|----------|-------|
+| Language | PHP |
+| License | AGPL-3.0 |
+| Repository | [github.com/MbinOrg/mbin](https://github.com/MbinOrg/mbin) |
+
+Features:
+- Magazines (communities) federate with Lemmy and PieFed
+- Microblog posts federate with Mastodon
+- Active development
 
 ## Events
 
@@ -212,6 +307,32 @@ Features:
 - Nomadic identity
 - Zot protocol + ActivityPub
 - Channels and permissions
+
+## Commercial Platforms
+
+### Threads (Meta)
+
+Meta's Threads federates over ActivityPub — the largest commercial platform on the protocol. Worth understanding precisely, because federation is partial.
+
+| Property | Value |
+|----------|-------|
+| Operator | Meta |
+| Federation | Opt-in per user (18+, public profiles) |
+| Availability | Global except the European Region (as last stated, June 2025) |
+
+**What works (as of mid-2026):**
+- Opted-in users' posts federate out; fediverse users can follow, like, reply to, and boost them
+- Threads users can follow fediverse accounts, with a dedicated fediverse feed and user search (since June 2025)
+- Threads users see fediverse replies on their own posts and can like them
+
+**Limitations:**
+- Threads users **cannot reply to fediverse posts** from Threads (stated as a future goal)
+- Posts with polls, restricted replies, or quotes of non-federated posts don't federate out
+- Meta reports Threads has interacted with over 75% of fediverse servers (June 2025)
+
+:::tip For Implementers
+Treat Threads as a large but feature-limited peer: deliveries work like any Mastodon-compatible server, but don't assume bidirectional conversation threads.
+:::
 
 ## Relays
 
