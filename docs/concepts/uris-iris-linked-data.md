@@ -204,6 +204,76 @@ Using fragment URIs is a best practice in Linked Data because:
 - Works with RDF and JSON-LD naturally
 :::
 
+## JSON-LD and @context
+
+Every ActivityPub document starts with the same line:
+
+```json
+{ "@context": "https://www.w3.org/ns/activitystreams" }
+```
+
+This is not boilerplate. The `@context` is what connects plain JSON keys to IRIs — it's the bridge between the JSON you write and the Linked Data model underneath.
+
+### How @context Maps Keys to IRIs
+
+JSON keys like `type` and `content` are ambiguous on their own — any vocabulary could define a `content`. The `@context` maps each short term to a full IRI:
+
+| Short term | Expands to |
+|------------|------------|
+| `Note` | `https://www.w3.org/ns/activitystreams#Note` |
+| `content` | `https://www.w3.org/ns/activitystreams#content` |
+| `inbox` | `http://www.w3.org/ns/ldp#inbox` |
+| `type` | `@type` (JSON-LD keyword) |
+| `id` | `@id` (JSON-LD keyword) |
+
+So this compact document:
+
+```json
+{
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "type": "Note",
+  "content": "Hello world"
+}
+```
+
+means, in expanded form:
+
+```json
+{
+  "@type": ["https://www.w3.org/ns/activitystreams#Note"],
+  "https://www.w3.org/ns/activitystreams#content": [{"@value": "Hello world"}]
+}
+```
+
+Notice the vocabulary terms are **fragment IRIs** on the namespace document — the ActivityStreams vocabulary itself follows the 5-star pattern described above.
+
+### Extensions and Prefixes
+
+Implementations extend the vocabulary by adding entries to the context. The array form combines contexts, and prefixes keep terms short:
+
+```json
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    {
+      "toot": "http://joinmastodon.org/ns#",
+      "Emoji": "toot:Emoji"
+    }
+  ],
+  "type": "Emoji"
+}
+```
+
+Here `Emoji` expands via the `toot:` prefix to `http://joinmastodon.org/ns#Emoji`. Without the context entry, `Emoji` would have no defined meaning — two servers could use the same short name for different things, and only the IRIs disambiguate them.
+
+:::caution Reality vs. Ideal
+As with fragments, practice diverges from theory:
+- Most Fediverse software treats ActivityPub documents as **plain JSON** with well-known keys, copying `@context` verbatim rather than processing it
+- Full JSON-LD expansion/compaction is rare outside libraries like Fedify
+- This mostly works — until extensions collide or documents are compacted differently than expected
+- If you do parse extensions, resolve terms through the context rather than matching short names
+:::
+
 ## Fediverse Conventions
 
 While IRIs are opaque in principle, the Fediverse has developed common conventions:
@@ -246,6 +316,7 @@ But production code should always dereference first.
 | **Dereference first** | Fetch the URL and inspect `type` |
 | **Use fragments** | Prefer `#` URIs for non-document things (5-star LD) |
 | **httpRange-14** | Fragments avoid document/thing ambiguity |
+| **@context maps keys to IRIs** | JSON keys only have global meaning through the context |
 | **Conventions ≠ specs** | URL patterns are hints, not guarantees |
 
 ## Further Reading
@@ -269,6 +340,8 @@ The source documents for the principles on this page:
 - [5-Star Linked Data](https://5stardata.info/) — Tim Berners-Lee's Linked Data principles
 - [httpRange-14](https://www.w3.org/2001/tag/doc/httpRange-14/2007-05-31/HttpRange-14) — W3C TAG resolution
 - [Cool URIs for the Semantic Web](https://www.w3.org/TR/cooluris/) — W3C best practices
+- [JSON-LD 1.1](https://www.w3.org/TR/json-ld11/) — the W3C Recommendation defining `@context`
+- [ActivityStreams 2.0 context](https://www.w3.org/ns/activitystreams) — the normative context document every ActivityPub document references
 
 ## See Also
 
