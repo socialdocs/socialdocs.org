@@ -11,7 +11,7 @@ WebFinger is a protocol for discovering information about users and resources us
 ## Specification
 
 - **Status**: RFC 7033 (September 2013)
-- **URL**: [https://tools.ietf.org/html/rfc7033](https://tools.ietf.org/html/rfc7033)
+- **URL**: [https://datatracker.ietf.org/doc/html/rfc7033](https://datatracker.ietf.org/doc/html/rfc7033)
 
 ## How It Works
 

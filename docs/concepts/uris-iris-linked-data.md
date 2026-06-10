@@ -257,6 +257,6 @@ But production code should always dereference first.
 
 ## See Also
 
-- **[ActivityStreams Vocabulary](/docs/specs/activitystreams/vocabulary)** — Object and activity types
+- **[ActivityStreams Overview](/docs/specs/activitystreams/overview)** — Object and activity types
 - **[Actor Objects](/docs/specs/activitypub/actors)** — Actor structure and properties
 - **[Delivery](/docs/specs/activitypub/delivery)** — Recipient resolution

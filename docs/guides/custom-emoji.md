@@ -277,7 +277,7 @@ async function renderContent(note) {
       domain: new URL(emoji.id || emoji.icon.url).hostname
     });
 
-    const url = cached?.localUrl || emoji.icon.url;
+    const url = cached?.url || emoji.icon.url;
     const img = `<img src="${url}" alt="${emoji.name}" class="emoji">`;
 
     // Replace shortcode with image
