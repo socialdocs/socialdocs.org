@@ -17,7 +17,7 @@ Modern ActivityPub library for Python.
 | Repository | [codeberg.org/bovine/bovine](https://codeberg.org/bovine/bovine) |
 | Documentation | [bovine.readthedocs.io](https://bovine.readthedocs.io/) |
 | License | MIT |
-| Status | Active |
+| Status | Maintenance (low activity since late 2025) |
 
 ### Features
 

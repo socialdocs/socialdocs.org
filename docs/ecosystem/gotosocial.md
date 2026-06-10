@@ -182,9 +182,8 @@ Uses ULIDs instead of UUIDs:
 
 ### Known Differences
 
-- No quote posts
+- No quote posts yet (groundwork landed in v0.21 via the `canQuote` property)
 - No reactions (only Like)
-- No polls (yet)
 - Stricter signature validation
 
 ## Deployment

@@ -137,15 +137,15 @@ Manages specification corrections:
 
 ## Current Initiatives
 
-### New Working Group Charter
+### Social Web Working Group (Rechartered)
 
-The W3C is considering a new Working Group to:
+In January 2026, the W3C rechartered the [Social Web Working Group](/docs/ecosystem/w3c-groups) (chaired by Darius Kazemi) to:
 
-- Make backwards-compatible updates to specifications
-- Address implementation experience feedback
-- Formalize common extensions
+- Maintain all seven Social Web Recommendations (ActivityPub, ActivityStreams 2.0, Activity Vocabulary, Webmention, WebSub, Micropub, LDN)
+- Publish backwards-compatible updates incorporating accepted errata (expected Q3 2026)
+- Potentially adopt incubated work like LOLA (account portability) onto the Recommendation track
 
-This would allow modifications to the W3C Recommendations themselves, not just community extensions.
+The SocialCG continues to incubate new proposals, which the Working Group can adopt — modifications to the Recommendations themselves now happen in the WG.
 
 ### Focus Areas
 

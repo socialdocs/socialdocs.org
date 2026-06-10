@@ -17,7 +17,11 @@ Comprehensive ActivityPub/ActivityStreams implementation.
 | Repository | [github.com/go-fed/activity](https://github.com/go-fed/activity) |
 | Documentation | [go-fed.org](https://go-fed.org/) |
 | License | BSD-3 |
-| Status | Active |
+| Status | Unmaintained (no activity since 2022) |
+
+:::caution Unmaintained
+go-fed/activity has had no development since 2022. It remains widely used and feature-complete, but expect no fixes or updates. For new Go projects, consider [go-ap](https://github.com/go-ap) or studying [GoToSocial's codebase](https://codeberg.org/superseriousbusiness/gotosocial).
+:::
 
 ### Features
 
@@ -111,7 +115,7 @@ HTTP Signature library.
 |----------|-------|
 | Repository | [github.com/go-fed/httpsig](https://github.com/go-fed/httpsig) |
 | License | BSD-3 |
-| Status | Active |
+| Status | Stable (low activity; widely used) |
 
 ### Signing
 

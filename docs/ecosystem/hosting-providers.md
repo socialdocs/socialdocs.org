@@ -158,9 +158,10 @@ Managed containers.
 Lightest option for personal use:
 
 ```bash
-# On a small VPS
-wget https://github.com/superseriousbusiness/gotosocial/releases/latest/download/gotosocial_linux_amd64.tar.gz
-tar -xzf gotosocial_linux_amd64.tar.gz
+# On a small VPS — get the latest release from Codeberg:
+# https://codeberg.org/superseriousbusiness/gotosocial/releases
+wget https://codeberg.org/superseriousbusiness/gotosocial/releases/download/v0.21.2/gotosocial_0.21.2_linux_amd64.tar.gz
+tar -xzf gotosocial_0.21.2_linux_amd64.tar.gz
 ./gotosocial server start
 ```
 
@@ -172,7 +173,7 @@ Most platforms provide Docker Compose files:
 version: '3'
 services:
   app:
-    image: tootsuite/mastodon:latest
+    image: ghcr.io/mastodon/mastodon:v4.5  # pin a specific version in production
     # ... configuration
   db:
     image: postgres:14

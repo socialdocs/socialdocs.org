@@ -20,11 +20,9 @@ Misskey is a feature-rich microblogging platform originating from Japan.
 
 ## Forks
 
-Misskey has several active forks:
-- **Firefish** (formerly Calckey)
-- **Sharkey**
-- **Foundkey**
-- **Akkoma** (Pleroma fork with Misskey compatibility)
+- **Sharkey** — the main actively maintained fork
+- **Firefish** (formerly Calckey) — discontinued
+- **Foundkey** — discontinued
 
 ## ActivityPub Implementation
 
