@@ -183,7 +183,7 @@ note.GetActivityStreamsContent().Set(/* ... */)
 | ActivityStreams 2.0 Core | [w3.org/TR/activitystreams-core](https://www.w3.org/TR/activitystreams-core/) |
 | ActivityStreams 2.0 Vocabulary | [w3.org/TR/activitystreams-vocabulary](https://www.w3.org/TR/activitystreams-vocabulary/) |
 | JSON-LD | [w3.org/TR/json-ld](https://www.w3.org/TR/json-ld/) |
-| WebFinger | [RFC 7033](https://tools.ietf.org/html/rfc7033) |
+| WebFinger | [RFC 7033](https://datatracker.ietf.org/doc/html/rfc7033) |
 
 ### De Facto Standards
 
