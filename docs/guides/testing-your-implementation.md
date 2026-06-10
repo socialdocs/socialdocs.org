@@ -24,22 +24,22 @@ Building an ActivityPub implementation requires thorough testing to ensure compa
   {/* E2E - Top */}
   <polygon points="230,50 280,90 180,90" fill="url(#testGrad)" stroke="#6364FF" strokeWidth="1.5"/>
   <text x="230" y="78" textAnchor="middle" fill="currentColor" fontSize="10" fontWeight="500">E2E</text>
-  <text x="340" y="75" fill="currentColor" fontSize="10" opacity="0.8">Federation tests</text>
+  <text x="448" y="75" textAnchor="end" fill="currentColor" fontSize="10" opacity="0.8">Federation tests</text>
 
   {/* Integration */}
   <polygon points="180,90 280,90 310,130 150,130" fill="url(#testGrad)" stroke="#6364FF" strokeWidth="1.5"/>
   <text x="230" y="117" textAnchor="middle" fill="currentColor" fontSize="10" fontWeight="500">Integration</text>
-  <text x="370" y="115" fill="currentColor" fontSize="10" opacity="0.8">Component tests</text>
+  <text x="448" y="115" textAnchor="end" fill="currentColor" fontSize="10" opacity="0.8">Component tests</text>
 
   {/* Unit Tests */}
   <polygon points="150,130 310,130 350,170 110,170" fill="url(#testGrad)" stroke="#6364FF" strokeWidth="1.5"/>
   <text x="230" y="157" textAnchor="middle" fill="currentColor" fontSize="10" fontWeight="500">Unit Tests</text>
-  <text x="390" y="155" fill="currentColor" fontSize="10" opacity="0.8">Function tests</text>
+  <text x="448" y="155" textAnchor="end" fill="currentColor" fontSize="10" opacity="0.8">Function tests</text>
 
   {/* Static Analysis - Base */}
   <polygon points="110,170 350,170 380,200 80,200" fill="url(#testGrad)" stroke="#6364FF" strokeWidth="2"/>
   <text x="230" y="192" textAnchor="middle" fill="currentColor" fontSize="10" fontWeight="600">Static Analysis</text>
-  <text x="25" y="192" fill="currentColor" fontSize="9" opacity="0.8">Linting, types</text>
+  <text x="15" y="192" fill="currentColor" fontSize="9" opacity="0.8">Linting, types</text>
 </svg>
 
 ## Test Suites

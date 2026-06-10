@@ -66,9 +66,6 @@ The follow mechanism is fundamental to ActivityPub. It establishes relationships
   <text x="280" y="159" textAnchor="middle" fill="white" fontSize="10" fontWeight="600">6</text>
   <text x="300" y="159" fill="currentColor" fontSize="11" fontWeight="500">Posts now delivered to Alice</text>
 
-  {/* Connection */}
-  <line x1="180" y1="155" x2="265" y2="55" stroke="#6364FF" strokeWidth="1.5" strokeDasharray="5,3"/>
-
   {/* Result */}
   <rect x="130" y="195" width="240" height="65" rx="8" fill="url(#followGrad)" stroke="#6364FF" strokeWidth="1.5"/>
   <text x="250" y="218" textAnchor="middle" fill="#6364FF" fontSize="12" fontWeight="600">Follow Relationship Established</text>
