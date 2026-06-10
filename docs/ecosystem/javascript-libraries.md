@@ -30,47 +30,6 @@ Comprehensive TypeScript framework for ActivityPub servers.
 
 **See [dedicated Fedify page](/docs/ecosystem/fedify) for full documentation.**
 
-## activitypub-express
-
-Express.js middleware for ActivityPub.
-
-| Property | Value |
-|----------|-------|
-| Repository | [github.com/immers-space/activitypub-express](https://github.com/immers-space/activitypub-express) |
-| License | MIT |
-| Status | Active |
-
-### Features
-
-- Express.js integration
-- MongoDB storage
-- WebFinger support
-- Activity delivery
-
-### Example
-
-```javascript
-const express = require('express');
-const ActivitypubExpress = require('activitypub-express');
-
-const app = express();
-const apex = ActivitypubExpress({
-  domain: 'example.com',
-  actorParam: 'actor',
-  objectParam: 'id',
-});
-
-app.use(apex);
-
-app.route(apex.routes.actor)
-  .get(apex.net.actor.get)
-  .post(apex.net.actor.post);
-
-app.route(apex.routes.inbox)
-  .get(apex.net.inbox.get)
-  .post(apex.net.inbox.post);
-```
-
 ## microfed
 
 Minimal, modular ActivityPub microservices library.
@@ -129,6 +88,51 @@ const headers = auth.sign({
 import { sign, verify } from 'microfed/auth';
 import { createActor } from 'microfed/profile';
 import { resolve } from 'microfed/webfinger';
+```
+
+## activitypub-express
+
+Express.js middleware for ActivityPub.
+
+:::caution Unmaintained
+activitypub-express has had no activity since 2023 and is currently unmaintained. It still works for existing projects, but avoid it for new ones — see the [discussion on reviving it](https://github.com/socialdocs/socialdocs.org/issues/17).
+:::
+
+| Property | Value |
+|----------|-------|
+| Repository | [github.com/immers-space/activitypub-express](https://github.com/immers-space/activitypub-express) |
+| License | MIT |
+| Status | Unmaintained (last activity 2023) |
+
+### Features
+
+- Express.js integration
+- MongoDB storage
+- WebFinger support
+- Activity delivery
+
+### Example
+
+```javascript
+const express = require('express');
+const ActivitypubExpress = require('activitypub-express');
+
+const app = express();
+const apex = ActivitypubExpress({
+  domain: 'example.com',
+  actorParam: 'actor',
+  objectParam: 'id',
+});
+
+app.use(apex);
+
+app.route(apex.routes.actor)
+  .get(apex.net.actor.get)
+  .post(apex.net.actor.post);
+
+app.route(apex.routes.inbox)
+  .get(apex.net.inbox.get)
+  .post(apex.net.inbox.post);
 ```
 
 ## as2
@@ -222,8 +226,8 @@ const compacted = await jsonld.compact(expanded, {
 | Library | Use Case | Complexity | Features |
 |---------|----------|------------|----------|
 | Fedify | Full server | High | Complete framework |
-| activitypub-express | Express apps | Medium | Middleware |
 | microfed | Minimal server | Low | Modular primitives |
+| activitypub-express | Express apps (unmaintained) | Medium | Middleware |
 | as2 | Types only | Low | Vocabulary |
 | http-signature | Signing | Low | HTTP Signatures |
 
@@ -231,7 +235,7 @@ const compacted = await jsonld.compact(expanded, {
 
 **For new projects**: Use Fedify for comprehensive TypeScript support.
 
-**For existing Express apps**: Use activitypub-express.
+**For existing Express apps**: Fedify integrates with Express via [@fedify/express](https://github.com/fedify-dev/express). activitypub-express was the traditional choice but is now unmaintained.
 
 **For minimal/single-user**: Use microfed with Fedbox.
 

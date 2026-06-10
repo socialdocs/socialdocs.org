@@ -284,7 +284,7 @@ fedify dev
 
 **Consider alternatives if:**
 - Building a minimal single-user server → [Fedbox](/docs/ecosystem/fedbox)
-- Need simpler Express integration → activitypub-express
+- Need simpler Express integration → [@fedify/express](https://github.com/fedify-dev/express), or activitypub-express (unmaintained)
 - Want zero dependencies → [microfed](/docs/ecosystem/javascript-libraries#microfed)
 
 ## Resources

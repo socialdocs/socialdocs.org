@@ -15,8 +15,8 @@ This page provides an overview of ActivityPub libraries available for different 
 | Library | Description | Status |
 |---------|-------------|--------|
 | [Fedify](https://fedify.dev/) | Modern TypeScript framework | Active |
-| [activitypub-express](https://github.com/immers-space/activitypub-express) | Express.js middleware | Active |
 | [ActivityPub.js](https://github.com/nicksellen/activitypub) | General-purpose library | Maintenance |
+| [activitypub-express](https://github.com/immers-space/activitypub-express) | Express.js middleware | Unmaintained |
 
 [More JavaScript libraries →](/docs/ecosystem/javascript-libraries)
 
@@ -70,7 +70,7 @@ This page provides an overview of ActivityPub libraries available for different 
 
 ### For Quick Prototypes
 
-- **JavaScript**: activitypub-express (easiest setup)
+- **JavaScript**: Fedify (well-documented, active)
 - **Python**: bovine or little-boxes
 - **Go**: go-fed/activity (most complete)
 
@@ -119,12 +119,15 @@ This page provides an overview of ActivityPub libraries available for different 
 
 ### Stable
 
-- activitypub-express (JavaScript)
 - bovine (Python)
 
 ### Experimental
 
 - Various new projects
+
+### Unmaintained
+
+- activitypub-express (JavaScript) — no activity since 2023
 
 ## Building Without a Library
 

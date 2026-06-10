@@ -15,7 +15,7 @@ A comprehensive collection of libraries, tools, and resources for building Activ
 | Library | Description | License |
 |---------|-------------|---------|
 | [Fedify](https://fedify.dev/) | Full ActivityPub server framework | MIT |
-| [ActivityPub Express](https://github.com/immers-space/activitypub-express) | Express.js middleware for ActivityPub | MIT |
+| [ActivityPub Express](https://github.com/immers-space/activitypub-express) | Express.js middleware for ActivityPub (unmaintained) | MIT |
 | [express-activitypub](https://github.com/dariusk/express-activitypub) | Simple reference implementation | MIT |
 | [activitystreams-2](https://github.com/activitea/activitystreams-2) | ActivityStreams 2.0 library | Apache-2.0 |
 | [http-signature](https://github.com/joyent/node-http-signature) | HTTP Signatures implementation | MIT |
