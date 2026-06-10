@@ -27,7 +27,7 @@ Account magnitudes are approximate — see [FediDB](https://fedidb.org/) for liv
 |----------|----------|-------------|
 | [Lemmy](/docs/ecosystem/lemmy) | Rust | Reddit-like communities |
 | [PieFed](/docs/ecosystem/piefed) | Python | Reddit-like communities |
-| Kbin | PHP | Federated content aggregator |
+| [Mbin](/docs/ecosystem/other-servers#mbin) | PHP | Link aggregation + microblogging (successor to the abandoned Kbin) |
 
 ### Media
 
@@ -35,8 +35,17 @@ Account magnitudes are approximate — see [FediDB](https://fedidb.org/) for liv
 |----------|----------|-------------|
 | [Pixelfed](/docs/ecosystem/pixelfed) | PHP | Instagram-like photos |
 | [PeerTube](/docs/ecosystem/peertube) | TypeScript | YouTube-like videos |
+| [Loops](/docs/ecosystem/other-servers#loops) | PHP | TikTok-like short video (beta) |
 | Funkwhale | Python | Music streaming |
 | Owncast | Go | Live streaming |
+
+### Publishing
+
+| Software | Language | Description |
+|----------|----------|-------------|
+| [Ghost](/docs/ecosystem/other-servers#ghost) | JavaScript | Major publishing platform, ActivityPub built in since 6.0 |
+| [WordPress](/docs/ecosystem/other-servers#wordpress-activitypub-plugin) | PHP | Via the Automattic ActivityPub plugin |
+| WriteFreely | Go | Minimal federated blogging |
 
 ### Minimal / Single-User
 
