@@ -250,10 +250,25 @@ But production code should always dereference first.
 
 ## Further Reading
 
+### Tim Berners-Lee's Design Issues
+
+The source documents for the principles on this page:
+
+- [Axioms of Web Architecture](https://www.w3.org/DesignIssues/Axioms.html) — universality and opacity of URIs
+- [What do HTTP URIs Identify?](https://www.w3.org/DesignIssues/HTTP-URI.html) — the document/thing question
+- [Linked Data](https://www.w3.org/DesignIssues/LinkedData.html) — the four Linked Data principles and the 5-star scheme
+- [Cool URIs don't change](https://www.w3.org/Provider/Style/URI) — designing identifiers that last
+
+### REST and the httpRange-14 Debate
+
+- [Architectural Styles: REST](https://roy.gbiv.com/pubs/dissertation/rest_arch_style.htm) — Roy Fielding's dissertation chapter defining REST, the architecture beneath HTTP and ActivityPub
+- [Roy Fielding on HTTP Dereference (2002)](https://lists.w3.org/Archives/Public/www-tag/2002Mar/0121.html) — The httpRange-14 debate origins: Fielding (REST creator) argues HTTP URIs don't imply documents; Berners-Lee counters that fragments enable subdividing documents into things. Both perspectives shaped modern Linked Data.
+
+### Specifications & Notes
+
 - [5-Star Linked Data](https://5stardata.info/) — Tim Berners-Lee's Linked Data principles
 - [httpRange-14](https://www.w3.org/2001/tag/doc/httpRange-14/2007-05-31/HttpRange-14) — W3C TAG resolution
 - [Cool URIs for the Semantic Web](https://www.w3.org/TR/cooluris/) — W3C best practices
-- [Roy Fielding on HTTP Dereference (2002)](https://lists.w3.org/Archives/Public/www-tag/2002Mar/0121.html) — The httpRange-14 debate origins: Fielding (REST creator) argues HTTP URIs don't imply documents; Berners-Lee counters that fragments enable subdividing documents into things. Both perspectives shaped modern Linked Data.
 
 ## See Also
 
