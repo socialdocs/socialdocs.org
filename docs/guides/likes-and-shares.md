@@ -511,3 +511,4 @@ function getOriginalAuthor(activity) {
 - **[Direct Messages](/docs/guides/direct-messages)** - Private messaging
 - **[Mentions and Hashtags](/docs/guides/mentions-and-hashtags)** - Tagging
 - **[Mastodon Compatibility](/docs/guides/mastodon-compatibility)** - Implementation details
+- **[Announce sequence diagram](https://github.com/boyter/activitypub/blob/main/announce-post.md)** - External reference for the boost exchange

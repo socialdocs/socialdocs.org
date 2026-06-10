@@ -524,3 +524,4 @@ Accept/Reject may arrive before you've stored the Follow request. Handle this by
 - **[Posts and Replies](/docs/guides/posts-and-replies)** - Creating content
 - **[Likes and Shares](/docs/guides/likes-and-shares)** - Engagement activities
 - **[Direct Messages](/docs/guides/direct-messages)** - Private messaging
+- **[Follow sequence diagram](https://github.com/boyter/activitypub/blob/main/follow-post.md)** - External reference showing the full server-to-server exchange

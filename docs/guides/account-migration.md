@@ -442,3 +442,4 @@ async function canMigrate(actor) {
 - **[Content Moderation](/docs/guides/content-moderation)** - Handling abuse
 - **[Scaling and Performance](/docs/guides/scaling-and-performance)** - Infrastructure
 - **[Authentication and Security](/docs/getting-started/authentication-and-security)** - Security model
+- **[Move sequence diagram](https://github.com/boyter/activitypub/blob/main/move-post.md)** - External reference for the migration exchange

@@ -203,6 +203,12 @@ note.GetActivityStreamsContent().Set(/* ... */)
 | [How to Implement ActivityPub](https://blog.joinmastodon.org/2018/06/how-to-implement-a-basic-activitypub-server/) | Mastodon blog tutorial |
 | [Building an ActivityPub Server](https://socialhub.activitypub.rocks/t/building-an-activitypub-server/2019) | SocialHub discussion |
 
+### Diagrams & Visual References
+
+| Resource | Description |
+|----------|-------------|
+| [boyter/activitypub](https://github.com/boyter/activitypub) | Sequence diagrams for common flows: Follow, Create, Delete, Announce, Move, WebFinger — a "clean room" implementation reference (MIT) |
+
 ### Video Content
 
 | Resource | Description |

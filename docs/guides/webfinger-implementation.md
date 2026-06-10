@@ -448,3 +448,4 @@ async function cachedWebFinger(handle) {
 - **[Testing Your Implementation](/docs/guides/testing-your-implementation)** - Validation
 - **[HTTP Signatures](/docs/specs/http-signatures/overview)** - Authentication
 - **[Building an Actor](/docs/guides/building-an-actor)** - Creating actors
+- **[WebFinger sequence diagram](https://github.com/boyter/activitypub/blob/main/webfinger.md)** - External reference for the discovery exchange
