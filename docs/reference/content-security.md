@@ -6,6 +6,10 @@ description: Security considerations for handling ActivityPub content
 
 # Content Security
 
+:::danger Not safe for production
+The code on this page is illustrative and **has known security flaws**: incomplete signature verification (signed headers, key-owner ↔ actor binding, Digest over the raw body), missing origin checks, and/or missing SSRF and output-escaping guards. Do not copy it into a real server. Use a maintained library such as [Fedify](https://fedify.dev/) or [activitypub-federation-rust](https://github.com/LemmyNet/activitypub-federation-rust) for request verification. Tracking: [issue #37](https://github.com/socialdocs/socialdocs.org/issues/37).
+:::
+
 Handling federated content safely requires careful security practices.
 
 ## HTML Sanitization

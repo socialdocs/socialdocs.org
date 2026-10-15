@@ -10,6 +10,10 @@ image: /img/socialdocs-social-card.png
 
 # The Complete Guide to ActivityPub Development in 2025
 
+:::danger Security note (October 2026)
+The code in this post is illustrative and not safe for production as written. See [issue #37](https://github.com/socialdocs/socialdocs.org/issues/37) and use a maintained library for request verification.
+:::
+
 ActivityPub has become the backbone of the decentralized social web. With over 13 million users across Mastodon, Lemmy, PeerTube, Pixelfed, and dozens of other platforms, understanding ActivityPub is essential for developers building the next generation of social applications.
 
 This guide provides everything you need to start building with ActivityPub — from core concepts to production deployment.
@@ -125,10 +129,16 @@ Accept incoming activities from other servers:
 
 ```javascript
 app.post('/users/:username/inbox', async (req, res) => {
-  // Verify HTTP Signature
-  await verifySignature(req);
+  // Verify the HTTP Signature over the *raw* body; verifySignature must
+  // return the actor that owns the signing key, or null on failure.
+  const signer = await verifySignature(req);
+  if (!signer) return res.status(401).send('Invalid signature');
 
   const activity = req.body;
+  // The key owner must be the actor the activity claims to come from.
+  if (signer.id !== activity.actor) {
+    return res.status(401).send('Signer does not match actor');
+  }
 
   switch (activity.type) {
     case 'Follow':

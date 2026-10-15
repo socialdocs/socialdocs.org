@@ -6,6 +6,10 @@ description: Request authentication for ActivityPub federation
 
 # HTTP Signatures
 
+:::danger Not safe for production
+The code on this page is illustrative and **has known security flaws**: incomplete signature verification (signed headers, key-owner ↔ actor binding, Digest over the raw body), missing origin checks, and/or missing SSRF and output-escaping guards. Do not copy it into a real server. Use a maintained library such as [Fedify](https://fedify.dev/) or [activitypub-federation-rust](https://github.com/LemmyNet/activitypub-federation-rust) for request verification. Tracking: [issue #37](https://github.com/socialdocs/socialdocs.org/issues/37).
+:::
+
 HTTP Signatures provide authentication for ActivityPub federation. When a server sends an activity to another server's inbox, it signs the request to prove authenticity.
 
 ## Specification
