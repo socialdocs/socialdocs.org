@@ -2,6 +2,8 @@
 sidebar_position: 4
 title: Following and Followers
 description: Implementing the Follow, Accept, and Reject activity flow in ActivityPub
+last_verified: 2026-10-15
+verified_against: "ActivityPub REC §7.5–7.7; Mastodon v4.7.3 source (activity/follow.rb, activity/accept.rb, activity/undo.rb, follow_request.rb, tag_manager.rb, context_helper.rb)"
 ---
 
 # Following and Followers
@@ -90,27 +92,31 @@ The follow mechanism is fundamental to ActivityPub. It establishes relationships
 ### Implementation
 
 ```javascript
+import crypto from 'node:crypto';
+const idOf = (v) => (typeof v === 'string' ? v : v?.id);
+
 async function sendFollow(follower, followee) {
-  // Create the Follow activity
+  // followee: the actor document, fetched SSRF-safely, whose id you checked
   const follow = {
     '@context': 'https://www.w3.org/ns/activitystreams',
-    id: `https://${config.domain}/activities/${uuid()}`,
+    id: `https://${config.domain}/activities/${crypto.randomUUID()}`,
     type: 'Follow',
     actor: follower.id,
     object: followee.id
   };
 
-  // Store the pending follow request
+  // Store the pending request BEFORE delivering: the Accept can arrive
+  // before the delivery call returns.
   await db.followRequests.insert({
     id: follow.id,
     follower: follower.id,
     followee: followee.id,
+    followeeFollowers: followee.followers, // to recognise their followers-only posts
     status: 'pending',
     createdAt: new Date()
   });
 
-  // Deliver to the followee's inbox
-  await deliverActivity(follow, followee.inbox, follower);
+  await deliver(followee.inbox, follow); // signed delivery, see Sending Activities
 
   return follow;
 }
@@ -124,16 +130,19 @@ When your server receives a Follow activity, you must decide whether to accept o
 
 ```javascript
 async function processFollow(activity, signer) {
-  // Validate: actor must match signer
+  // Validate: actor must match signer (parseActivityFrom already enforces this)
   if (activity.actor !== signer.id) {
     throw new Error('Actor does not match signer');
   }
 
-  // Find the local user being followed
-  const followee = await db.actors.findOne({ id: activity.object });
+  // Find the local user being followed (object may be a URL or an embedded actor)
+  const followee = await db.actors.findOne({ id: idOf(activity.object) });
   if (!followee) {
     return; // Not our user, ignore
   }
+
+  // Keep the Follow: an Undo may later reference it only by id
+  await db.receivedFollows.upsert({ id: activity.id, actor: activity.actor, object: followee.id });
 
   // Check if already following
   const existing = await db.followers.findOne({
@@ -142,13 +151,13 @@ async function processFollow(activity, signer) {
   });
   if (existing) {
     // Already following, send Accept anyway (idempotent)
-    return sendAccept(followee, activity);
+    return acceptFollow(activity, followee);
   }
 
-  // Check if follower is blocked
+  // Blocked follower (or blocked domain): reject
   const blocked = await isBlocked(activity.actor, followee.id);
   if (blocked) {
-    return sendReject(followee, activity);
+    return rejectFollow(activity, followee);
   }
 
   // Auto-accept or queue for manual approval
@@ -159,6 +168,8 @@ async function processFollow(activity, signer) {
   }
 }
 ```
+
+Mastodon does the same: a repeated Follow from an existing follower gets another Accept, and a Follow from an account or domain the target blocks (or to an account that has moved) gets a `Reject` ([`follow.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/activity/follow.rb)).
 
 ### Manual Approval Flow
 
@@ -220,32 +231,36 @@ The Accept activity tells the follower that their request was approved.
 
 ```javascript
 async function acceptFollow(followActivity, followee) {
-  // Add to followers collection
-  await db.followers.insert({
+  // Fetch the follower ourselves (SSRF-safe) and check its id: never take
+  // an inbox URL from the activity.
+  const { json: followerActor } = await safeFetchJson(followActivity.actor);
+  if (followerActor.id !== followActivity.actor || !followerActor.inbox) return;
+
+  // Add to followers (upsert: a repeated Follow is re-accepted), keeping
+  // the inboxes we'll deliver to
+  await db.followers.upsert({
     actor: followee.id,
-    follower: followActivity.actor,
+    follower: followerActor.id,
+    inbox: followerActor.inbox,
+    sharedInbox: followerActor.endpoints?.sharedInbox,
     createdAt: new Date()
   });
 
-  // Create Accept activity
   const accept = {
     '@context': 'https://www.w3.org/ns/activitystreams',
-    id: `https://${config.domain}/activities/${uuid()}`,
+    id: `https://${config.domain}/activities/${crypto.randomUUID()}`,
     type: 'Accept',
     actor: followee.id,
     object: followActivity
   };
-
-  // Fetch follower's inbox and deliver
-  const followerActor = await fetchActor(followActivity.actor);
-  await deliverActivity(accept, followerActor.inbox, followee);
+  await deliver(followerActor.inbox, accept);
 
   return accept;
 }
 ```
 
 :::tip Object Identifiers
-Some implementations include the full Follow activity as the `object`, while others only include the Follow activity's `id`. Both are valid, but including the full activity improves compatibility.
+Some implementations include the full Follow activity as the `object`, while others only include the Follow activity's `id`. Both are valid, but embed the full activity: Mastodon first matches the Accept's object `id` against its pending requests, and only falls back to the embedded Follow's `object` when that fails ([`accept.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/activity/accept.rb)).
 :::
 
 ## Sending Reject
@@ -275,21 +290,23 @@ Use Reject to decline a follow request.
 async function rejectFollow(followActivity, followee) {
   const reject = {
     '@context': 'https://www.w3.org/ns/activitystreams',
-    id: `https://${config.domain}/activities/${uuid()}`,
+    id: `https://${config.domain}/activities/${crypto.randomUUID()}`,
     type: 'Reject',
     actor: followee.id,
     object: followActivity
   };
 
-  const followerActor = await fetchActor(followActivity.actor);
-  await deliverActivity(reject, followerActor.inbox, followee);
+  const { json: followerActor } = await safeFetchJson(followActivity.actor);
+  if (followerActor.id === followActivity.actor && followerActor.inbox) {
+    await deliver(followerActor.inbox, reject);
+  }
 
   return reject;
 }
 ```
 
 :::note Privacy Consideration
-Servers MAY choose not to send a Reject to protect user privacy. The requesting server will be left in a pending state, but this prevents information leakage about blocks.
+The spec doesn't require a Reject. You can leave a request pending instead, so the requester can't tell they were blocked. Mastodon does send a Reject when the follower is blocked.
 :::
 
 ## Receiving Accept/Reject
@@ -326,6 +343,7 @@ async function processAccept(activity, signer) {
   await db.following.insert({
     actor: pending.follower,
     following: pending.followee,
+    followersCollection: pending.followeeFollowers,
     createdAt: new Date()
   });
 
@@ -377,12 +395,15 @@ To unfollow, send an Undo activity wrapping the original Follow.
 
 ```javascript
 async function sendUnfollow(follower, followee) {
+  // Embed the original Follow, with its id, so the receiver can match it
+  const original = await db.followRequests.findOne({ follower: follower.id, followee: followee.id });
   const undo = {
     '@context': 'https://www.w3.org/ns/activitystreams',
-    id: `https://${config.domain}/activities/${uuid()}`,
+    id: `https://${config.domain}/activities/${crypto.randomUUID()}`,
     type: 'Undo',
     actor: follower.id,
     object: {
+      ...(original && { id: original.id }),
       type: 'Follow',
       actor: follower.id,
       object: followee.id
@@ -395,9 +416,8 @@ async function sendUnfollow(follower, followee) {
     following: followee.id
   });
 
-  // Notify remote server
-  const followeeActor = await fetchActor(followee.id);
-  await deliverActivity(undo, followeeActor.inbox, follower);
+  // Notify the remote server (followee: actor document fetched earlier)
+  await deliver(followee.inbox, undo);
 }
 ```
 
@@ -405,20 +425,20 @@ async function sendUnfollow(follower, followee) {
 
 ```javascript
 async function processUndoFollow(activity, signer) {
-  const followActivity = activity.object;
+  // The Follow may be embedded or just referenced by id
+  const followActivity = typeof activity.object === 'string'
+    ? await db.receivedFollows.findOne({ id: activity.object })
+    : activity.object;
+  if (!followActivity) return;
 
   // Verify actor owns the original Follow
-  const originalActor = typeof followActivity.actor === 'string'
-    ? followActivity.actor
-    : followActivity.actor.id;
-
-  if (originalActor !== signer.id) {
+  if (idOf(followActivity.actor) !== signer.id) {
     throw new Error('Cannot undo follow from another actor');
   }
 
   // Remove from followers
   await db.followers.remove({
-    actor: followActivity.object,
+    actor: idOf(followActivity.object),
     follower: signer.id
   });
 }
@@ -507,17 +527,17 @@ Handle duplicate Follow activities gracefully:
 ```javascript
 if (existing) {
   // Already following - send Accept again (idempotent)
-  return sendAccept(followee, activity);
+  return acceptFollow(activity, followee);
 }
 ```
 
 ### Follow ID Not Dereferenceable
 
-Mastodon uses UUIDs in Follow IDs that aren't dereferenceable URLs. Don't rely on fetching Follow activities by ID.
+Mastodon gives Follow activities ids like `https://mastodon.example/payloads/<uuid>` ([`tag_manager.rb` `generate_uri_for`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/tag_manager.rb)) and has no route that serves them. Store the Follows you receive, and never rely on fetching a Follow by its id.
 
 ### Race Conditions
 
-Accept/Reject may arrive before you've stored the Follow request. Handle this by checking the activity content, not just the ID.
+The Accept can arrive before your delivery call has even returned. Store the pending Follow **before** you deliver it (as `sendFollow` above does), so the Accept always finds it.
 
 ## Next Steps
 

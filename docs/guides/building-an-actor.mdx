@@ -1,0 +1,130 @@
+---
+sidebar_position: 1
+title: Building an Actor
+description: What an ActivityPub actor document must contain, what Mastodon checks before it accepts one, and tested code that serves it.
+last_verified: 2026-10-15
+verified_against: "ActivityPub REC §4.1, RFC 7033, Mastodon v4.7.3 source (fetch_remote_actor_service.rb, process_account_service.rb, json_ld_helper.rb) and docs.joinmastodon.org/spec/activitypub; code tested in examples/first-server"
+---
+
+import CodeBlock from '@theme/CodeBlock';
+import documentsSrc from '!!raw-loader!@site/examples/first-server/src/documents.js';
+
+# Building an Actor
+
+An actor is the JSON document that represents an account: other servers fetch it to learn where to deliver (`inbox`), who follows it (`followers`) and which key signs its requests (`publicKey`). This page explains what goes into that document and what Mastodon checks before it accepts it.
+
+:::tip The whole server, tested
+This page focuses on the actor document. For a complete server (routes, inbox, delivery) whose code is tested against a real GoToSocial instance in CI, follow **[Your First ActivityPub Server](/docs/getting-started/your-first-activitypub-server)**. The code below is imported from the same tested module.
+:::
+
+## The pieces
+
+An account that other servers can find, follow and receive posts from needs:
+
+1. **A WebFinger response** mapping `acct:alice@example.com` to the actor URL ([WebFinger Implementation](/docs/guides/webfinger-implementation))
+2. **The actor document** at that URL, served as `application/activity+json`
+3. **An inbox** that verifies every POST ([Handling Incoming Activities](/docs/guides/handling-incoming-activities))
+4. **An outbox** and **followers / following** collections
+5. **A key pair**: the public half is published in the actor, the private half signs everything you send ([Sending Activities](/docs/guides/sending-activities))
+
+## The actor document
+
+This is the tested code that builds the WebFinger response and the actor (from [`examples/first-server/src/documents.js`](https://github.com/socialdocs/socialdocs.org/blob/gh-pages/examples/first-server/src/documents.js)):
+
+<CodeBlock language="js" title="src/documents.js">{documentsSrc}</CodeBlock>
+
+Served for `alice` on `social.example`, the actor looks like this:
+
+```json
+{
+  "@context": ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"],
+  "id": "https://social.example/users/alice",
+  "type": "Person",
+  "preferredUsername": "alice",
+  "name": "Alice",
+  "inbox": "https://social.example/users/alice/inbox",
+  "outbox": "https://social.example/users/alice/outbox",
+  "followers": "https://social.example/users/alice/followers",
+  "following": "https://social.example/users/alice/following",
+  "endpoints": { "sharedInbox": "https://social.example/inbox" },
+  "manuallyApprovesFollowers": false,
+  "publicKey": {
+    "id": "https://social.example/users/alice#main-key",
+    "owner": "https://social.example/users/alice",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----\n"
+  }
+}
+```
+
+Only advertise a `sharedInbox` if you actually process deliveries there: Mastodon sends one copy of a public post per server to the shared inbox when you have one, so a stub that drops everything loses those posts.
+
+## What Mastodon checks
+
+When Mastodon resolves your account it applies these checks, in order. Each one is a hard failure:
+
+| Check | Source (Mastodon v4.7.3) |
+|---|---|
+| The response is `application/activity+json`, or `application/ld+json` with the ActivityStreams profile | [`json_ld_helper.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/helpers/json_ld_helper.rb) |
+| The document's `id` is **exactly** the URL that was fetched (`json['id'] == uri`) | [`json_ld_helper.rb` `fetch_resource`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/helpers/json_ld_helper.rb) |
+| `@context` includes `https://www.w3.org/ns/activitystreams` | [`json_ld_helper.rb` `supported_context?`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/helpers/json_ld_helper.rb) |
+| `type` is one of `Application`, `Group`, `Organization`, `Person`, `Service` | [`fetch_remote_actor_service.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/services/activitypub/fetch_remote_actor_service.rb) |
+| `preferredUsername` (or an FEP-2c59 `webfinger` property) is present | [`fetch_remote_actor_service.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/services/activitypub/fetch_remote_actor_service.rb) |
+| `inbox` is present | [`process_account_service.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/services/activitypub/process_account_service.rb) |
+| A WebFinger lookup of `acct:preferredUsername@actor-host` returns a `self` link whose `href` is the actor `id` ("loops back") | [`process_account_service.rb` `check_webfinger!`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/services/activitypub/process_account_service.rb) |
+| The username matches `[a-z0-9_]+([.-]+[a-z0-9_]+)*` (case-insensitive) | [`account.rb` `USERNAME_RE`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/models/account.rb) |
+
+Two consequences catch people out:
+
+- **Relative or mismatched ids fail.** Mastodon compares the raw `id` string; it does not resolve a relative `"#me"` against the document URL. Serve absolute ids.
+- **`outbox` is not required by Mastodon**, but the ActivityPub spec says actors MUST have both `inbox` and `outbox` ([AP §4.1](https://www.w3.org/TR/activitypub/#actor-objects)), and other software reads it. Serve it.
+
+`type: "Service"` or `"Application"` marks the account as a bot in Mastodon ([Mastodon profile properties](https://docs.joinmastodon.org/spec/activitypub/#profile)).
+
+## Optional properties Mastodon uses
+
+| Property | Meaning in Mastodon |
+|---|---|
+| `name`, `summary` | Display name and bio (HTML) |
+| `url` | Link to the profile page |
+| `icon`, `image` | Avatar and header (`Image` with `url`) |
+| `manuallyApprovesFollowers` | Locked account: follows need approval |
+| `discoverable` | Listed in the profile directory |
+| `indexable` | Public posts may be full-text indexed |
+| `featured`, `featuredTags` | Pinned posts and featured hashtags collections |
+| `attachment` with `PropertyValue` | Profile metadata fields |
+| `alsoKnownAs`, `movedTo` | Account migration ([Account Migration](/docs/guides/account-migration)) |
+| `published`, `memorial`, `suspended` | Account creation date and flags |
+
+All from Mastodon's [profile properties list](https://docs.joinmastodon.org/spec/activitypub/#profile). Extension terms such as `discoverable` and `featured` live in the `toot:` namespace, so declare them in your `@context` (see [Mastodon Compatibility](/docs/guides/mastodon-compatibility#mastodons-activitypub-extensions)).
+
+## Keys
+
+The actor publishes the public key that verifies your signed requests. RSA keys in `publicKey.publicKeyPem` work everywhere; Mastodon 4.7 also reads Ed25519 keys published through FEP-521a `assertionMethod`. See [Keys and Identity](/docs/security/keys-and-identity) for formats, rotation and which servers accept what.
+
+Generate an RSA key once and keep the private half secret:
+
+```bash
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out private.pem
+openssl pkey -in private.pem -pubout -out public.pem
+```
+
+## Test it
+
+```bash
+# WebFinger: must return a self link to the actor URL
+curl -s "https://social.example/.well-known/webfinger?resource=acct:alice@social.example"
+
+# The actor: check Content-Type and that "id" is exactly this URL
+curl -si -H 'Accept: application/activity+json' https://social.example/users/alice
+
+# Fetch it the way a remote server would
+npx @fedify/cli lookup @alice@social.example
+```
+
+Then search for `@alice@social.example` from a Mastodon account. If it isn't found, see [Troubleshooting by Symptom](/docs/guides/troubleshooting).
+
+## What's Next
+
+- **[Handling Incoming Activities](/docs/guides/handling-incoming-activities)** - Verify and process what arrives
+- **[Sending Activities](/docs/guides/sending-activities)** - Sign and deliver
+- **[Following and Followers](/docs/guides/following-and-followers)** - Accept followers

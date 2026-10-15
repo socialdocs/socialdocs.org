@@ -2,6 +2,8 @@
 sidebar_position: 16
 title: Testing Your Implementation
 description: Tools, test suites, and strategies for validating ActivityPub implementations
+last_verified: 2026-10-15
+verified_against: "Fedify CLI docs (fedify-dev/fedify docs/cli.md); activitypub.academy /api/v2/instance (Mastodon 4.1.18); Mastodon API docs (methods/search); examples/first-server and examples/verify-requests in this repository"
 ---
 
 # Testing Your Implementation
@@ -54,14 +56,15 @@ The [Fedify CLI](https://fedify.dev/cli) works against any ActivityPub server, n
 # Install
 npm install -g @fedify/cli
 
-# Fetch an actor or object as a remote server would (signed if needed)
+# Fetch an actor or object (add -a / --authorized-fetch to sign the request,
+# for servers that refuse unsigned fetches)
 fedify lookup @alice@your-server.example
 
 # Check WebFinger and NodeInfo
-fedify webfinger alice@your-server.example
+fedify webfinger @alice@your-server.example
 fedify nodeinfo your-server.example
 
-# Spin up an ephemeral inbox that logs everything delivered to it
+# Run an ephemeral inbox server that shows what is delivered to it
 fedify inbox
 
 # Expose a local dev server over a public HTTPS URL
@@ -74,49 +77,40 @@ fedify tunnel 3000
 
 ### ActivityPub Academy
 
-[ActivityPub Academy](https://activitypub.academy/) gives you a temporary account on a Mastodon instance that shows the ActivityPub traffic it sends and receives. Note that it runs an older Mastodon version.
+[ActivityPub Academy](https://activitypub.academy/) gives you a temporary account on a Mastodon instance that shows the ActivityPub traffic it sends and receives. It runs an old Mastodon version (4.1.18 as of October 2026), so it won't show behaviour added since, such as RFC 9421 signatures or quote posts.
+
+### This site's tools
+
+The [Activity Linter, Actor Inspector and Signature Inspector](/docs/tools/overview) run in your browser and check JSON and signatures against the specs and Mastodon's rules.
 
 ## Unit Testing
 
-### Testing JSON-LD Parsing
+Test your handlers as plain functions with the network injected, so tests are fast and deterministic. The tested tutorial server does exactly this: its [`app.test.js`](https://github.com/socialdocs/socialdocs.org/blob/gh-pages/examples/first-server/test/app.test.js) drives the HTTP handler with a fake `fetchJson` and `deliver`, using Node's built-in test runner.
 
 ```javascript
-const { expect } = require('chai');
-const { parseActivity } = require('../src/activitypub');
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
 
-describe('Activity Parsing', () => {
-  it('should parse Create activity', () => {
-    const activity = {
-      '@context': 'https://www.w3.org/ns/activitystreams',
-      type: 'Create',
-      actor: 'https://example.com/users/alice',
-      object: {
-        type: 'Note',
-        content: 'Hello world'
-      }
-    };
-
-    const parsed = parseActivity(activity);
-
-    expect(parsed.type).to.equal('Create');
-    expect(parsed.object.type).to.equal('Note');
+test('Follow is accepted and the follower stored', async () => {
+  const delivered = [];
+  const app = createApp({
+    cfg, store,
+    fetchJson: async (url) => ({ json: remoteActors[url] }), // no network
+    deliver: async (inbox, activity) => { delivered.push({ inbox, activity }); return 202; },
   });
-
-  it('should handle compact IRIs', () => {
-    const activity = {
-      '@context': [
-        'https://www.w3.org/ns/activitystreams',
-        { 'toot': 'http://joinmastodon.org/ns#' }
-      ],
-      type: 'Create',
-      'toot:sensitive': true
-    };
-
-    const parsed = parseActivity(activity);
-    expect(parsed.sensitive).to.be.true;
-  });
+  // ...sign a Follow with a test key, POST it to the handler, then:
+  assert.equal(delivered[0].activity.type, 'Accept');
 });
 ```
+
+### Parsing JSON-LD Shapes
+
+Remote servers differ in how they shape the same data. Test that your code accepts each form:
+
+- a property as a single value **and** as an array (`"to": "…"` vs `"to": ["…"]`)
+- a reference as a URL string **and** as an embedded object (`"actor": "…"` vs `"actor": { "id": "…" }`)
+- the public address as `https://www.w3.org/ns/activitystreams#Public`, `as:Public` or `Public` (Mastodon accepts all three)
+- extension terms under their real IRIs: Mastodon's `sensitive` is `as:sensitive`, not a `toot:` term ([`context_helper.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/helpers/context_helper.rb))
 
 ### Testing HTTP Signatures
 
@@ -134,336 +128,100 @@ Testing that a valid signature passes is the easy half. The bugs that matter are
 
 The [tested verification module](https://github.com/socialdocs/socialdocs.org/tree/gh-pages/examples/verify-requests/test) behind [Verifying incoming requests](/docs/security/verifying-requests) has a `node --test` case for each of these, plus the RFC 9421 Ed25519 test vector. Use it as a checklist, or run your own verifier against the same cases.
 
-### Testing Activity Handlers
+## Integration Testing Against a Real Server
 
-```javascript
-describe('Inbox Handlers', () => {
-  const { processActivity } = require('../src/inbox');
-  const db = require('../src/db');
+Mocks only tell you that your code agrees with your own idea of the protocol. The tutorial server in this repository is tested against a **real GoToSocial 0.22.2** in Docker, in CI ([`examples/first-server/integration`](https://github.com/socialdocs/socialdocs.org/tree/gh-pages/examples/first-server/integration)):
 
-  beforeEach(async () => {
-    await db.clear();
-  });
+- `compose.yaml` starts GoToSocial (image `superseriousbusiness/gotosocial:0.22.2`) and the server under test on a private network.
+- `federate.mjs` uses GoToSocial's client API to look up the test server's account, follow it, wait for the `Accept`, publish a post on the test server and check that it reaches the GoToSocial user's home timeline.
+- `run.sh` creates a throwaway CA and certificates so both sides speak HTTPS, then runs the above; the [workflow](https://github.com/socialdocs/socialdocs.org/blob/gh-pages/.github/workflows/tutorial.yml) runs it on changes and weekly.
 
-  describe('Follow', () => {
-    it('should create follower record', async () => {
-      const activity = {
-        type: 'Follow',
-        actor: 'https://remote.example/users/bob',
-        object: 'https://local.example/users/alice'
-      };
+GoToSocial is a single container with SQLite, which makes it practical in CI. Mastodon needs PostgreSQL, Redis, web and Sidekiq processes and a TLS proxy; budget for a much larger setup if you need it.
 
-      await processActivity(activity, { verified: true });
-
-      const record = await db.followers.findOne({
-        actor: activity.object,
-        follower: activity.actor
-      });
-
-      expect(record).to.exist;
-    });
-
-    it('should auto-accept for unlocked accounts', async () => {
-      // ... test Accept generation
-    });
-
-    it('should require approval for locked accounts', async () => {
-      // ... test pending follow requests
-    });
-  });
-
-  describe('Create', () => {
-    it('should store Note in inbox', async () => {
-      const activity = {
-        type: 'Create',
-        actor: 'https://remote.example/users/bob',
-        object: {
-          type: 'Note',
-          id: 'https://remote.example/notes/123',
-          content: 'Hello!'
-        },
-        to: ['https://local.example/users/alice']
-      };
-
-      await processActivity(activity, { verified: true });
-
-      const note = await db.notes.findOne({
-        id: activity.object.id
-      });
-
-      expect(note).to.exist;
-      expect(note.content).to.equal('Hello!');
-    });
-  });
-});
-```
-
-## Integration Testing
-
-### Testing with a Mock Server
-
-```javascript
-const express = require('express');
-const { expect } = require('chai');
-
-describe('Federation Integration', () => {
-  let mockServer;
-  let mockServerUrl;
-  let inboxReceived = [];
-
-  before((done) => {
-    const app = express();
-    app.use(express.json({ type: '*/*' }));
-
-    // Mock actor endpoint
-    app.get('/users/remote', (req, res) => {
-      res.type('application/activity+json').json({
-        '@context': 'https://www.w3.org/ns/activitystreams',
-        type: 'Person',
-        id: `${mockServerUrl}/users/remote`,
-        inbox: `${mockServerUrl}/inbox`,
-        outbox: `${mockServerUrl}/outbox`,
-        preferredUsername: 'remote'
-      });
-    });
-
-    // Mock inbox
-    app.post('/inbox', (req, res) => {
-      inboxReceived.push(req.body);
-      res.status(202).end();
-    });
-
-    mockServer = app.listen(0, () => {
-      mockServerUrl = `http://localhost:${mockServer.address().port}`;
-      done();
-    });
-  });
-
-  after(() => mockServer.close());
-
-  it('should deliver activities to remote inbox', async () => {
-    const { sendFollow } = require('../src/outbox');
-
-    await sendFollow(
-      localActor,
-      { id: `${mockServerUrl}/users/remote` }
-    );
-
-    // Wait for delivery
-    await new Promise(r => setTimeout(r, 1000));
-
-    expect(inboxReceived).to.have.length(1);
-    expect(inboxReceived[0].type).to.equal('Follow');
-  });
-});
-```
+Two things such a setup needs that production must never have: your server must be allowed to fetch and deliver to **private addresses** (the containers share a private network), and it must trust the throwaway CA. Keep both behind explicit test-only settings, as the tutorial does with `ALLOW_PRIVATE_ADDRESSES`.
 
 ### Testing WebFinger
 
 ```javascript
-describe('WebFinger', () => {
-  it('should return JRD for valid user', async () => {
-    const response = await fetch(
-      'https://your-server.example/.well-known/webfinger?resource=acct:alice@your-server.example',
-      { headers: { Accept: 'application/jrd+json' } }
-    );
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
 
-    expect(response.status).to.equal(200);
-    expect(response.headers.get('content-type')).to.include('application/jrd+json');
+test('WebFinger returns a JRD with a self link that loops back', async () => {
+  const res = await fetch(
+    'https://your-server.example/.well-known/webfinger?resource=acct:alice@your-server.example'
+  );
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get('content-type'), /application\/jrd\+json/);
+  assert.equal(res.headers.get('access-control-allow-origin'), '*');
 
-    const jrd = await response.json();
-    expect(jrd.subject).to.equal('acct:alice@your-server.example');
-    expect(jrd.links).to.be.an('array');
+  const jrd = await res.json();
+  assert.equal(jrd.subject, 'acct:alice@your-server.example');
+  const self = jrd.links.find((l) => l.rel === 'self');
+  assert.equal(self.type, 'application/activity+json');
 
-    const selfLink = jrd.links.find(l => l.rel === 'self');
-    expect(selfLink.type).to.equal('application/activity+json');
-  });
+  const actor = await (await fetch(self.href, { headers: { Accept: 'application/activity+json' } })).json();
+  assert.equal(actor.id, self.href); // Mastodon requires this exact match
+});
 
-  it('should return 404 for unknown user', async () => {
-    const response = await fetch(
-      'https://your-server.example/.well-known/webfinger?resource=acct:nobody@your-server.example'
-    );
-
-    expect(response.status).to.equal(404);
-  });
+test('WebFinger returns 404 for unknown users and other domains', async () => {
+  for (const r of ['acct:nobody@your-server.example', 'acct:alice@other.example']) {
+    const res = await fetch(`https://your-server.example/.well-known/webfinger?resource=${encodeURIComponent(r)}`);
+    assert.equal(res.status, 404);
+  }
 });
 ```
 
 ## End-to-End Testing
 
-### Testing with Real Instances
+### Searching From a Mastodon Account
 
-Use disposable test instances:
+Ask a Mastodon server to resolve your account, the way a user's search does. `resolve=true` needs a user access token with the `read:search` scope ([Mastodon API: search](https://docs.joinmastodon.org/methods/search/)):
 
 ```javascript
-describe('Mastodon Compatibility', () => {
-  const mastodonInstance = 'https://mastodon.social';
-
-  it('should be discoverable via WebFinger', async () => {
-    // Test that Mastodon can find your users
-    const response = await fetch(
-      `${mastodonInstance}/api/v2/search?q=alice@your-server.example&resolve=true`,
-      { headers: { Authorization: `Bearer ${testToken}` } }
-    );
-
-    const data = await response.json();
-    expect(data.accounts).to.have.length.gt(0);
-  });
-});
+const res = await fetch(
+  `https://mastodon.example/api/v2/search?q=${encodeURIComponent('@alice@your-server.example')}&type=accounts&resolve=true`,
+  { headers: { Authorization: `Bearer ${token}` } }
+);
+const { accounts } = await res.json();
+// accounts[0].url should be your actor's profile URL
 ```
 
-### Using Docker for Test Environments
-
-```yaml
-# docker-compose.test.yml
-version: '3.8'
-services:
-  your-server:
-    build: .
-    environment:
-      - DATABASE_URL=postgres://test:test@db/test
-      - DOMAIN=test.localhost
-    ports:
-      - "3000:3000"
-
-  mastodon:
-    image: tootsuite/mastodon:latest
-    environment:
-      - LOCAL_DOMAIN=mastodon.localhost
-    ports:
-      - "3001:3000"
-
-  db:
-    image: postgres:15
-    environment:
-      - POSTGRES_PASSWORD=test
-```
-
-```bash
-# Run integration tests
-docker-compose -f docker-compose.test.yml up -d
-npm run test:e2e
-docker-compose -f docker-compose.test.yml down
-```
+Use a server you run or have permission to test against, not a large public instance.
 
 ## Validation Checklist
 
 ### Actor Validation
 
-- [ ] Returns valid JSON-LD with @context
-- [ ] Has unique, dereferenceable id
-- [ ] Contains inbox and outbox URLs
-- [ ] Has valid preferredUsername
-- [ ] publicKey contains valid RSA public key
-- [ ] Content negotiation returns ActivityPub for appropriate Accept headers
-- [ ] Returns HTML for browser requests
+- [ ] Served with `Content-Type: application/activity+json`
+- [ ] `@context` includes `https://www.w3.org/ns/activitystreams`
+- [ ] `id` is exactly the URL it is served from
+- [ ] Has `inbox`, `outbox` and `preferredUsername`
+- [ ] Publishes a public key (`publicKey`, or FEP-521a `assertionMethod`)
+- [ ] Returns HTML for browsers if you have a profile page (optional), with `Vary: Accept`
 
 ### Inbox Validation
 
 - [ ] Accepts POST requests
-- [ ] Verifies HTTP Signatures
+- [ ] Verifies HTTP Signatures over the raw body
 - [ ] Returns 202 Accepted for valid activities
-- [ ] Returns 401/403 for invalid signatures
-- [ ] Handles all required activity types
-- [ ] Rejects activities with wrong actor
+- [ ] Returns 401 for invalid signatures
+- [ ] Rejects activities whose `actor` isn't the signer
+- [ ] Applies origin rules before storing objects
 
-### Outbox Validation
+### Delivery Validation
 
-- [ ] Supports GET for fetching activities
-- [ ] Delivers activities to recipient inboxes
-- [ ] Signs requests with valid HTTP Signatures
-- [ ] Uses shared inbox when available
-- [ ] Implements retry logic for failed deliveries
+- [ ] Signs every POST
+- [ ] Delivers to followers' shared inboxes when available, once per server
+- [ ] Never delivers to the sending actor itself
+- [ ] Retries network errors and 5xx; treats most 4xx as final (see [Delivery at Scale](/docs/guides/delivery-at-scale))
 
 ### WebFinger Validation
 
-- [ ] Responds at /.well-known/webfinger
-- [ ] Returns application/jrd+json
-- [ ] Includes CORS headers
-- [ ] Contains self link with ActivityPub type
-- [ ] Handles both acct: and URL resources
-
-## Automated Testing Tools
-
-### Continuous Integration
-
-```yaml
-# .github/workflows/test.yml
-name: ActivityPub Tests
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_PASSWORD: test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run unit tests
-        run: npm test
-
-      - name: Run integration tests
-        run: npm run test:integration
-        env:
-          DATABASE_URL: postgres://postgres:test@localhost/test
-
-      - name: Run ActivityPub compliance tests
-        run: npm run test:activitypub
-```
-
-### Linting ActivityPub Objects
-
-```javascript
-const Ajv = require('ajv');
-const ajv = new Ajv();
-
-// ActivityStreams schema (simplified)
-const activitySchema = {
-  type: 'object',
-  required: ['@context', 'type'],
-  properties: {
-    '@context': {
-      oneOf: [
-        { type: 'string', const: 'https://www.w3.org/ns/activitystreams' },
-        { type: 'array', items: { type: ['string', 'object'] } }
-      ]
-    },
-    type: { type: 'string' },
-    id: { type: 'string', format: 'uri' },
-    actor: { type: 'string', format: 'uri' },
-    object: { type: ['string', 'object'] }
-  }
-};
-
-const validate = ajv.compile(activitySchema);
-
-function lintActivity(activity) {
-  const valid = validate(activity);
-  if (!valid) {
-    return { valid: false, errors: validate.errors };
-  }
-  return { valid: true };
-}
-```
+- [ ] Responds at `/.well-known/webfinger`
+- [ ] Returns `application/jrd+json`
+- [ ] Sends `Access-Control-Allow-Origin`
+- [ ] Contains a `self` link with an ActivityPub type whose `href` is the actor `id`
+- [ ] Handles both `acct:` and URL resources
 
 ## Debugging Federation Issues
 
@@ -471,30 +229,29 @@ function lintActivity(activity) {
 
 ```javascript
 app.use((req, res, next) => {
-  if (req.path.includes('/inbox') || req.path.includes('/outbox')) {
-    console.log('Federation Request:', {
+  if (req.path.endsWith('/inbox')) {
+    console.log('Federation request:', {
       method: req.method,
-      path: req.path,
-      headers: {
-        signature: req.headers.signature,
-        digest: req.headers.digest,
-        contentType: req.headers['content-type']
-      },
-      body: req.body
+      path: req.originalUrl,
+      signature: req.headers.signature,
+      signatureInput: req.headers['signature-input'],
+      digest: req.headers.digest || req.headers['content-digest'],
+      contentType: req.headers['content-type']
     });
   }
   next();
 });
 ```
 
+When Mastodon rejects one of your requests, the reason is in the response body; see [Troubleshooting by Symptom](/docs/guides/troubleshooting).
+
 ### Testing Locally with Tunnels
 
-```bash
-# Use ngrok to expose local server
-ngrok http 3000
+Federation needs a public HTTPS hostname. A tunnel gives your machine one:
 
-# Your server is now accessible at https://xxxx.ngrok.io
-# Test federation with real instances
+```bash
+fedify tunnel 3000
+# or: ngrok http 3000
 ```
 
 ## Common Test Scenarios

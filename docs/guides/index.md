@@ -3,6 +3,8 @@ title: Guides by Task
 sidebar_label: I want to…
 description: Find the right guide by what you are trying to do — get followed by Mastodon users, make replies thread, migrate an account, fix a 401.
 slug: /guides
+last_verified: 2026-10-15
+verified_against: "Navigation page: every link target checked to exist and to cover the task described"
 ---
 
 # Guides by Task
@@ -49,7 +51,7 @@ Pick the thing you are trying to do. Each guide links to the specs and platform 
 | I want to work with… | Read |
 |---|---|
 | Mastodon | [Mastodon Compatibility](/docs/guides/mastodon-compatibility) |
-| Lemmy, PieFed or other group-based software | [Lemmy Compatibility](/docs/guides/lemmy-compatibility) |
+| Lemmy | [Lemmy Compatibility](/docs/guides/lemmy-compatibility) |
 | Pixelfed | [Pixelfed Compatibility](/docs/guides/pixelfed-compatibility) |
 | PeerTube | [PeerTube Compatibility](/docs/guides/peertube-compatibility) |
 | Threads, Ghost, WordPress, Bluesky (via Bridgy Fed), NodeBB, Discourse | [Big Platforms](/docs/ecosystem/big-platforms) |

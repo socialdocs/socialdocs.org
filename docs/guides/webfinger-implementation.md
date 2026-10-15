@@ -2,6 +2,8 @@
 sidebar_position: 15
 title: WebFinger Implementation
 description: Implementing WebFinger for user discovery in ActivityPub
+last_verified: 2026-10-15
+verified_against: "RFC 7033; Mastodon v4.7.3 source (app/lib/webfinger.rb, webfinger_resource.rb, webfinger_serializer.rb, process_account_service.rb); Fedify CLI docs"
 ---
 
 # WebFinger Implementation
@@ -68,7 +70,7 @@ WebFinger (RFC 7033) enables user discovery by translating `@username@domain` ha
 
 ### The Critical Link
 
-For ActivityPub, you must include a `self` link with the correct type:
+For ActivityPub, you must include a `self` link with one of the two ActivityPub media types. Mastodon's client rejects a response that has no `subject` or no such `self` link ([`webfinger.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/webfinger.rb)):
 
 ```json
 {
@@ -93,76 +95,69 @@ Or with the full JSON-LD type:
 ### Express.js Example
 
 ```javascript
+// Look up local accounts by lower-cased username; never build a regex from input.
 app.get('/.well-known/webfinger', async (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*'); // RFC 7033 §5: MUST
+
   const resource = req.query.resource;
-
-  if (!resource) {
-    return res.status(400).json({ error: 'Missing resource parameter' });
+  if (typeof resource !== 'string' || !resource) {
+    return res.status(400).end(); // RFC 7033 §4.2: missing or malformed resource
   }
 
-  // Parse the acct: URI
-  let username, domain;
-
+  let username;
   if (resource.startsWith('acct:')) {
-    const acct = resource.slice(5); // Remove 'acct:'
-    [username, domain] = acct.split('@');
-  } else if (resource.startsWith('https://')) {
-    // Handle direct URL lookup
+    // acct:alice@example.com — split on the LAST @ and compare hosts case-insensitively
+    const acct = resource.slice(5);
+    const at = acct.lastIndexOf('@');
+    if (at < 1) return res.status(400).end();
+    if (acct.slice(at + 1).toLowerCase() !== config.domain.toLowerCase()) {
+      return res.status(404).end(); // not our domain: never answer for other hosts
+    }
+    username = acct.slice(0, at);
+  } else if (/^https:\/\//i.test(resource)) {
+    // Some clients look up by actor or profile URL
     const url = new URL(resource);
-    domain = url.hostname;
-    username = url.pathname.split('/').pop();
+    if (url.host.toLowerCase() !== config.domain.toLowerCase()) return res.status(404).end();
+    username = url.pathname.match(/^\/users\/([^/]+)$/)?.[1];
   } else {
-    return res.status(400).json({ error: 'Invalid resource format' });
+    return res.status(400).end();
   }
 
-  // Verify domain matches our server
-  if (domain !== config.domain) {
-    return res.status(404).json({ error: 'User not found' });
-  }
+  const user = username && await db.actors.findOne({ usernameLower: username.toLowerCase() });
+  if (!user) return res.status(404).end();
 
-  // Find the user
-  const user = await db.actors.findOne({
-    preferredUsername: username
-  });
-
-  if (!user) {
-    return res.status(404).json({ error: 'User not found' });
-  }
-
-  // Build the JRD response
-  const jrd = {
-    subject: `acct:${username}@${config.domain}`,
-    aliases: [
-      user.url || `https://${config.domain}/@${username}`,
-      user.id
-    ],
+  res.type('application/jrd+json').send(JSON.stringify({
+    subject: `acct:${user.preferredUsername}@${config.domain}`,
+    aliases: [user.id],
     links: [
-      {
-        rel: 'self',
-        type: 'application/activity+json',
-        href: user.id
-      },
-      {
-        rel: 'http://webfinger.net/rel/profile-page',
-        type: 'text/html',
-        href: user.url || `https://${config.domain}/@${username}`
-      }
-    ]
-  };
-
-  res.setHeader('Content-Type', 'application/jrd+json');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.json(jrd);
+      { rel: 'self', type: 'application/activity+json', href: user.id },
+      { rel: 'http://webfinger.net/rel/profile-page', type: 'text/html', href: user.url },
+    ],
+  }));
 });
 ```
+
+Use the account's canonical username in `subject`, whatever case the client sent. Only include a `profile-page` link if that page exists.
 
 ### Response Headers
 
 ```javascript
-res.setHeader('Content-Type', 'application/jrd+json');
-res.setHeader('Access-Control-Allow-Origin', '*'); // Required for browser clients
-res.setHeader('Cache-Control', 'max-age=3600'); // Cache for 1 hour
+res.set('Content-Type', 'application/jrd+json');
+res.set('Access-Control-Allow-Origin', '*');   // RFC 7033 §5: servers MUST send it
+res.set('Cache-Control', 'public, max-age=3600');
 ```
+
+Mastodon itself caches its WebFinger answers for 3 days, and 404/400/410 answers for 3 minutes ([`webfinger_controller.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/controllers/well_known/webfinger_controller.rb)). It answers `410 Gone` for permanently unavailable accounts.
+
+### What Mastodon checks on your answer
+
+When Mastodon resolves `@alice@example.com` ([`webfinger.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/webfinger.rb), [`process_account_service.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/services/activitypub/process_account_service.rb)):
+
+- It requests `https://example.com/.well-known/webfinger?resource=acct:alice@example.com` with `Accept: application/jrd+json, application/json`. It does not check the response Content-Type.
+- On **404** it falls back to `/.well-known/host-meta` (an XRD template pointing to the real WebFinger URL); on **410** it treats the account as gone; any other non-200 is an error.
+- The JRD must have a `subject` and a `self` link with an ActivityPub type.
+- The `self` link's `href` must equal the actor's `id` exactly ("loops back"), and the username must match `[a-z0-9_]+([.-]+[a-z0-9_]+)*`.
+- If `subject` names a different account than was asked for, Mastodon follows that redirect once and requires the second answer to agree.
 
 ## Querying WebFinger
 
@@ -172,13 +167,17 @@ res.setHeader('Cache-Control', 'max-age=3600'); // Cache for 1 hour
 async function lookupWebFinger(handle) {
   // Parse handle: @alice@example.com or alice@example.com
   const cleaned = handle.replace(/^@/, '');
-  const [username, domain] = cleaned.split('@');
+  const at = cleaned.lastIndexOf('@');
+  const username = cleaned.slice(0, at);
+  const domain = cleaned.slice(at + 1);
 
-  if (!username || !domain) {
+  if (at < 1 || !domain || /[\/?#]/.test(domain)) {
     throw new Error('Invalid handle format');
   }
 
-  const url = `https://${domain}/.well-known/webfinger?resource=acct:${username}@${domain}`;
+  // RFC 7033 §4.2: HTTPS only, and percent-encode the resource
+  const resource = encodeURIComponent(`acct:${username}@${domain}`);
+  const url = `https://${domain}/.well-known/webfinger?resource=${resource}`;
 
   const response = await fetch(url, {
     headers: {
@@ -193,7 +192,8 @@ async function lookupWebFinger(handle) {
   const jrd = await response.json();
 
   // Find the ActivityPub actor URL
-  const selfLink = jrd.links.find(link =>
+  const links = Array.isArray(jrd.links) ? jrd.links : [];
+  const selfLink = links.find(link =>
     link.rel === 'self' &&
     (link.type === 'application/activity+json' ||
      link.type === 'application/ld+json; profile="https://www.w3.org/ns/activitystreams"')
@@ -206,7 +206,7 @@ async function lookupWebFinger(handle) {
   return {
     subject: jrd.subject,
     actorUrl: selfLink.href,
-    profileUrl: jrd.links.find(l =>
+    profileUrl: links.find(l =>
       l.rel === 'http://webfinger.net/rel/profile-page'
     )?.href
   };
@@ -220,10 +220,11 @@ async function lookupWebFinger(handle) {
 const result = await lookupWebFinger('@alice@mastodon.social');
 console.log(result.actorUrl);
 // https://mastodon.social/users/alice
-
-// Fetch the actor
-const actor = await fetchActor(result.actorUrl);
 ```
+
+RFC 7033 §4.2 only allows redirects to `https` URLs; `fetch` follows any redirect, so check `response.url` starts with `https://` before trusting the answer.
+
+On a server, the domain in a handle is user input: route these requests through an SSRF-safe fetcher that refuses private addresses (see `resolveAddress` in the [tested verification module](/docs/security/verifying-requests)). Then fetch the actor from `actorUrl` and check that its `id` equals `actorUrl` and its `preferredUsername` matches the handle.
 
 ## Additional Links
 
@@ -247,63 +248,31 @@ const actor = await fetchActor(result.actorUrl);
 }
 ```
 
-### Atom Feed (Legacy)
+### Remote Interaction Templates
+
+Mastodon 4.7 publishes these on every account ([`webfinger_serializer.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/serializers/webfinger_serializer.rb)). The OStatus `subscribe` template is the long-standing "follow from your own server" link; the two FEP-3b86 Activity Intents templates arrived in Mastodon 4.6:
 
 ```json
-{
-  "rel": "http://schemas.google.com/g/2010#updates-from",
-  "type": "application/atom+xml",
-  "href": "https://example.com/users/alice.atom"
-}
-```
-
-### Subscribe URL (OStatus)
-
-```json
-{
-  "rel": "http://ostatus.org/schema/1.0/subscribe",
-  "template": "https://example.com/authorize_interaction?uri={uri}"
-}
+[
+  { "rel": "http://ostatus.org/schema/1.0/subscribe", "template": "https://example.com/authorize_interaction?uri={uri}" },
+  { "rel": "https://w3id.org/fep/3b86/Create", "template": "https://example.com/share?text={content}" },
+  { "rel": "https://w3id.org/fep/3b86/Object", "template": "https://example.com/authorize_interaction?uri={object}" }
+]
 ```
 
 ## Handling Edge Cases
 
 ### Case Insensitivity
 
-Usernames should be case-insensitive:
+Match usernames case-insensitively, but never by building a regular expression from the request (a `.` or `*` in the input would match other accounts, and a crafted pattern can hang the server). Store a lower-cased copy and compare that:
 
 ```javascript
-const user = await db.actors.findOne({
-  preferredUsername: { $regex: new RegExp(`^${username}$`, 'i') }
-});
+const user = await db.actors.findOne({ usernameLower: username.toLowerCase() });
 ```
 
 ### URL Resource Lookups
 
-Some clients query with URLs instead of acct: URIs:
-
-```javascript
-app.get('/.well-known/webfinger', async (req, res) => {
-  const resource = req.query.resource;
-
-  let username;
-
-  if (resource.startsWith('acct:')) {
-    username = resource.slice(5).split('@')[0];
-  } else if (resource.startsWith('https://')) {
-    // Handle: https://example.com/users/alice
-    const url = new URL(resource);
-    if (url.hostname !== config.domain) {
-      return res.status(404).json({ error: 'Not found' });
-    }
-    // Extract username from URL path
-    const match = url.pathname.match(/\/users\/([^\/]+)/);
-    username = match ? match[1] : null;
-  }
-
-  // Continue with lookup...
-});
-```
+Some clients query with URLs instead of `acct:` URIs; RFC 7033 allows any URI as the resource, and Mastodon accepts both `acct:` and `https:` resources for its own accounts ([`webfinger_resource.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/webfinger_resource.rb)). The example above handles both.
 
 ### Multiple Domains
 
@@ -331,7 +300,7 @@ app.get('/.well-known/webfinger', async (req, res) => {
 
 ## CORS Configuration
 
-WebFinger must be accessible from browsers:
+RFC 7033 §5 says servers MUST send `Access-Control-Allow-Origin`, so browser-based clients can query WebFinger:
 
 ```javascript
 app.use('/.well-known/webfinger', (req, res, next) => {
@@ -375,11 +344,11 @@ curl "https://example.com/.well-known/webfinger?resource=acct:alice@example.com"
 
 - [webfinger.net](https://webfinger.net/lookup/?resource=acct:Gargron@mastodon.social) — look up any resource in the browser and see the raw JRD
 - [webfinger.js](https://silverbucket.github.io/webfinger.js/) — open-source JavaScript client with a browser demo
-- [Fedify CLI](https://fedify.dev/cli) — `fedify webfinger alice@example.com` from the terminal; `fedify lookup @alice@example.com` follows through to the actor
+- [Fedify CLI](https://fedify.dev/cli) — `fedify webfinger @alice@example.com` from the terminal; `fedify lookup @alice@example.com` follows through to the actor
 
 ### URL Encoding
 
-The `resource` value should be percent-encoded. Servers must accept both forms, because clients send both:
+RFC 7033 §4.1 says the `resource` value is percent-encoded. Accept both forms anyway, because clients send both (your framework's query parser decodes the encoded one):
 
 ```bash
 curl "https://example.com/.well-known/webfinger?resource=acct%3Aalice%40example.com"
@@ -397,25 +366,26 @@ curl -H 'Accept: application/activity+json' https://example.com/users/alice
 ### Validation Checklist
 
 - [ ] Returns 200 for valid users
-- [ ] Returns 404 for unknown users
-- [ ] Returns 400 for missing resource parameter
+- [ ] Returns 404 for unknown users and for other domains
+- [ ] Returns 400 for a missing or malformed resource parameter
 - [ ] Content-Type is `application/jrd+json`
-- [ ] CORS headers allow cross-origin requests
-- [ ] `self` link has correct ActivityPub type
-- [ ] Handles case-insensitive usernames
+- [ ] Sends `Access-Control-Allow-Origin`
+- [ ] `self` link has an ActivityPub type and its `href` equals the actor's `id`
+- [ ] Handles case-insensitive usernames without regex built from input
 - [ ] Works with both `acct:` and URL resources
 
 ## Common Issues
 
 ### Wrong Content-Type
 
+RFC 7033 §4.2 requires a JRD; serve it as `application/jrd+json`. Mastodon happens not to check the Content-Type, but other clients do.
+
 ```javascript
-// Wrong
+// Wrong: Express sends application/json
 res.json(jrd);
 
 // Right
-res.setHeader('Content-Type', 'application/jrd+json');
-res.json(jrd);
+res.type('application/jrd+json').send(JSON.stringify(jrd));
 ```
 
 ### Missing CORS
@@ -428,7 +398,7 @@ res.setHeader('Access-Control-Allow-Origin', '*');
 
 ### Domain Mismatch
 
-The resource domain must match your server:
+The resource domain must match your server. Never answer for other hosts:
 
 ```javascript
 if (domain !== config.domain) {
@@ -438,13 +408,18 @@ if (domain !== config.domain) {
 
 ### Wrong Link Type
 
+These are the only two `self` link types Mastodon recognises ([`webfinger.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/webfinger.rb)):
+
 ```javascript
-// These are all valid ActivityPub types:
 const validTypes = [
   'application/activity+json',
   'application/ld+json; profile="https://www.w3.org/ns/activitystreams"'
 ];
 ```
+
+### Self Link Doesn't Loop Back
+
+If the `self` link's `href` is not exactly the actor's `id` (a trailing slash, `http` vs `https`, a different path), Mastodon rejects the account with "does not loop back".
 
 ## Caching
 
