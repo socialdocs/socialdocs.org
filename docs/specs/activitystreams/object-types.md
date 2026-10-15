@@ -196,7 +196,7 @@ A physical location.
 | `latitude` | Number | Latitude coordinate |
 | `longitude` | Number | Longitude coordinate |
 | `altitude` | Number | Altitude in meters |
-| `accuracy` | Number | Accuracy in meters |
+| `accuracy` | Number | Accuracy as a percentage, 0–100 (e.g. `94.0` = 94% accurate) |
 | `radius` | Number | Radius in meters |
 | `units` | String | Unit of measurement |
 
@@ -262,6 +262,11 @@ References another actor.
 ### Hashtag
 
 A topic tag.
+
+:::note Not part of core AS2
+`Hashtag` and `Emoji` are fediverse **extensions**, not ActivityStreams 2.0 types (AS2 only defines `Mention` as a Link subtype). Include their context mappings, e.g. `"Hashtag": "as:Hashtag"` and Mastodon's `"Emoji": "toot:Emoji"`.
+:::
+
 
 ```json
 {
@@ -345,8 +350,8 @@ A custom emoji.
 | Place | Location | Check-ins |
 | Tombstone | Deleted content | Deletion markers |
 | Mention | User reference | @mentions |
-| Hashtag | Topic tag | #hashtags |
-| Emoji | Custom emoji | :emoji: |
+| Hashtag (extension) | Topic tag | #hashtags |
+| Emoji (extension) | Custom emoji | :emoji: |
 
 ## Content Representation
 

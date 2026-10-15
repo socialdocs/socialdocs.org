@@ -33,22 +33,23 @@ Malicious contexts can redefine terms:
 
 ### Prevention
 
-Always use a fixed, trusted context:
+Don't overwrite the sender's `@context` with your own. For a JSON-LD processor that silently changes the meaning of every extension term (`publicKey`, `sensitive`, `Hashtag`, `toot:*`…); for a plain-JSON processor it does nothing at all.
+
+Pick one of two sound approaches:
+
+1. **Process as plain JSON** (what most fediverse servers do). Read properties by their compact names, ignore `@context`, and never run JSON-LD algorithms on untrusted input. Context tricks can't change what `inbox` means to you.
+2. **Process as JSON-LD, safely.** Expand with a document loader that only serves a **pinned allowlist of preloaded contexts** (below) and refuses anything else, then **compact against your own trusted context**. After compaction, a term the sender redefined (like `inbox` above) no longer maps to `as:inbox`, so it simply won't appear where you look for it.
 
 ```javascript
-const TRUSTED_CONTEXT = {
-  "@context": "https://www.w3.org/ns/activitystreams"
-};
+const jsonld = require('jsonld');
 
-function processActivity(activity) {
-  // Strip remote context, use trusted one
-  const safe = {
-    ...TRUSTED_CONTEXT,
-    ...activity,
-    "@context": TRUSTED_CONTEXT["@context"]
-  };
-  return safe;
-}
+const expanded = await jsonld.expand(activity, {
+  documentLoader: safeDocumentLoader, // allowlist only, see below
+  safe: true                          // fail on lossy/undefined terms
+});
+const compacted = await jsonld.compact(expanded, MY_TRUSTED_CONTEXT, {
+  documentLoader: safeDocumentLoader
+});
 ```
 
 ## Remote Context Fetching
@@ -71,17 +72,20 @@ Risks include:
 ### Prevention
 
 ```javascript
-// Cache known contexts locally
+// Pin known contexts locally — never fetch @context URLs at runtime.
+// Include the ones real servers send, or you'll reject valid traffic:
 const CONTEXT_CACHE = {
   'https://www.w3.org/ns/activitystreams': require('./contexts/activitystreams.json'),
-  'https://w3id.org/security/v1': require('./contexts/security.json')
+  'https://w3id.org/security/v1': require('./contexts/security-v1.json'),
+  'https://w3id.org/security/data-integrity/v1': require('./contexts/data-integrity-v1.json'),
+  'https://w3id.org/security/multikey/v1': require('./contexts/multikey-v1.json'),
+  // ...plus any others you see in your logs (e.g. Lemmy's, GoToSocial's)
 };
 
-function getContext(url) {
-  if (CONTEXT_CACHE[url]) {
-    return CONTEXT_CACHE[url];
-  }
-  throw new Error(`Unknown context: ${url}`);
+async function safeDocumentLoader(url) {
+  const document = CONTEXT_CACHE[url];
+  if (!document) throw new Error(`Unknown context: ${url}`);
+  return { contextUrl: null, documentUrl: url, document };
 }
 ```
 
@@ -89,34 +93,36 @@ function getContext(url) {
 
 Block requests to internal networks:
 
+Checking the hostname's IP and *then* calling `fetch` is not enough: `fetch` resolves DNS again (so an attacker's DNS can answer differently the second time — DNS rebinding), and a public URL can redirect to an internal one. The check has to happen **on the connection itself**, for every redirect hop.
+
+Use a maintained filtering agent rather than hand-rolling this. For example, with [`request-filtering-agent`](https://www.npmjs.com/package/request-filtering-agent) and node-fetch:
+
 ```javascript
-const BLOCKED_RANGES = [
-  '127.0.0.0/8',      // Loopback
-  '10.0.0.0/8',       // Private
-  '172.16.0.0/12',    // Private
-  '192.168.0.0/16',   // Private
-  '169.254.0.0/16',   // Link-local
-  '::1/128',          // IPv6 loopback
-  'fc00::/7'          // IPv6 private
-];
+const fetch = require('node-fetch');
+const { useAgent } = require('request-filtering-agent');
 
 async function safeFetch(url) {
-  const parsed = new URL(url);
-  const ip = await dns.resolve(parsed.hostname);
+  if (new URL(url).protocol !== 'https:') throw new Error('HTTPS only');
 
-  if (isBlockedIP(ip)) {
-    throw new Error('Blocked IP range');
-  }
-
-  return fetch(url, { timeout: 5000 });
+  // The agent validates the IP actually connected to (blocking loopback,
+  // private, link-local, CGNAT, 0.0.0.0/8, IPv4-mapped IPv6, ...),
+  // including on every redirect.
+  return fetch(url, {
+    agent: useAgent(url),
+    timeout: 5000,
+    size: 1_000_000,       // cap response bytes
+    follow: 3              // cap redirects
+  });
 }
 ```
+
+If you write your own, block at least: `0.0.0.0/8`, `10.0.0.0/8`, `100.64.0.0/10`, `127.0.0.0/8`, `169.254.0.0/16`, `172.16.0.0/12`, `192.168.0.0/16`, `::1`, `::ffff:0:0/96` (IPv4-mapped), `fc00::/7` and `fe80::/10` — and check **every** address DNS returns, on the socket you actually use.
 
 ## Recursive Expansion
 
 ### The Risk
 
-Deeply nested JSON-LD can cause stack overflow:
+Deeply nested or pathological JSON-LD can exhaust CPU or stack. This is not theoretical: Mastodon 4.7.1 fixed a denial of service in exactly this area ([GHSA-vgm8-frgh-rh2v](https://github.com/mastodon/mastodon/security/advisories/GHSA-vgm8-frgh-rh2v)). Example:
 
 ```json
 {
@@ -126,16 +132,24 @@ Deeply nested JSON-LD can cause stack overflow:
 
 ### Prevention
 
-```javascript
-function processJsonLd(doc, depth = 0) {
-  if (depth > 10) {
-    throw new Error('Max depth exceeded');
-  }
+jsonld.js has no depth option, so bound the input yourself *before* running any JSON-LD algorithm, and never let it fetch remote contexts:
 
-  // Process with depth limit
-  return expand(doc, { maxDepth: 10 });
+```javascript
+function checkDepth(value, depth = 0) {
+  if (depth > 32) throw new Error('Document nested too deeply');
+  if (value && typeof value === 'object') {
+    for (const v of Object.values(value)) checkDepth(v, depth + 1);
+  }
+}
+
+async function processJsonLd(doc, rawBody) {
+  if (rawBody.length > 1_000_000) throw new Error('Document too large');
+  checkDepth(doc);
+  return jsonld.expand(doc, { documentLoader: safeDocumentLoader, safe: true });
 }
 ```
+
+Run expansion with a time budget (e.g. in a worker you can kill) if you process JSON-LD at volume.
 
 ## Type Confusion
 
@@ -231,10 +245,10 @@ class SafeJsonLdProcessor {
   }
 
   normalizeContext(doc) {
-    return {
-      ...doc,
-      "@context": "https://www.w3.org/ns/activitystreams"
-    };
+    // Plain-JSON processing: read compact property names and leave
+    // @context alone. Overwriting @context would change the meaning of
+    // extension terms for any JSON-LD consumer downstream.
+    return doc;
   }
 
   extractId(value) {

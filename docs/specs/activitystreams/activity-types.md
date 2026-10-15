@@ -493,7 +493,7 @@ Indicates the actor has listened to the object.
 
 ## Question (IntransitiveActivity)
 
-Represents a poll or question. The object property contains the options.
+Represents a poll or question. Question is an IntransitiveActivity, so it has no `object`: the options go in `oneOf` (single choice) or `anyOf` (multiple choice), and a Question MUST NOT have both ([AS2 Vocab](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-question)).
 
 ```json
 {

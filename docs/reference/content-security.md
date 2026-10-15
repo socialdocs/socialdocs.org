@@ -40,14 +40,27 @@ const ALLOWED_TAGS = [
 const ALLOWED_ATTRS = {
   'a': ['href', 'rel', 'class'],
   'span': ['class'],
-  '*': ['class']
+  'p': ['class']
 };
+
+// Don't let remote content use arbitrary classes — it would pick up your
+// site's CSS and could spoof UI. Keep only the classes fediverse markup
+// needs, as Mastodon does (sanitize_config.rb):
+function allowedClass(c) {
+  return /^(h|p|u|dt|e)-/.test(c)            // microformats
+      || /^(mention|hashtag)$/.test(c)       // semantic
+      || /^(ellipsis|invisible)$/.test(c)    // link formatting
+      || c === 'quote-inline';
+}
 ```
 
 ### Sanitization Example
 
 ```javascript
-const DOMPurify = require('dompurify');
+// DOMPurify needs a DOM; on the server, give it one from jsdom
+const createDOMPurify = require('dompurify');
+const { JSDOM } = require('jsdom');
+const DOMPurify = createDOMPurify(new JSDOM('').window);
 
 function sanitizeContent(html) {
   return DOMPurify.sanitize(html, {
@@ -124,31 +137,42 @@ Benefits:
 
 ### Implementation
 
+A media proxy that fetches any URL it's given is an **open proxy** and an SSRF hole, and one that echoes the remote `Content-Type` turns a remote `image/svg+xml` or `text/html` file into script running on *your* origin (stored XSS). Only proxy URLs you already know about, and only serve raster media types:
+
 ```javascript
-app.get('/media/proxy', async (req, res) => {
-  const url = req.query.url;
+const fetch = require('node-fetch');
+const { useAgent } = require('request-filtering-agent'); // blocks internal IPs
 
-  // Validate URL
-  if (!isAllowedMediaUrl(url)) {
-    return res.status(400).send('Invalid URL');
-  }
+// Raster types only — never image/svg+xml or text/html
+const SAFE_MEDIA_TYPES = new Set([
+  'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif',
+  'video/mp4', 'video/webm', 'audio/mpeg', 'audio/ogg'
+]);
 
-  // Fetch with timeout
-  const response = await fetch(url, {
+app.get('/media/proxy/:id', async (req, res) => {
+  // Look the media up in your own database (it came from an attachment
+  // you stored) instead of accepting an arbitrary ?url=
+  const media = await db.remoteMedia.findOne({ id: req.params.id });
+  if (!media) return res.status(404).end();
+
+  const response = await fetch(media.remoteUrl, {
+    agent: useAgent(media.remoteUrl),
     timeout: 10000,
-    size: 10 * 1024 * 1024 // 10MB limit
+    size: 10 * 1024 * 1024, // 10MB limit
+    follow: 3
   });
 
-  // Validate content type
-  const contentType = response.headers.get('content-type');
-  if (!isAllowedMediaType(contentType)) {
-    return res.status(400).send('Invalid media type');
+  const contentType = (response.headers.get('content-type') || '')
+    .split(';')[0].trim().toLowerCase();
+  if (!response.ok || !SAFE_MEDIA_TYPES.has(contentType)) {
+    return res.status(415).end();
   }
 
-  // Stream to client
   res.set('Content-Type', contentType);
+  res.set('X-Content-Type-Options', 'nosniff');
+  res.set('Content-Security-Policy', "default-src 'none'; sandbox");
   res.set('Cache-Control', 'public, max-age=86400');
-  response.body.pipe(res);
+  response.body.pipe(res); // node-fetch returns a Node stream
 });
 ```
 
@@ -170,11 +194,14 @@ function validateActorId(id) {
     throw new Error('Invalid actor domain');
   }
 
-  // No IP addresses
-  if (/^\d+\.\d+\.\d+\.\d+$/.test(url.hostname)) {
+  // No IP literals (IPv4 or bracketed IPv6)
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(url.hostname) || url.hostname.startsWith('[')) {
     throw new Error('IP addresses not allowed');
   }
 
+  // Note: this is input hygiene, not SSRF protection — a hostname can
+  // still resolve to an internal address. Fetch through a filtering
+  // agent (see JSON-LD Security > SSRF Prevention).
   return true;
 }
 ```
@@ -193,10 +220,14 @@ function validateActivity(activity) {
     throw new Error('Actor mismatch');
   }
 
-  // Object attribution matches actor (for Create)
-  if (activity.type === 'Create') {
+  // Object attribution matches actor, and the object lives on the
+  // actor's origin (for Create/Update) — the CVE-2024-23832 bug class
+  if (activity.type === 'Create' || activity.type === 'Update') {
     if (activity.object?.attributedTo !== activity.actor) {
       throw new Error('Attribution mismatch');
+    }
+    if (new URL(activity.object.id).origin !== new URL(activity.actor).origin) {
+      throw new Error('Object is not on the actor\'s origin');
     }
   }
 
@@ -213,10 +244,12 @@ const rateLimit = require('express-rate-limit');
 
 const inboxLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 100, // per domain
-  keyGenerator: (req) => {
-    return new URL(req.body.actor).hostname;
-  }
+  max: 100,
+  // req.body.actor is unauthenticated until the signature is verified —
+  // keying on it lets attackers dodge the limit (and new URL(undefined)
+  // throws). Key on the client IP here; add per-domain limits after
+  // verification.
+  keyGenerator: (req) => req.ip
 });
 
 app.post('/inbox', inboxLimiter, handleInbox);

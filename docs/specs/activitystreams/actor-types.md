@@ -113,10 +113,7 @@ Represents a collection of actors, often used for communities.
   "inbox": "https://lemmy.example/c/technology/inbox",
   "outbox": "https://lemmy.example/c/technology/outbox",
   "followers": "https://lemmy.example/c/technology/followers",
-  "attributedTo": [
-    "https://lemmy.example/u/moderator1",
-    "https://lemmy.example/u/moderator2"
-  ],
+  "attributedTo": "https://lemmy.example/c/technology/moderators",
   "publicKey": {
     "id": "https://lemmy.example/c/technology#main-key",
     "owner": "https://lemmy.example/c/technology",
@@ -160,7 +157,7 @@ Represents a company, institution, or organization.
 
 ## Application
 
-Represents a software application, typically a bot.
+Represents a software application. AS2 doesn't say what it's for; in practice it is used for bots and instance actors. Mastodon treats both `Application` and `Service` actors as bots ([Mastodon docs](https://docs.joinmastodon.org/spec/activitypub/)).
 
 ```json
 {
@@ -247,7 +244,6 @@ All actors must have these properties for ActivityPub:
   "manuallyApprovesFollowers": false,
   "featured": "https://example.com/users/alice/collections/featured",
   "featuredTags": "https://example.com/users/alice/collections/tags",
-  "movedTo": null,
   "alsoKnownAs": [],
   "attachment": [
     {
@@ -352,8 +348,8 @@ Servers often have a special instance-level actor:
 | Person | Users | Yes | Yes |
 | Group | Communities | Yes | Redistributes |
 | Organization | Companies | Yes | Yes |
-| Application | Bots | Yes | Yes |
-| Service | System | Sometimes | Sometimes |
+| Application | Bots, instance actors | Yes | Yes |
+| Service | Bots, relays, system actors | Sometimes | Sometimes |
 
 ## Content Negotiation
 
@@ -362,6 +358,9 @@ Actors must be served with correct content type based on Accept header:
 ```javascript
 app.get('/users/:username', (req, res) => {
   const accept = req.headers.accept || '';
+
+  // The same URL serves HTML and JSON, so tell caches to key on Accept
+  res.vary('Accept');
 
   if (accept.includes('application/activity+json') ||
       accept.includes('application/ld+json')) {

@@ -46,7 +46,7 @@ An [Actor](#actor) type representing a software application, often used for bots
 ## B
 
 ### Backfill
-The process of fetching historical content when a new follow relationship is established.
+Fetching content you missed: an account's older posts after a new follow, or the rest of a conversation (replies, parents) when you only received part of a thread. See FEP-7458 (replies collection), FEP-7888 (`context`) and FEP-f228 (conversation backfill), all drafts.
 
 ### Block
 An activity that prevents interaction between actors. Blocked actors cannot see content or interact with the blocking actor.
@@ -238,7 +238,7 @@ An activity expressing positive sentiment or appreciation. Equivalent to "favori
 **See also:** [Likes and Shares](/docs/guides/likes-and-shares)
 
 ### Linked Data Signatures
-A method for cryptographically signing JSON-LD documents themselves (as opposed to HTTP requests).
+An older, now-deprecated method for signing JSON-LD documents themselves (as opposed to HTTP requests). Mastodon advises against implementing it, and a JSON-LD named-graph bypass ([CVE-2026-46349](https://github.com/mastodon/mastodon/security/advisories/GHSA-chgx-jx3p-rf73)) affected implementations in 2026. Its successor is Object Integrity Proofs ([FEP-8b32](https://codeberg.org/fediverse/fep/src/branch/main/fep/8b32/fep-8b32.md)).
 
 ### Local-only
 Content that is not federated to other servers. Supported by some platforms as a visibility option.

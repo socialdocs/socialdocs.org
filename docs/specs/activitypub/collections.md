@@ -283,19 +283,25 @@ async function fetchCollection(collectionUrl) {
     return collection.items;
   }
 
-  // Otherwise, paginate
-  let pageUrl = collection.first;
+  // Otherwise, paginate. `first` and `next` may be URLs *or* embedded
+  // page objects (Mastodon embeds the first page of `replies`).
+  let next = collection.first;
+  let pagesFetched = 0;
 
-  while (pageUrl) {
-    response = await fetch(pageUrl, {
-      headers: { 'Accept': 'application/activity+json' }
-    });
-    const page = await response.json();
+  while (next && pagesFetched < 50) {   // cap iterations, not just items
+    let page = next;
+    if (typeof next === 'string') {
+      response = await fetch(next, {
+        headers: { 'Accept': 'application/activity+json' }
+      });
+      page = await response.json();
+      pagesFetched++;
+    }
 
     const pageItems = page.orderedItems || page.items || [];
-    items.push(...pageItems);
+    items.push(...(Array.isArray(pageItems) ? pageItems : [pageItems]));
 
-    pageUrl = page.next;
+    next = page.next;
 
     // Safety limit
     if (items.length > 1000) break;
@@ -309,7 +315,7 @@ async function fetchCollection(collectionUrl) {
 
 ### Synchronizing Followers
 
-When your followers collection changes, you don't need to notify anyone. The change is reflected when the collection is fetched.
+Followers collections drift out of sync between servers (missed Undo/Reject, data loss). [FEP-8fcf](https://codeberg.org/fediverse/fep/src/branch/main/fep/8fcf/fep-8fcf.md) (FINAL), implemented by Mastodon, fixes this: when delivering to followers, the sender adds a `Collection-Synchronization` header with a digest of the followers it has on the receiving server, so the receiver can detect and repair mismatches.
 
 ### Synchronizing Follow Lists
 
@@ -340,7 +346,7 @@ Some servers hide followers/following counts or require authentication:
 }
 ```
 
-(Returning 0 or omitting `totalItems` for privacy)
+(Omitting `totalItems` is the honest way to hide the count; returning `0` misreports it, and some clients will display "0 followers".)
 
 ## Best Practices
 

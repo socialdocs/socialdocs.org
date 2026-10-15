@@ -203,17 +203,19 @@ Private keys must be stored securely. Never expose them in logs, APIs, or client
 Best practices:
 - Store encrypted at rest
 - Use environment variables or secrets manager
-- Rotate keys periodically
+- Rotate keys when they may be compromised (routine rotation isn't common practice and risks delivery failures with servers that cache keys)
 - Backup keys securely
 
 ### Key Rotation
 
-When rotating keys:
+A single `publicKey` property can only hold one key, so "keeping the old key available" isn't possible with it. Instead:
 
-1. Generate new key pair
-2. Update actor's `publicKey` with new key
-3. Keep old key available briefly (for in-flight requests)
-4. Remove old key after 24-48 hours
+1. Generate a new key pair
+2. Publish it **alongside** the old one using [FEP-521a](https://codeberg.org/fediverse/fep/src/branch/main/fep/521a/fep-521a.md) `assertionMethod` (Multikey) entries; Mastodon 4.6+ accepts multiple keys per remote actor
+3. Send an `Update` of your actor to your followers so they refresh their cache
+4. Start signing with the new key; remove the old one once deliveries signed with it have drained
+
+Servers that fail to verify a signature refetch the actor's key once before rejecting (Mastodon does this), which is what lets caches recover after a rotation. If you only publish a single `publicKey`, steps 2–3 collapse into replacing it and sending the `Update`; expect a short window of failed verifications.
 
 ## Content Verification
 

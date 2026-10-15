@@ -87,7 +87,7 @@ Accept: application/activity+json
 
 ## Authentication
 
-All inbox POSTs MUST be signed with HTTP Signatures:
+The ActivityPub spec leaves authentication open ([AP §B.1](https://www.w3.org/TR/activitypub/#authorization)), but in practice every major server requires inbox POSTs to be signed with HTTP Signatures — draft-cavage today, with [RFC 9421](https://www.rfc-editor.org/rfc/rfc9421.html) increasingly supported (Mastodon verifies it since 4.5):
 
 ```http
 Signature: keyId="https://server-a.com/users/alice#main-key",
@@ -160,7 +160,9 @@ app.post('/users/:username/inbox', async (req, res) => {
 
 ```javascript
 function validateActivity(activity, signer) {
-  // Actor must match signer
+  // Actor must match signer. (Forwarded activities — AP §7.1.2 — are
+  // signed by the forwarding server, not the actor: don't trust their
+  // body; re-fetch the activity from its origin by id instead.)
   if (activity.actor !== signer.id) {
     throw new Error('Actor does not match signer');
   }
@@ -228,6 +230,13 @@ async function processCreate(activity) {
   // Verify attribution
   if (object.attributedTo !== activity.actor) {
     throw new Error('Attribution mismatch');
+  }
+
+  // Origin check: the object must live on the actor's server. Without
+  // this, evil.example can overwrite objects "owned" by victim.example
+  // (the bug class behind Mastodon CVE-2024-23832).
+  if (new URL(object.id).origin !== new URL(activity.actor).origin) {
+    throw new Error('Object id is not on the actor\'s origin');
   }
 
   // Store the object
@@ -303,7 +312,11 @@ async function processDelete(activity) {
     ? activity.object
     : activity.object.id;
 
-  // Verify actor owns the object
+  // Verify actor owns the object: same origin, and the stored copy
+  // (if any) is attributed to them
+  if (new URL(objectId).origin !== new URL(activity.actor).origin) {
+    throw new Error('Cannot delete: object is on another origin');
+  }
   const existing = await db.objects.findOne({ id: objectId });
   if (existing && existing.data.attributedTo !== activity.actor) {
     throw new Error('Cannot delete: not owner');
@@ -396,37 +409,31 @@ app.post('/inbox', async (req, res) => {
   res.status(202).send();
 });
 
-async function resolveLocalRecipients(activity) {
-  const addresses = [
-    ...(activity.to || []),
-    ...(activity.cc || []),
-    ...(activity.bto || []),
-    ...(activity.bcc || [])
-  ];
+const asArray = v => (v == null ? [] : Array.isArray(v) ? v : [v]);
 
-  const localUsers = [];
+async function resolveLocalRecipients(activity) {
+  const addresses = ['to', 'cc', 'bto', 'bcc'].flatMap(f => asArray(activity[f]));
+
+  const localUsers = new Map();
 
   for (const address of addresses) {
-    // Check if it's a local user
-    if (address.startsWith('https://example.com/users/')) {
-      const user = await db.users.findOne({ actorId: address });
-      if (user) localUsers.push(user);
-    }
+    // A local user addressed directly? Look the IRI up — don't
+    // pattern-match URLs (IRIs are opaque).
+    const user = await db.users.findOne({ actorId: address });
+    if (user) localUsers.set(user.id, user);
 
-    // Check if it's a followers collection we own
-    if (address.endsWith('/followers')) {
-      const actorId = address.replace('/followers', '');
-      const followers = await db.followers.find({ actor: actorId });
-      // Filter to local followers
-      for (const f of followers) {
-        if (f.follower.startsWith('https://example.com/')) {
-          localUsers.push(await db.users.findOne({ actorId: f.follower }));
-        }
+    // A remote actor's followers collection? Look up which remote actor
+    // has this IRI as its `followers`, then find our local users who
+    // follow that actor.
+    const remote = await db.remoteActors.findOne({ followers: address });
+    if (remote) {
+      for (const u of await db.users.find({ following: remote.id })) {
+        localUsers.set(u.id, u);
       }
     }
   }
 
-  return localUsers;
+  return [...localUsers.values()];
 }
 ```
 
@@ -464,11 +471,11 @@ const rateLimit = require('express-rate-limit');
 const inboxLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 100, // 100 requests per minute
-  keyGenerator: (req) => {
-    // Rate limit by signing actor
-    const sig = parseSignatureHeader(req.headers.signature);
-    return sig?.keyId || req.ip;
-  }
+  // Key on the client IP here. The keyId in the Signature header is
+  // attacker-chosen until verified, so keying on it lets an attacker
+  // rotate keyIds to dodge the limit. Apply per-actor/per-domain limits
+  // *after* signature verification.
+  keyGenerator: (req) => req.ip
 });
 
 app.post('/inbox', inboxLimiter, handleInbox);
@@ -483,10 +490,18 @@ app.post('/users/:username/inbox', inboxLimiter, handleInbox);
 4. **Sanitize HTML content** in objects
 5. **Limit payload size** to prevent DoS
 6. **Implement rate limiting** per actor/domain
+7. **Check origins**: an activity's `object.id` must be on the same origin as its `actor` for Create/Update/Delete; for `Announce`, fetch the boosted object from its own origin instead of trusting an embedded copy
+8. **Handle inbox forwarding**: when a reply arrives signed by a server other than the actor's (AP [§7.1.2](https://www.w3.org/TR/activitypub/#inbox-forwarding)), re-fetch it from its origin rather than rejecting or trusting it blindly
 
 ```javascript
-// Payload size limit
-app.use('/inbox', express.json({ limit: '1mb' }));
+// Payload size limit. Note express.json() only parses application/json
+// by default — list the ActivityPub types, and keep the raw bytes for
+// Digest verification.
+app.use('/inbox', express.json({
+  limit: '1mb',
+  type: ['application/activity+json', 'application/ld+json'],
+  verify: (req, res, buf) => { req.rawBody = buf; }
+}));
 
 // Block check
 async function isBlocked(actorUrl) {

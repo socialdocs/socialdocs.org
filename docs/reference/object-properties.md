@@ -186,9 +186,9 @@ Properties specific to Object types (Note, Article, Image, etc.).
 
 | Property | Note | Article |
 |----------|------|---------|
-| `name` | Optional | Required (title) |
+| `name` | Usually omitted | Expected (title) |
 | `content` | Short text | Long-form |
-| Length | ~500 chars | Unlimited |
+| Length | Short (Mastodon's *local* default limit is 500 chars; the protocol sets none) | Long-form |
 | Use case | Microblog | Blog post |
 
 ### Article Example

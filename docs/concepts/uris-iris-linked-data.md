@@ -57,8 +57,15 @@ This breaks when servers use different URL patterns.
 
 ```javascript
 // ✅ CORRECT: Fetch and check the type
+// (The Public collection is never dereferenced or delivered to —
+// accept all three spellings of it.)
+const PUBLIC = ['https://www.w3.org/ns/activitystreams#Public', 'as:Public', 'Public'];
+if (PUBLIC.includes(recipient)) return;
+
+// Use a signed, SSRF-safe fetch in production (many servers require
+// signed GETs, and recipient URLs are attacker-controlled).
 const data = await fetch(recipient, {
-  headers: { 'Accept': 'application/activity+json' }
+  headers: { 'Accept': 'application/ld+json; profile="https://www.w3.org/ns/activitystreams", application/activity+json' }
 }).then(r => r.json());
 
 if (data.type === 'OrderedCollection' || data.type === 'Collection') {
@@ -94,26 +101,32 @@ Request the format you want via the `Accept` header:
 ```http
 GET /users/alice HTTP/1.1
 Host: example.com
-Accept: application/activity+json
+Accept: application/ld+json; profile="https://www.w3.org/ns/activitystreams", application/activity+json
 ```
 
 Common formats:
 
 | Accept Header | Format |
 |---------------|--------|
-| `application/activity+json` | ActivityStreams JSON-LD |
-| `application/ld+json` | Generic JSON-LD |
+| `application/ld+json; profile="https://www.w3.org/ns/activitystreams"` | ActivityStreams JSON-LD — the type the AP spec says clients MUST send ([§3.2](https://www.w3.org/TR/activitypub/#retrieving-objects)) |
+| `application/activity+json` | ActivityStreams JSON-LD — servers SHOULD accept it; most fediverse software sends it |
 | `text/html` | Human-readable page |
+
+A URL that serves both HTML and JSON should send `Vary: Accept`.
 
 ### Handling Redirects
 
-Servers may redirect. Always follow redirects, but track the canonical ID:
+Servers may redirect. You can follow redirects, but **never trust the `id` in the response blindly** — check that it has the same origin as the URL the document was actually served from. Accepting a document whose `id` points at another host lets an attacker plant objects "belonging" to someone else; this is the flaw behind Mastodon's [CVE-2024-23832](https://github.com/mastodon/mastodon/security/advisories/GHSA-3fjr-858r-92rw):
 
 ```javascript
 const response = await fetch(url, { redirect: 'follow' });
-const finalUrl = response.url; // May differ from original
+const finalUrl = new URL(response.url); // May differ from original
 const data = await response.json();
-const canonicalId = data.id; // The authoritative ID
+
+if (new URL(data.id).origin !== finalUrl.origin) {
+  throw new Error('id does not match the origin it was fetched from');
+}
+const canonicalId = data.id;
 ```
 
 ## Fragment Identifiers and httpRange-14

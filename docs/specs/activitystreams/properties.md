@@ -622,17 +622,17 @@ Geographic coordinates.
 
 ### altitude / accuracy / radius
 
-Location precision.
+Location precision. `accuracy` is a **percentage** (0–100); `radius` is a distance in `units` (metres by default).
 
 ```json
-{ "altitude": 100, "accuracy": 10, "radius": 50 }
+{ "altitude": 100, "accuracy": 94.0, "radius": 50 }
 ```
 
 ## Special Properties
 
 ### sensitive
 
-Content contains sensitive material.
+Content contains sensitive material. This is a fediverse **extension** (mapped as `as:sensitive`), not part of AS2. In Mastodon the content-warning text goes in `summary`; `sensitive` is the boolean.
 
 ```json
 { "sensitive": true }
@@ -697,7 +697,7 @@ Account migration.
 
 ### publicKey
 
-RSA public key for signatures.
+Public key for HTTP Signatures, from the [W3C Security Vocabulary](https://w3id.org/security/v1) (not a Mastodon invention). Newer implementations can also publish keys as `Multikey` entries in `assertionMethod` ([FEP-521a](https://codeberg.org/fediverse/fep/src/branch/main/fep/521a/fep-521a.md)).
 
 ```json
 {

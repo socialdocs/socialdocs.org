@@ -28,13 +28,13 @@ Properties specific to Activity types (Create, Follow, Like, etc.).
 |----------|------|-------------|
 | `type` | String | Activity type |
 | `actor` | Actor/URL | Who performed it |
-| `object` | Object/URL | What it acts upon |
+| `object` | Object/URL | What it acts upon (absent on intransitive activities such as `Arrive` or `Question`) |
 
 ## Common Properties
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `id` | URL | Unique identifier |
+| `id` | URL | Unique identifier — required in practice for anything you federate (receivers dedupe on it) |
 | `target` | Object/URL | Destination/context |
 | `result` | Object | Outcome |
 | `origin` | Object/URL | Source location |
@@ -117,11 +117,15 @@ Properties specific to Activity types (Create, Follow, Like, etc.).
   "object": {
     "type": "Note",
     "id": "https://example.com/notes/123",
+    "attributedTo": "https://example.com/users/alice",
     "content": "<p>Updated content</p>",
+    "published": "2024-01-15T10:00:00Z",
     "updated": "2024-01-15T12:00:00Z"
   }
 }
 ```
+
+Between servers this is a **full replacement**: send the whole object, not just the changed fields ([AP §7.3](https://www.w3.org/TR/activitypub/#update-activity-inbox)).
 
 ### Delete
 

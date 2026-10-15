@@ -74,7 +74,10 @@ Every actor has these essential properties:
 
 ```json
 {
-  "@context": "https://www.w3.org/ns/activitystreams",
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1"
+  ],
   "type": "Person",
   "id": "https://example.com/users/alice",
   "inbox": "https://example.com/users/alice/inbox",
@@ -251,8 +254,10 @@ ActivityPub uses `to`, `cc`, `bto`, and `bcc` properties to control who sees con
 
 | Address | Meaning |
 |---------|---------|
-| `https://www.w3.org/ns/activitystreams#Public` | Visible to everyone |
-| `{actor}/followers` | Visible to followers |
+| `https://www.w3.org/ns/activitystreams#Public` | Visible to everyone (also written `as:Public` or `Public`) |
+| The actor's `followers` collection | Visible to followers |
+
+Only the Public collection is truly special. The followers collection is just the IRI in the actor's `followers` property — read it from the actor rather than assuming it's `{actor}/followers`.
 
 ### Visibility Examples
 
@@ -276,9 +281,18 @@ ActivityPub uses `to`, `cc`, `bto`, and `bcc` properties to control who sees con
 ```json
 {
   "to": ["https://other.example/users/bob"],
-  "cc": []
+  "cc": [],
+  "tag": [
+    {
+      "type": "Mention",
+      "href": "https://other.example/users/bob",
+      "name": "@bob@other.example"
+    }
+  ]
 }
 ```
+
+Include a `Mention` tag for every addressed actor. Mastodon treats a post whose recipients are not all mentioned as *limited* rather than *direct* ([Mastodon docs](https://docs.joinmastodon.org/spec/activitypub/)).
 
 ## JSON-LD Context
 
@@ -298,7 +312,7 @@ ActivityPub uses JSON-LD for extensibility. The `@context` tells parsers how to 
 ```
 
 :::tip
-You can extend ActivityStreams with custom properties by adding them to the context. This is how Mastodon adds features like content warnings (`sensitive`) and custom emoji.
+You can extend ActivityStreams with custom properties by adding them to the context. This is how Mastodon adds features like the `sensitive` media flag and custom emoji. (The content-warning *text* itself goes in the standard `summary` property.)
 :::
 
 ## Next Steps
