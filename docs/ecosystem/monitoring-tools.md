@@ -113,14 +113,16 @@ puts "Queued: #{stats.enqueued}"
 
 ### Common Patterns
 
+Mastodon logs to stdout. On a standard install the [systemd units](https://github.com/mastodon/mastodon/tree/main/dist) send this to the journal; with Docker use `docker compose logs`.
+
 **Signature failures:**
 ```bash
-grep "signature" /var/log/mastodon/web.log | grep -i "fail\|error"
+journalctl -u mastodon-web --since "1 hour ago" | grep -i "signature"
 ```
 
 **Federation errors:**
 ```bash
-grep "delivery" /var/log/mastodon/sidekiq.log | grep "error"
+journalctl -u mastodon-sidekiq --since "1 hour ago" | grep -iE "delivery|error"
 ```
 
 ### Log Aggregation
@@ -135,7 +137,8 @@ scrape_configs:
           - localhost
         labels:
           job: mastodon
-          __path__: /var/log/mastodon/*.log
+          # Mastodon logs to the systemd journal; for journald use
+          # promtail's `journal` scrape config instead of __path__
 ```
 
 ## Performance Tools
@@ -195,7 +198,7 @@ groups:
           summary: "Instance is down"
 
       - alert: QueueBacklog
-        expr: sidekiq_queue_size > 10000
+        expr: ruby_sidekiq_queue_backlog > 10000
         for: 10m
         annotations:
           summary: "Sidekiq queue is backing up"
@@ -207,11 +210,13 @@ groups:
 
 | Panel | Query | Purpose |
 |-------|-------|---------|
-| Active Users | `mastodon_active_users` | User engagement |
-| Posts/hour | `rate(mastodon_statuses_total[1h])` | Activity |
-| Response Time | `http_request_duration_seconds` | Performance |
-| Queue Depth | `sidekiq_queue_size` | Processing |
-| Error Rate | `rate(http_requests_total{status=~"5.."}[5m])` | Reliability |
+| Response Time | `ruby_http_request_duration_seconds` | Performance (needs `MASTODON_PROMETHEUS_EXPORTER_WEB_DETAILED_METRICS=true`) |
+| Error Rate | `rate(ruby_http_requests_total{status=~"5.."}[5m])` | Reliability (same) |
+| Queue Depth | `ruby_sidekiq_queue_backlog` | Processing |
+| Queue Latency | `ruby_sidekiq_queue_latency_seconds` | Delivery delay |
+| Failed Jobs | `rate(ruby_sidekiq_failed_jobs_total[5m])` | Delivery failures |
+
+Mastodon exports no product metrics (users, posts) — these come from the [prometheus_exporter](https://github.com/discourse/prometheus_exporter) gem; check your own `/metrics` output for exact names.
 
 ## See Also
 
