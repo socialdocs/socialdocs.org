@@ -104,6 +104,36 @@ description: Brief description for SEO
 Content here...
 ```
 
+### Claim Discipline
+
+Every page is held to these rules. Content that can't meet them gets cut.
+
+- **Normative claims cite the spec.** Any MUST/SHOULD/MAY statement links the spec section it comes from (e.g. the [ActivityPub Recommendation](https://www.w3.org/TR/activitypub/) or the [Editor's Draft](https://w3c.github.io/activitypub/), an RFC section, or an FEP).
+- **Platform behaviour cites the platform.** "Mastodon does X" links Mastodon's source or official docs, and names the version checked.
+- **Named things must exist.** Every package, crate, gem, module, repository and CLI command must be real. CI checks this (see below); don't name tools you haven't used or looked up.
+- **Security code lives in `examples/` and is tested.** Request verification, signing and fetch code is imported from a tested module (like `examples/verify-requests/`), never typed inline into a page.
+
+### Provenance Front Matter
+
+Docs pages record when they were last checked against primary sources:
+
+```markdown
+---
+title: Mastodon
+last_verified: 2026-10-15
+verified_against: "Mastodon 4.7.3, FEP repository as of 2026-10-15"
+reviewed_by: "Your Name"   # optional
+---
+```
+
+| Field | Meaning |
+|-------|---------|
+| `last_verified` | Date (YYYY-MM-DD) the page's claims were re-checked against their sources |
+| `verified_against` | What it was checked against: spec versions, platform releases, source commits |
+| `reviewed_by` | Optional. The person who did the check |
+
+Pages without `last_verified`, or verified more than 6 months ago, show a "not yet verified" notice. Only set these fields when you have actually re-checked the page, not when you've just edited it.
+
 ### Diagrams
 We use inline SVG for diagrams with these conventions:
 - Brand color: `#6364FF`
@@ -113,7 +143,11 @@ We use inline SVG for diagrams with these conventions:
 
 ## Review Process
 
-1. **Automated checks** — Build must pass
+1. **Automated checks**:
+   - The site build must pass. Broken internal links fail it.
+   - `node scripts/check-references.mjs` must pass: every named package or repository must resolve. Intentional placeholders go in `scripts/reference-allowlist.txt`.
+   - External links in the files you changed are checked with [lychee](https://github.com/lycheeverse/lychee) (`lychee.toml`). A weekly sweep of all pages opens an issue for anything that breaks later.
+   - Code in `examples/` must pass its tests.
 2. **Content review** — Accuracy and clarity
 3. **Merge** — Maintainer approves and merges
 

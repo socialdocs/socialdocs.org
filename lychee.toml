@@ -1,0 +1,51 @@
+# External link check for docs/ and blog/ (see .github/workflows/links.yml).
+# Run locally: lychee --config lychee.toml 'docs/**/*.md*' 'blog/**/*.md'
+
+scheme = ["https", "http"]
+# Root-relative links (/docs/...) are internal; Docusaurus checks those at
+# build time (onBrokenLinks: throw). Resolve them against the site and skip.
+base_url = "https://socialdocs.org"
+max_concurrency = 16
+max_retries = 2
+retry_wait_time = 3
+timeout = 30
+user_agent = "Mozilla/5.0 (compatible; socialdocs-linkcheck; +https://github.com/socialdocs/socialdocs.org)"
+# 429 = rate limited, not dead. 403 handled per host below.
+accept = ["200..=299", "429"]
+
+exclude_loopback = true
+exclude_private = true
+exclude_link_local = true
+
+exclude = [
+  # Internal links: checked by the Docusaurus build instead
+  '^https?://socialdocs\.org',
+  # Placeholder hosts used in examples (RFC 2606 / RFC 6761)
+  '^https?://([^/]+\.)?example(\.(com|org|net))?(/|$|:)',
+  '^https?://[^/]*\.example(/|$|:)',
+  '^https?://[^/]*\.(test|invalid|localhost)(/|$|:)',
+  # Namespace IRIs: identifiers, not pages meant to be fetched
+  '^https?://www\.w3\.org/ns/',
+  '^https?://w3id\.org/security',
+  '^https?://w3id\.org/fep/',
+  '^https?://purl\.org/',
+  '^https?://joinmastodon\.org/ns',
+  '^https?://schema\.org/?$',
+  '^https?://ostatus\.org',
+  '^https?://misskey-hub\.net/ns',
+  '^https?://litepub\.social/ns',
+  '^http://joinmastodon\.org/ns',
+  # Hosts that block automated clients (403/999 to bots, fine in a browser)
+  '^https?://(www\.)?linkedin\.com',
+  '^https?://(www\.)?oreilly\.com',
+  '^https?://mitpress\.mit\.edu',
+  '^https?://apps\.apple\.com',
+  '^https?://play\.google\.com',
+  '^https?://(www\.)?reddit\.com',
+  '^https?://(www\.)?twitter\.com',
+  '^https?://(www\.)?x\.com',
+  '^https?://(www\.)?npmjs\.com',
+  '^https?://crates\.io',
+  # Social-network URLs inside JSON examples are illustrative actors/objects
+  '/users/[^/]+/(inbox|outbox|followers|following|statuses)',
+]
