@@ -10,7 +10,7 @@ ActivityStreams 2.0 is the vocabulary that ActivityPub uses to represent social 
 
 ## Specification
 
-- **Status**: W3C Recommendation (May 2017)
+- **Status**: W3C Recommendation (May 2017), under maintenance by the [Social Web Working Group](/docs/ecosystem/w3c-groups) alongside ActivityPub — no updated version published as of October 2026
 - **Core**: [https://www.w3.org/TR/activitystreams-core/](https://www.w3.org/TR/activitystreams-core/)
 - **Vocabulary**: [https://www.w3.org/TR/activitystreams-vocabulary/](https://www.w3.org/TR/activitystreams-vocabulary/)
 

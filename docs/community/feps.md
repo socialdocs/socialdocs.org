@@ -82,6 +82,7 @@ The official FEP repository is hosted on Codeberg:
 | FEP-f1d5 | NodeInfo in Fediverse Software | FINAL (superseded by FEP-0151) |
 | FEP-8fcf | Followers Collection Synchronization | FINAL |
 | FEP-ae0c | Fediverse Relay Protocols | FINAL |
+| FEP-7628 | Move Actor | FINAL (August 2026) |
 
 ### Groups & Collections
 
@@ -99,19 +100,21 @@ The official FEP repository is hosted on Codeberg:
 
 ### Notable Drafts in Production
 
-These are still DRAFT status but already shape real-world interop (as of mid-2026):
+These are still DRAFT status but already shape real-world interop (as of October 2026):
 
 | FEP | Title | Who implements it |
 |-----|-------|-------------------|
 | [FEP-044f](https://codeberg.org/fediverse/fep/src/branch/main/fep/044f/fep-044f.md) | Consent-respecting quote posts (`QuoteRequest`/`QuoteAuthorization`, `canQuote`) | Mastodon 4.5+ (full), GoToSocial 0.21 (partial) |
 | [FEP-dd4b](https://codeberg.org/fediverse/fep/src/branch/main/fep/dd4b/fep-dd4b.md) | Quote Posts — alternative `Announce`-based approach | Proposal stage |
-| [FEP-8b32](https://codeberg.org/fediverse/fep/src/branch/main/fep/8b32/fep-8b32.md) | Object Integrity Proofs — self-authenticating activities | Mitra, Streams |
+| [FEP-8b32](https://codeberg.org/fediverse/fep/src/branch/main/fep/8b32/fep-8b32.md) | Object Integrity Proofs — self-authenticating activities | Mitra, Streams, Mastodon 4.7+ (verification) |
 | [FEP-7888](https://codeberg.org/fediverse/fep/src/branch/main/fep/7888/fep-7888.md) | Demystifying the `context` property — conversation grouping | NodeBB, Streams, Mitra |
 | [FEP-171b](https://codeberg.org/fediverse/fep/src/branch/main/fep/171b/fep-171b.md) | Conversation Containers — moderated conversation collections | Streams |
+| [FEP-7aa9](https://codeberg.org/fediverse/fep/src/branch/main/fep/7aa9/fep-7aa9.md) | Featured Collections — curated, opt-in account collections | Mastodon 4.6+ |
+| [FEP-8967](https://codeberg.org/fediverse/fep/src/branch/main/fep/8967/fep-8967.md) | `Link` objects in `attachment` | Mastodon 4.7+ |
 | [FEP-ef61](https://codeberg.org/fediverse/fep/src/branch/main/fep/ef61/fep-ef61.md) | Portable Objects — server-independent IDs for nomadic identity | Mitra, Streams lineage |
 
 :::note Vendor drafts
-Mastodon 4.6's collections feature is based on "FEP-7aa9 (Featured Collections)" — but as of mid-2026 that draft lives in [Mastodon's own repository](https://github.com/mastodon/featured_collections) and has not been submitted to the canonical FEP repo. Vendor-published drafts can become FEPs later; check the [FEP repository](https://codeberg.org/fediverse/fep) for current status.
+Some FEPs start life in a vendor's own repository — FEP-7aa9 (Featured Collections) was first published by Mastodon and submitted to the canonical FEP repo in June 2026. Check the [FEP repository](https://codeberg.org/fediverse/fep) for current status.
 :::
 
 ## FEP Identifiers

@@ -20,16 +20,6 @@ Fediverse statistics and analytics.
 | Features | Stats, software tracking |
 | Data | User counts, posts, growth |
 
-### Fediverse Observer
-
-Network statistics.
-
-| Property | Value |
-|----------|-------|
-| Website | [fediverse.observer](https://fediverse.observer/) |
-| Features | Uptime, user counts |
-| Coverage | Major platforms |
-
 ### instances.social
 
 Mastodon instance directory.

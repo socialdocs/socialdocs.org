@@ -130,6 +130,16 @@ GET /users/{username}/followers
 GET /users/{username}/following
 ```
 
+## Recent Releases
+
+| Version | Released | Federation-relevant changes |
+|---------|----------|-----------------------------|
+| [4.7](https://blog.joinmastodon.org/2026/08/mastodon-4.7/) | August 2026 | Actor `id` as primary identifier; RFC 9421 signatures (fallback) with Ed25519; FEP-8b32 proof verification; inbound FEP-521a keys; FEP-8967 `Link` attachments |
+| [4.6](https://blog.joinmastodon.org/2026/06/mastodon-4.6/) | June 2026 | Collections ([FEP-7aa9](https://codeberg.org/fediverse/fep/src/branch/main/fep/7aa9/fep-7aa9.md)); FEP-2c59 WebFinger backlink; FEP-3b86 Activity Intents; media `duration` |
+| 4.5 | 2025 | Consent-respecting quote posts ([FEP-044f](https://codeberg.org/fediverse/fep/src/branch/main/fep/044f/fep-044f.md)) |
+
+Check the [release notes](https://github.com/mastodon/mastodon/releases) for the current patch version.
+
 ## Compatibility Notes
 
 ### Quirks
@@ -142,6 +152,8 @@ GET /users/{username}/following
 ### Known Issues
 
 - Quote posts supported since v4.5 — quoting requires author approval, federated via `QuoteAuthorization`
+- Since v4.7, the actor `id` (not the WebFinger handle) is the primary identifier for remote accounts, and remote accounts can change handles
+- Since v4.7, Mastodon sends RFC 9421 HTTP Message Signatures as a fallback (including Ed25519 keys) and verifies [FEP-8b32](https://codeberg.org/fediverse/fep/src/branch/main/fep/8b32/fep-8b32.md) Object Integrity Proofs
 - Reactions not supported (only Like)
 - Local-only posts not federated
 

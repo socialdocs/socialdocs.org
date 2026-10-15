@@ -117,8 +117,8 @@ The Fediverse relies on several W3C standards:
 
 ## Scale of the Fediverse
 
-As of mid-2026 ([FediDB](https://fedidb.org/)), the Fediverse includes:
-- **13+ million** registered accounts (over a million monthly active)
+As of October 2026 ([FediDB](https://fedidb.org/)), the Fediverse includes:
+- **13.8+ million** registered accounts (about 1.37 million monthly active)
 - **40,000+** independent servers
 - **100+** different software implementations
 - Growing daily with new users and platforms

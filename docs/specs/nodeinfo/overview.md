@@ -204,7 +204,6 @@ NodeInfo is used by:
 
 - [FediDB](https://fedidb.org/) - Statistics
 - [The-Federation.info](https://the-federation.info/) - Network stats
-- [Fediverse.observer](https://fediverse.observer/) - Instance browser
 - Instance pickers and directories
 
 ## Metadata Extensions
