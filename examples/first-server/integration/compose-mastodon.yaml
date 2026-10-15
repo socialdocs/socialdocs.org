@@ -1,0 +1,96 @@
+# Federation test: our example server (ap.test) and a real Mastodon
+# (mastodon.test) on a private network. Mastodon's web and Sidekiq
+# processes sit behind Caddy, which terminates TLS with a certificate from
+# a throwaway CA (see run-mastodon.sh). Services follow Mastodon's own
+# docker-compose.yml for v4.7.3.
+name: first-server-mastodon
+
+networks:
+  fedi:
+    ipam:
+      config:
+        - subnet: 172.31.0.0/24
+
+x-mastodon: &mastodon
+  image: ghcr.io/mastodon/mastodon:v4.7.3
+  env_file: mastodon.env
+  volumes:
+    - ./certs:/certs:ro
+  networks: [fedi]
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  db:
+    image: postgres:14-alpine
+    shm_size: 256mb
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: trust
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-U', 'postgres']
+      interval: 2s
+      retries: 30
+    networks: [fedi]
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 2s
+      retries: 30
+    networks: [fedi]
+
+  web:
+    <<: *mastodon
+    command: bundle exec puma -C config/puma.rb
+
+  sidekiq:
+    <<: *mastodon
+    command: bundle exec sidekiq
+
+  proxy:
+    image: caddy:2.10-alpine
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./certs:/certs:ro
+    depends_on: [web]
+    networks:
+      fedi:
+        aliases: [mastodon.test]
+
+  ap:
+    image: node:24-alpine
+    working_dir: /examples/first-server
+    command: ["node", "src/main.js"]
+    environment:
+      DOMAIN: ap.test
+      USERNAME: tester
+      PORT: "443"
+      TLS_CERT: /certs/server.pem
+      TLS_KEY: /certs/server.key
+      ADMIN_TOKEN: ${ADMIN_TOKEN:?set ADMIN_TOKEN}
+      ALLOW_PRIVATE_ADDRESSES: "true"     # test network only
+      NODE_EXTRA_CA_CERTS: /certs/ca.pem
+    volumes:
+      - ../..:/examples:ro
+      - ./certs:/certs:ro
+    networks:
+      fedi:
+        aliases: [ap.test]
+
+  tester:
+    image: node:24-alpine
+    profiles: [tools]
+    working_dir: /examples/first-server
+    entrypoint: ["node", "integration/federate-mastodon.mjs"]
+    environment:
+      ADMIN_TOKEN: ${ADMIN_TOKEN:?set ADMIN_TOKEN}
+      MASTODON_TOKEN: ${MASTODON_TOKEN:-}
+      NODE_EXTRA_CA_CERTS: /certs/ca.pem
+    volumes:
+      - ../..:/examples:ro
+      - ./certs:/certs:ro
+    networks: [fedi]

@@ -9,7 +9,7 @@ on:
       - '.github/workflows/tutorial.yml'
   pull_request:
   schedule:
-    - cron: '30 4 * * 1' # weekly: catch GoToSocial behaviour changes
+    - cron: '30 4 * * 1' # weekly: catch GoToSocial and Mastodon behaviour changes
   workflow_dispatch:
 
 permissions:
@@ -63,3 +63,36 @@ jobs:
       - name: Federate with GoToSocial
         if: steps.changed.outputs.run == 'true'
         run: examples/first-server/integration/run.sh
+
+  federation-mastodon:
+    needs: unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Decide whether to run
+        id: changed
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "origin/${{ github.base_ref }}...HEAD" \
+              | grep -qE '^(examples/(first-server|verify-requests)/|\.github/workflows/tutorial\.yml)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-node@v7
+        if: steps.changed.outputs.run == 'true'
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: examples/verify-requests/package-lock.json
+      - name: Install verify-requests
+        if: steps.changed.outputs.run == 'true'
+        run: npm ci
+        working-directory: examples/verify-requests
+      - name: Federate with Mastodon
+        if: steps.changed.outputs.run == 'true'
+        run: examples/first-server/integration/run-mastodon.sh
