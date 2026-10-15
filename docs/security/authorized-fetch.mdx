@@ -1,0 +1,158 @@
+---
+sidebar_position: 6
+title: Authorized fetch and the instance actor
+description: Signed GETs ("secure mode"), the instance/application actor that keeps them from deadlocking, FEP-d556 and FEP-2677 discovery, and caching signer-dependent responses safely (CVE-2026-25540).
+last_verified: 2026-10-15
+verified_against: "Mastodon v4.7.3 source and admin docs; mastodon.social behaviour observed 2026-10-15; FEP-d556, FEP-2677 (codeberg, 2026-10-15); GitHub advisory GHSA-ccpr-m53r-mfwr; code tested in examples/verify-requests"
+---
+
+import CodeBlock from '@theme/CodeBlock';
+import authorizedFetchSrc from '!!raw-loader!@site/examples/verify-requests/src/authorized-fetch.js';
+
+# Authorized fetch and the instance actor
+
+Some servers refuse to hand out ActivityPub documents (actors, posts, collections) to anyone who doesn't sign the request. Mastodon calls this **authorized fetch**, or "secure mode". mastodon.social runs it: on 2026-10-15, an unsigned `GET https://mastodon.social/users/Gargron` with `Accept: application/activity+json` returned **401**.
+
+So your server must **sign its GETs**. If it also wants to *require* signed GETs, it needs an **instance actor** to avoid a deadlock. This page covers both sides.
+
+## Why servers do it
+
+Mastodon's [`AUTHORIZED_FETCH`](https://docs.joinmastodon.org/admin/config/#authorized_fetch) does two things:
+
+- It requires an HTTP signature on the ActivityPub representations of public posts and profiles. In 4.7.3 an unsigned JSON request gets a 401 (`require_account_signature!` in [accounts_controller.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/controllers/accounts_controller.rb)).
+- It stops generating Linked Data Signatures for public posts, so they can't be passed around without the origin server in the loop.
+
+The point is **enforcing blocks**: "it becomes possible to enforce who can and cannot retrieve even public content from your server, e.g. servers whose domains you have blocked." [`LIMITED_FEDERATION_MODE`](https://docs.joinmastodon.org/admin/config/#limited_federation_mode) is built on it and only federates with servers you've approved.
+
+Know the limits. Mastodon's docs warn that secure mode:
+
+- isn't fully supported by all software
+- loses some thread completeness (LD-signed posts used to fill threads in)
+- costs more CPU, because authenticated responses can't be cached publicly
+- doesn't hide the HTML pages, which can still be scraped
+
+It is block enforcement, not access control. Any server you haven't blocked can sign a request and read public content.
+
+## Signing your GETs
+
+Sign GETs exactly like POSTs, minus the body digest: draft-cavage over `(request-target) host date`, or RFC 9421 over `@method @target-uri`. See [HTTP signatures in 2026](/docs/specs/http-signatures/overview).
+
+The question is *which key* to sign with. A fetch usually isn't made on behalf of any particular user, so Mastodon signs every fetch as its **instance actor** unless it has a reason to use a specific account (`on_behalf_of ||= Account.representative` in [json_ld_helper.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/helpers/json_ld_helper.rb)).
+
+### The deadlock the instance actor prevents
+
+Suppose both servers require signed GETs, and actor documents are only served to signed requests:
+
+1. Server A asks B for `https://b.example/users/bob`, signed with Alice's key.
+2. To check the signature, B must fetch Alice's actor from A, signed with Bob's key.
+3. To check *that* signature, A must fetch Bob's actor from B. That is the request from step 1, which is still waiting.
+
+[FEP-d556](https://codeberg.org/fediverse/fep/src/branch/main/fep/d556/fep-d556.md) calls these "profile/key fetch loops". The fix is a server-level actor whose own document is **served without a signature**, used to sign fetches. Every chain then ends at a document anyone can fetch.
+
+Mastodon's instance actor at `/actor` works that way. Its controller doesn't require a signature, sends `Vary` with no headers, is publicly cacheable for 10 minutes, and serves only a few fields ([instance_actors_controller.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/controllers/instance_actors_controller.rb)). As served by mastodon.social, with the key shortened:
+
+```json
+{
+  "id": "https://mastodon.social/actor",
+  "type": "Application",
+  "preferredUsername": "mastodon.social",
+  "inbox": "https://mastodon.social/actor/inbox",
+  "outbox": "https://mastodon.social/actor/outbox",
+  "publicKey": {
+    "id": "https://mastodon.social/actor#main-key",
+    "owner": "https://mastodon.social/actor",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMII…"
+  },
+  "endpoints": { "sharedInbox": "https://mastodon.social/inbox" },
+  "url": "https://mastodon.social/about/more?instance_actor=true",
+  "manuallyApprovesFollowers": true
+}
+```
+
+Rules for your own instance actor:
+
+- **Never** require a signature to fetch it.
+- Give it its own keypair. Don't reuse a user's.
+- Keep its id stable. Other servers cache its key like any other.
+
+## Discovering a server's instance actor
+
+You rarely *need* to discover another server's instance actor. Signatures name their key in `keyId`. Discovery helps for server-to-server tasks such as relays or moderation. There are two proposals:
+
+- [FEP-d556: Server-Level Actor Discovery Using WebFinger](https://codeberg.org/fediverse/fep/src/branch/main/fep/d556/fep-d556.md), **FINAL** since 2025-03-15. Query WebFinger with the server's origin as the resource, `GET /.well-known/webfinger?resource=https://server.example/`. The actor is the `href` of the link with `rel` `https://www.w3.org/ns/activitystreams#Service`. A single-actor server may use `self` instead.
+- [FEP-2677: Identifying the Application Actor](https://codeberg.org/fediverse/fep/src/branch/main/fep/2677/fep-2677.md), DRAFT. Add a link with `rel` `https://www.w3.org/ns/activitystreams#Application` to `/.well-known/nodeinfo`.
+
+What Mastodon does in practice (mastodon.social, 2026-10-15): WebFinger for `resource=https://mastodon.social/` answers with subject `acct:mastodon.social@mastodon.social` and a **`self`** link to `https://mastodon.social/actor`, not a `#Service` link. Its NodeInfo discovery document has no FEP-2677 link. So accept `self` as well as `#Service` when you look one up.
+
+## Serving documents in authorized-fetch mode
+
+On routes that serve actors, objects and collections:
+
+1. **Verify the GET's signature** with the same code you use for inboxes ([Verifying incoming requests](/docs/security/verifying-requests)). Respond **401** if it's missing or invalid, and **503** if you couldn't fetch the signer's key. Mastodon has used 503 for that case since 4.5.4.
+2. **Decide what the signer may see.** If you block the signer or its domain, Mastodon serves a not-authorized version, for example an empty featured collection ([collections_controller.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/controllers/activitypub/collections_controller.rb)).
+3. **Leave out** the instance actor, WebFinger and NodeInfo. These must stay public.
+
+### Caching: the CVE-2026-25540 lesson
+
+Once a response depends on who signed the request, every cache between you and the requester has to know that.
+
+- **HTTP caches.** Send `Vary: Signature`. Each signature is unique, so it's useless as a cache key anyway. Mastodon marks any response that varies on `Signature`, `Authorization` or `Cookie`, for a request carrying one of them, as `Cache-Control: private, no-store` (`enforce_cache_control!` in [cache_concern.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/controllers/concerns/cache_concern.rb)).
+- **Your own server-side caches.** These must include the signer in the key, or must not cache signer-dependent responses. Mastodon got this wrong. [CVE-2026-25540](https://github.com/mastodon/mastodon/security/advisories/GHSA-ccpr-m53r-mfwr) (medium, fixed in 4.5.6, 4.4.13 and 4.3.19, published 2026-02-03): with authorized fetch on, the pinned-posts and featured-hashtags collections were cached "with no regards to the signing actor". A blocked actor could read them within 3 minutes of a legitimate request. Or it could fetch first, so that legitimate actors were served the empty version. Mastodon now renders the not-authorized version without caching it.
+
+## The code
+
+Tested in [`examples/verify-requests`](https://github.com/socialdocs/socialdocs.org/tree/gh-pages/examples/verify-requests). The signer plugs into `safeFetchJson`'s `signRequest` option, and the gate reuses `verifyRequest`.
+
+```js
+import express from 'express';
+import {
+  instanceActor, instanceActorSigner, requireSignedFetch, signerDependentHeaders,
+  safeFetchJson, KeyStore, SignatureError,
+} from './index.js';
+
+const ORIGIN = 'https://my.example';
+const actorDoc = instanceActor({ origin: ORIGIN, publicKeyPem: INSTANCE_PUBLIC_PEM });
+const signRequest = instanceActorSigner({ keyId: actorDoc.publicKey.id, privateKey: INSTANCE_PRIVATE_KEY });
+
+// Every outgoing fetch is signed by the instance actor...
+const fetchJson = (url) => safeFetchJson(url, { signRequest });
+const keyStore = new KeyStore(fetchJson);
+
+const app = express();
+
+// ...whose own document is always served unsigned.
+app.get('/actor', (req, res) => res.type('application/activity+json').json(actorDoc));
+
+app.get('/users/:name', async (req, res) => {
+  try {
+    const signer = await requireSignedFetch(
+      { method: 'GET', url: `${ORIGIN}${req.originalUrl}`, headers: req.headers, rawBody: Buffer.alloc(0) },
+      { keyStore },
+    );
+    if (await isBlocked(signer.actorId)) return res.status(404).end();
+    res.set(signerDependentHeaders({ requestSigned: true }));
+    res.type('application/activity+json').json(await loadActor(req.params.name));
+  } catch (err) {
+    res.status(err instanceof SignatureError ? 401 : 503).end();
+  }
+});
+```
+
+<CodeBlock language="js" title="src/authorized-fetch.js">{authorizedFetchSrc}</CodeBlock>
+
+The tests (`test/authorized-fetch.test.js`) check:
+
+- the instance actor's shape
+- that a GET signed by the instance actor passes the gate, with the key resolved from the unsigned actor document
+- that an unsigned GET is rejected
+- that a signature for a different URL is rejected
+- that the gate refuses to guard POSTs
+- the FEP-d556 and FEP-2677 discovery documents
+- the cache headers for signer-dependent responses
+
+## See also
+
+- [HTTP signatures in 2026](/docs/specs/http-signatures/overview): signing GETs with draft-cavage and RFC 9421
+- [Keys and identity](/docs/security/keys-and-identity)
+- [Known vulnerability classes](/docs/security/known-vulnerability-classes)
+- [NodeInfo](/docs/specs/nodeinfo/overview) and [WebFinger](/docs/specs/webfinger/overview)
