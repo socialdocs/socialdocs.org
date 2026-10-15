@@ -149,9 +149,9 @@ function QuickLinks() {
             <span className={styles.quickLinkIcon}>👥</span>
             <span>Fediverse Developers</span>
           </Link>
-          <Link to="/docs/tools/debugging-tips" className={styles.quickLink}>
+          <Link to="/docs/guides/troubleshooting" className={styles.quickLink}>
             <span className={styles.quickLinkIcon}>✅</span>
-            <span>Debugging Tips</span>
+            <span>Troubleshooting</span>
           </Link>
         </div>
       </div>

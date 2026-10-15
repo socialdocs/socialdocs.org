@@ -227,7 +227,6 @@ const sidebars: SidebarsConfig = {
       items: [
         'tools/test-suites',
         'tools/compliance-checklist',
-        'tools/debugging-tips',
       ],
     },
   ],

@@ -233,6 +233,6 @@ return res.send(renderProfilePage());
 
 ## Next Steps
 
-- **[Debugging Tips](/docs/tools/debugging-tips)** - Troubleshoot test failures
+- **[Troubleshooting by symptom](/docs/guides/troubleshooting)** - Troubleshoot test failures
 - **[Compliance Checklist](/docs/tools/compliance-checklist)** - Manual compliance verification
 - **[Validating activities](/docs/tools/activity-validator)** - Check individual activities

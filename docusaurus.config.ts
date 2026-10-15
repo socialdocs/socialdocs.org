@@ -76,6 +76,7 @@ const config: Config = {
           {from: '/docs/tools/webfinger-lookup', to: '/docs/guides/webfinger-implementation'},
           {from: '/docs/reference/http-signatures-reference', to: '/docs/specs/http-signatures/overview'},
           {from: '/docs/tools/signature-tester', to: '/docs/specs/http-signatures/overview'},
+          {from: '/docs/tools/debugging-tips', to: '/docs/guides/troubleshooting'},
           {from: '/blog/welcome', to: '/blog'},
         ],
       },

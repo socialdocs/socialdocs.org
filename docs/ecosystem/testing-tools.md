@@ -235,7 +235,7 @@ app.use((req, res, next) => {
 
 ## See Also
 
-- **[Debugging Tips](/docs/tools/debugging-tips)**
+- **[Troubleshooting by symptom](/docs/guides/troubleshooting)**
 - **[Compliance Checklist](/docs/tools/compliance-checklist)**
 - **[WebFinger Lookup](/docs/guides/webfinger-implementation#lookup-tools)**
 
