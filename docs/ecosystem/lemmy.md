@@ -2,6 +2,8 @@
 sidebar_position: 3
 title: Lemmy
 description: ActivityPub implementation details for Lemmy
+last_verified: 2026-10-15
+verified_against: "Lemmy 0.19.20 source and federation fixtures (crates/apub), 1.0.0-beta.2 release, join-lemmy.org"
 ---
 
 # Lemmy
@@ -16,106 +18,101 @@ Lemmy is a link aggregator for the Fediverse, similar to Reddit.
 | Database | PostgreSQL |
 | License | AGPL-3.0 |
 | Repository | [github.com/LemmyNet/lemmy](https://github.com/LemmyNet/lemmy) |
+| Latest stable | [0.19.20](https://github.com/LemmyNet/lemmy/releases/tag/0.19.20) (2026-07-21); 1.0.0-beta.2 (2026-09-11) |
 | Documentation | [join-lemmy.org/docs](https://join-lemmy.org/docs/) |
 
 ## ActivityPub Implementation
 
+The examples below are trimmed from Lemmy's own federation test fixtures ([`crates/apub/assets/lemmy`](https://github.com/LemmyNet/lemmy/tree/0.19.20/crates/apub/assets/lemmy), 0.19.20). For full interop details see the [Lemmy compatibility guide](/docs/guides/lemmy-compatibility).
+
 ### Actor Types
 
-Lemmy uses multiple actor types:
+**Person (User)** at `/u/{name}`, and **Group (Community)** at `/c/{name}` ([group.json](https://github.com/LemmyNet/lemmy/blob/0.19.20/crates/apub/assets/lemmy/objects/group.json)):
 
-**Person (User)**:
 ```json
 {
-  "type": "Person",
-  "id": "https://lemmy.ml/u/alice",
-  "preferredUsername": "alice",
-  "inbox": "https://lemmy.ml/u/alice/inbox"
-}
-```
-
-**Group (Community)**:
-```json
-{
+  "id": "https://enterprise.lemmy.ml/c/tenforward",
   "type": "Group",
-  "id": "https://lemmy.ml/c/programming",
-  "name": "!programming@lemmy.ml",
-  "preferredUsername": "programming",
-  "inbox": "https://lemmy.ml/c/programming/inbox",
-  "followers": "https://lemmy.ml/c/programming/followers",
-  "attributedTo": ["https://lemmy.ml/u/moderator"],
-  "publicKey": { ... }
+  "preferredUsername": "tenforward",
+  "name": "Ten Forward",
+  "inbox": "https://enterprise.lemmy.ml/c/tenforward/inbox",
+  "followers": "https://enterprise.lemmy.ml/c/tenforward/followers",
+  "attributedTo": "https://enterprise.lemmy.ml/c/tenforward/moderators",
+  "featured": "https://enterprise.lemmy.ml/c/tenforward//featured",
+  "postingRestrictedToMods": false,
+  "endpoints": { "sharedInbox": "https://enterprise.lemmy.ml/inbox" }
 }
 ```
+
+`name` is the display title and `preferredUsername` the slug. Moderators are listed in the collection `attributedTo` points to; pinned posts are in `featured`.
 
 ### Content Types
 
-**Page (Post)**:
+**Page (Post)** ([page.json](https://github.com/LemmyNet/lemmy/blob/0.19.20/crates/apub/assets/lemmy/objects/page.json)) — the link of a link post is an `attachment` of type `Link`, not `url`:
+
 ```json
 {
+  "id": "https://enterprise.lemmy.ml/post/55143",
   "type": "Page",
-  "id": "https://lemmy.ml/post/12345",
-  "attributedTo": "https://lemmy.ml/u/alice",
-  "to": ["https://lemmy.ml/c/programming"],
-  "name": "Post Title",
-  "content": "<p>Post body</p>",
-  "url": "https://external-link.com",
-  "commentsEnabled": true,
-  "sensitive": false
+  "attributedTo": "https://enterprise.lemmy.ml/u/picard",
+  "to": [
+    "https://enterprise.lemmy.ml/c/tenforward",
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "audience": "https://enterprise.lemmy.ml/c/tenforward",
+  "name": "Post title",
+  "content": "<p>This is a post in the /c/tenforward community</p>\n",
+  "mediaType": "text/html",
+  "source": { "content": "This is a post in the /c/tenforward community", "mediaType": "text/markdown" },
+  "attachment": [{ "type": "Link", "href": "https://enterprise.lemmy.ml/pictrs/image/eOtYb9iEiB.png" }],
+  "sensitive": false,
+  "language": { "identifier": "fr", "name": "Français" }
 }
 ```
 
-**Note (Comment)**:
-```json
-{
-  "type": "Note",
-  "id": "https://lemmy.ml/comment/67890",
-  "attributedTo": "https://lemmy.ml/u/bob",
-  "inReplyTo": "https://lemmy.ml/post/12345",
-  "content": "<p>Great post!</p>"
-}
-```
+**Note (Comment)** — a `Note` whose `inReplyTo` is the post or the parent comment.
 
 ### Supported Activities
 
-| Activity | Context | Notes |
-|----------|---------|-------|
-| Create | Page, Note | Posts and comments |
-| Update | Page, Note | Editing |
-| Delete | Page, Note | Removal |
-| Like | Page, Note | Upvotes |
-| Dislike | Page, Note | Downvotes |
-| Undo | Like, Dislike | Remove vote |
-| Follow | Group | Join community |
-| Announce | Page | Cross-posting |
-| Block | Person | User blocks |
-| Add/Remove | Moderator | Mod actions |
+| Activity | Used for |
+|----------|----------|
+| Create / Update | Posts (`Page`) and comments (`Note`) |
+| Delete / Undo(Delete) | Deleting and restoring content |
+| Like / Dislike, Undo | Up- and downvotes (votes carry `audience`) |
+| Follow / Accept, Undo(Follow) | Subscribing to a community |
+| Announce | The community re-broadcasts every activity in it to its followers |
+| Lock / Undo(Lock) | Locking a post |
+| Block / Undo(Block) | Moderator bans (with `target`) |
+| Add / Remove | Moderators and featured (pinned) posts |
+| Flag | Reports |
+
+Sources: [`activities/`](https://github.com/LemmyNet/lemmy/tree/0.19.20/crates/apub/assets/lemmy/activities) fixtures, e.g. [announce_create_page.json](https://github.com/LemmyNet/lemmy/blob/0.19.20/crates/apub/assets/lemmy/activities/community/announce_create_page.json), [lock_page.json](https://github.com/LemmyNet/lemmy/blob/0.19.20/crates/apub/assets/lemmy/activities/community/lock_page.json), [like_note.json](https://github.com/LemmyNet/lemmy/blob/0.19.20/crates/apub/assets/lemmy/activities/voting/like_note.json).
 
 ### Community Federation
 
-Communities federate when users from other instances:
-1. Search for the community
-2. Subscribe (Follow the Group)
-3. Posts sync to subscribers
+A remote user follows the `Group`; the community then wraps every activity posted to it in an `Announce` and sends it to its followers:
 
 ```
-┌──────────────┐     Follow      ┌──────────────┐
-│ lemmy.ml     │◀────────────────│ lemmy.world  │
-│ /c/programming│                │ (subscriber) │
-└──────────────┘                 └──────────────┘
-       │                                ▲
-       │ Announce(Create(Page))         │
-       └────────────────────────────────┘
+┌──────────────────┐      Follow       ┌──────────────┐
+│ lemmy.ml         │◀──────────────────│ lemmy.world  │
+│ /c/programming   │                   │ (subscriber) │
+└──────────────────┘                   └──────────────┘
+        │                                     ▲
+        │  Announce(Create(Page))             │
+        └─────────────────────────────────────┘
 ```
 
 ## Custom Extensions
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `commentsEnabled` | Boolean | Allow comments |
-| `stickied` | Boolean | Pinned post |
-| `language` | String | Content language |
-| `sensitive` | Boolean | NSFW content |
+| Property | On | Description |
+|----------|----|-------------|
+| `audience` | Page, Note, activities | The community the content belongs to |
+| `postingRestrictedToMods` | Group | Only moderators can post |
+| `featured` | Group | Pinned posts collection |
+| `language` | Page, Note, Group | `{identifier, name}` objects |
+| `source` | Page, Note, Group | Original Markdown (`text/markdown`) |
+
+Lemmy 0.19.20's `Page` type does not read `commentsEnabled` or `stickied` (older fixtures still show them); locking uses `Lock` and pinning uses the `featured` collection.
 
 ## Release Status
 
@@ -137,46 +134,29 @@ GET /comment/{id}         # Note
 ```
 GET /c/{community}/followers
 GET /c/{community}/outbox
+GET /c/{community}/moderators
+GET /c/{community}/featured
 ```
 
 ## Voting System
 
-Unlike Mastodon's Like-only system, Lemmy supports both upvotes and downvotes:
+Lemmy supports both upvotes (`Like`) and downvotes (`Dislike`), each with the community as `audience` ([like_note.json](https://github.com/LemmyNet/lemmy/blob/0.19.20/crates/apub/assets/lemmy/activities/voting/like_note.json)):
 
-**Upvote**:
 ```json
 {
   "type": "Like",
-  "actor": "https://lemmy.ml/u/alice",
-  "object": "https://lemmy.ml/post/12345"
+  "id": "http://ds9.lemmy.ml/activities/like/fd61d070-7382-46a9-b2b7-6bb253732877",
+  "actor": "http://ds9.lemmy.ml/u/lemmy_alpha",
+  "object": "http://ds9.lemmy.ml/comment/1",
+  "audience": "https://enterprise.lemmy.ml/c/tenforward"
 }
 ```
 
-**Downvote**:
-```json
-{
-  "type": "Dislike",
-  "actor": "https://lemmy.ml/u/alice",
-  "object": "https://lemmy.ml/post/12345"
-}
-```
-
-## Compatibility Notes
-
-### Interoperability
-
-- Posts from Mastodon appear as top-level posts
-- Lemmy comments federate as Notes
-- Groups work with platforms supporting Group actors
-
-### Known Limitations
-
-- Images hosted on Lemmy, not embedded in AP
-- Markdown converted to HTML for federation
-- Some vote synchronization delays
+Mastodon only understands `Like`, so downvotes are invisible there.
 
 ## See Also
 
+- **[Lemmy Compatibility Guide](/docs/guides/lemmy-compatibility)** - Interop details and code
 - **[Lemmy Documentation](https://join-lemmy.org/docs/)**
 - **[Rust Libraries](/docs/ecosystem/rust-libraries)**
 - **[Server Software Overview](/docs/ecosystem/server-software)**

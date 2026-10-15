@@ -2,11 +2,13 @@
 sidebar_position: 5
 title: PeerTube
 description: ActivityPub implementation details for PeerTube
+last_verified: 2026-10-15
+verified_against: "PeerTube 8.3.1 (live JSON from framatube.org), docs.joinpeertube.org/api/activitypub, GitHub API"
 ---
 
 # PeerTube
 
-PeerTube is a decentralized video hosting platform, similar to YouTube.
+PeerTube is a decentralized video hosting platform, similar to YouTube. For implementation code see the [PeerTube compatibility guide](/docs/guides/peertube-compatibility).
 
 ## Overview
 
@@ -16,33 +18,28 @@ PeerTube is a decentralized video hosting platform, similar to YouTube.
 | Database | PostgreSQL |
 | License | AGPL-3.0 |
 | Repository | [github.com/Chocobozzz/PeerTube](https://github.com/Chocobozzz/PeerTube) |
-| Documentation | [docs.joinpeertube.org](https://docs.joinpeertube.org/) |
+| Documentation | [docs.joinpeertube.org](https://docs.joinpeertube.org/) ([ActivityPub](https://docs.joinpeertube.org/api/activitypub)) |
+| Latest release | [v8.3.1](https://github.com/Chocobozzz/PeerTube/releases/tag/v8.3.1) (2026-09-28) |
 
 ## ActivityPub Implementation
 
+The JSON below is trimmed from a live PeerTube 8.3.1 server.
+
 ### Actor Types
 
-**Person (User)**:
-```json
-{
-  "type": "Person",
-  "id": "https://peertube.example/accounts/alice",
-  "preferredUsername": "alice",
-  "name": "Alice",
-  "inbox": "https://peertube.example/accounts/alice/inbox",
-  "outbox": "https://peertube.example/accounts/alice/outbox"
-}
-```
+- **Person** — an account, at `/accounts/{name}`
+- **Group** — a video channel, at `/video-channels/{name}`, with `attributedTo` pointing to the owning account and a `playlists` collection
+- **Application** — the instance actor, used for server-to-server follows
 
-**Group (Channel)**:
 ```json
 {
   "type": "Group",
   "id": "https://peertube.example/video-channels/tech_reviews",
   "preferredUsername": "tech_reviews",
   "name": "Tech Reviews",
-  "attributedTo": "https://peertube.example/accounts/alice",
-  "inbox": "https://peertube.example/video-channels/tech_reviews/inbox"
+  "attributedTo": ["https://peertube.example/accounts/alice"],
+  "inbox": "https://peertube.example/video-channels/tech_reviews/inbox",
+  "playlists": "https://peertube.example/video-channels/tech_reviews/playlists"
 }
 ```
 
@@ -50,155 +47,67 @@ PeerTube is a decentralized video hosting platform, similar to YouTube.
 
 ```json
 {
-  "@context": [
-    "https://www.w3.org/ns/activitystreams",
-    "https://w3id.org/security/v1",
-    { "pt": "https://joinpeertube.org/ns#" }
-  ],
   "type": "Video",
-  "id": "https://peertube.example/videos/watch/abc123",
+  "id": "https://peertube.example/videos/watch/6a19252f-e799-404f-913f-1014c3a52fb6",
+  "uuid": "6a19252f-e799-404f-913f-1014c3a52fb6",
   "name": "Introduction to ActivityPub",
   "duration": "PT15M30S",
-  "published": "2024-01-15T10:00:00Z",
-  "attributedTo": "https://peertube.example/video-channels/tech_reviews",
-  "content": "<p>In this video we explore...</p>",
-  "mediaType": "text/html",
-  "url": [
-    {
-      "type": "Link",
-      "mediaType": "video/mp4",
-      "href": "https://peertube.example/static/videos/abc123.mp4",
-      "height": 1080,
-      "size": 150000000,
-      "fps": 30
-    },
-    {
-      "type": "Link",
-      "mediaType": "application/x-mpegURL",
-      "href": "https://peertube.example/static/streaming/abc123/master.m3u8"
-    }
+  "attributedTo": [
+    { "type": "Person", "id": "https://peertube.example/accounts/alice" },
+    { "type": "Group", "id": "https://peertube.example/video-channels/tech_reviews" }
   ],
-  "icon": [
-    {
-      "type": "Image",
-      "url": "https://peertube.example/static/thumbnails/abc123.jpg",
-      "width": 560,
-      "height": 315
-    }
-  ],
-  "tag": [
-    { "type": "Hashtag", "name": "#activitypub" }
-  ],
+  "content": "In this video we explore...",
+  "mediaType": "text/markdown",
+  "category": { "identifier": "15", "name": "Science & Technology" },
+  "licence": { "identifier": "2", "name": "Attribution - Share Alike" },
+  "language": { "identifier": "en", "name": "English" },
+  "commentsPolicy": 1,
+  "downloadEnabled": true,
+  "state": 1,
   "views": 1500,
-  "likes": "https://peertube.example/videos/watch/abc123/likes",
-  "dislikes": "https://peertube.example/videos/watch/abc123/dislikes",
-  "comments": "https://peertube.example/videos/watch/abc123/comments"
+  "url": [
+    { "type": "Link", "mediaType": "text/html", "href": "https://peertube.example/w/e6TjfMBXc5jAsLs1co4zHh" },
+    { "type": "Link", "mediaType": "video/mp4", "href": "https://peertube.example/static/web-videos/70d78e59-…-1080.mp4", "height": 1080 },
+    { "type": "Link", "mediaType": "application/x-mpegURL", "href": "https://peertube.example/static/streaming-playlists/hls/6a19252f-…/", "tag": ["…per-resolution Link entries…"] }
+  ],
+  "likes": "https://peertube.example/videos/watch/6a19252f-…/likes",
+  "dislikes": "https://peertube.example/videos/watch/6a19252f-…/dislikes",
+  "shares": "https://peertube.example/videos/watch/6a19252f-…/announces",
+  "comments": "https://peertube.example/videos/watch/6a19252f-…/comments"
 }
 ```
+
+Notes on the real format:
+
+- Video files are **Web Videos** under `/static/web-videos/`; HLS playlists are under `/static/streaming-playlists/hls/`, with one `Link` per resolution in the playlist's `tag`. `.torrent` and magnet links are still published under `/lazy-static/torrents/`.
+- `category`, `licence` and `language` are `{identifier, name}` objects mapped to schema.org terms.
+- `commentsPolicy` replaces the old `commentsEnabled` (1 = enabled, 2 = disabled, 3 = requires approval; see the [compatibility guide](/docs/guides/peertube-compatibility)).
+- `preview` holds storyboard images, not a thumbnail; thumbnails are in `icon`.
 
 ### Comments
 
-Video comments are Notes:
+Comments are `Note`s whose `inReplyTo` is the video or a parent comment.
 
-```json
-{
-  "type": "Note",
-  "id": "https://peertube.example/videos/watch/abc123/comments/456",
-  "inReplyTo": "https://peertube.example/videos/watch/abc123",
-  "attributedTo": "https://mastodon.social/users/bob",
-  "content": "<p>Great video!</p>"
-}
-```
+## Supported Activities and Objects
 
-## Supported Activities
+From [PeerTube's ActivityPub docs](https://docs.joinpeertube.org/api/activitypub):
 
-| Activity | Context | Notes |
-|----------|---------|-------|
-| Create | Video, Note | Upload, comment |
-| Update | Video | Edit metadata |
-| Delete | Video, Note | Removal |
-| Like | Video | Upvote |
-| Dislike | Video | Downvote |
-| Follow | Person, Group | Subscribe |
-| Announce | Video | Share |
-| View | Video | View tracking |
+| Activities | Objects |
+|------------|---------|
+| Create, Update, Delete, Follow, Accept, Reject, Announce, Undo, Like, Dislike, Flag, View, ApproveReply | Video, CacheFile (redundancy), Playlist, PlaylistElement, Actor, Note (comment), WatchAction |
 
 ### View Activity
 
-PeerTube tracks views via ActivityPub:
-
-```json
-{
-  "type": "View",
-  "actor": "https://peertube.example/accounts/alice",
-  "object": "https://peertube.example/videos/watch/abc123"
-}
-```
-
-## Custom Extensions
-
-PeerTube uses its own namespace for video properties:
-
-| Property | Namespace | Description |
-|----------|-----------|-------------|
-| `pt:uuid` | PeerTube | Unique video ID |
-| `pt:category` | PeerTube | Video category |
-| `pt:licence` | PeerTube | Content license |
-| `pt:language` | PeerTube | Video language |
-| `pt:downloadEnabled` | PeerTube | Allow downloads |
-| `pt:waitTranscoding` | PeerTube | Transcoding status |
-
-## Video Streaming
-
-PeerTube supports multiple formats:
-
-```json
-{
-  "url": [
-    {
-      "type": "Link",
-      "mediaType": "video/mp4",
-      "href": "...",
-      "height": 1080
-    },
-    {
-      "type": "Link",
-      "mediaType": "video/mp4",
-      "href": "...",
-      "height": 720
-    },
-    {
-      "type": "Link",
-      "mediaType": "application/x-mpegURL",
-      "href": "..."
-    },
-    {
-      "type": "Link",
-      "mediaType": "application/x-bittorrent",
-      "href": "..."
-    }
-  ]
-}
-```
+PeerTube sends a `View` to the origin server each time a user watches a video, so it can count views. A `View` carrying `expires` means the user is still watching, and may be sent repeatedly ([docs](https://docs.joinpeertube.org/api/activitypub)).
 
 ## Federation
 
-### With Mastodon
-
-- Videos appear as posts with video attachments
-- Comments federate as replies
-- Likes/dislikes become favorites
-
-### Channel Following
-
-Users can follow PeerTube channels:
-```
-Actor (Mastodon) → Follow → Group (PeerTube Channel)
-```
+- A video is created by the account and **announced by the channel**; following a channel (`Group`) delivers its videos.
+- Mastodon users can follow channels and accounts; replies from Mastodon become comments.
+- Instances can follow each other (via their `Application` actors) to share their video catalogues.
 
 ## See Also
 
-- **[PeerTube Documentation](https://docs.joinpeertube.org/)**
-- **[JavaScript Libraries](/docs/ecosystem/javascript-libraries)**
+- **[PeerTube Compatibility Guide](/docs/guides/peertube-compatibility)**
+- **[PeerTube ActivityPub docs](https://docs.joinpeertube.org/api/activitypub)**
 - **[Server Software Overview](/docs/ecosystem/server-software)**
-

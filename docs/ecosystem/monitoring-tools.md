@@ -2,6 +2,8 @@
 sidebar_position: 22
 title: Monitoring Tools
 description: Tools for monitoring Fediverse instances
+last_verified: 2026-10-15
+verified_against: "Mastodon v4.7.3 source (config/initializers/prometheus_exporter.rb, sidekiq.rb, domain_blocks_controller.rb), prometheus_exporter gem source/README, provider websites"
 ---
 
 # Monitoring Tools
@@ -39,7 +41,7 @@ Basic uptime monitoring.
 | Property | Value |
 |----------|-------|
 | Website | [uptimerobot.com](https://uptimerobot.com/) |
-| Free tier | 50 monitors |
+| Free tier | 50 monitors (pricing page, October 2026) |
 | Checks | HTTP, keyword |
 
 **Setup for Fediverse:**
@@ -91,7 +93,8 @@ For Mastodon's delivery queues, use the Sidekiq web UI at `/sidekiq` (admin only
 Track moderation actions:
 
 ```bash
-# Get domain blocks
+# Get domain blocks — public only if the admin chose to show them
+# (Mastodon's show_domain_blocks setting); otherwise returns 404 or needs a login
 curl https://instance.example/api/v1/instance/domain_blocks
 ```
 
@@ -198,7 +201,7 @@ groups:
           summary: "Instance is down"
 
       - alert: QueueBacklog
-        expr: ruby_sidekiq_queue_backlog > 10000
+        expr: max by (queue) (ruby_sidekiq_queue_backlog) > 10000   # needs SIDEKIQ_DETAILED_METRICS
         for: 10m
         annotations:
           summary: "Sidekiq queue is backing up"
@@ -212,9 +215,11 @@ groups:
 |-------|-------|---------|
 | Response Time | `ruby_http_request_duration_seconds` | Performance (needs `MASTODON_PROMETHEUS_EXPORTER_WEB_DETAILED_METRICS=true`) |
 | Error Rate | `rate(ruby_http_requests_total{status=~"5.."}[5m])` | Reliability (same) |
-| Queue Depth | `ruby_sidekiq_queue_backlog` | Processing |
-| Queue Latency | `ruby_sidekiq_queue_latency_seconds` | Delivery delay |
-| Failed Jobs | `rate(ruby_sidekiq_failed_jobs_total[5m])` | Delivery failures |
+| Queue Depth | `max by (queue) (ruby_sidekiq_queue_backlog)` | Processing (needs `MASTODON_PROMETHEUS_EXPORTER_SIDEKIQ_DETAILED_METRICS=true`) |
+| Queue Latency | `max by (queue) (ruby_sidekiq_queue_latency_seconds)` | Delivery delay (same) |
+| Failed Jobs | `rate(ruby_sidekiq_failed_jobs_total[5m])` | Delivery failures (same) |
+
+Per-queue metrics are reported by every Sidekiq process that handles the queue, so take the `max`, don't `sum` ([Mastodon's `sidekiq.rb` initializer](https://github.com/mastodon/mastodon/blob/v4.7.3/config/initializers/sidekiq.rb)). Without the detailed-metrics flags, Mastodon still exports Ruby process, Sidekiq process (busy/concurrency) and ActiveRecord connection-pool metrics.
 
 Mastodon exports no product metrics (users, posts) — these come from the [prometheus_exporter](https://github.com/discourse/prometheus_exporter) gem; check your own `/metrics` output for exact names.
 

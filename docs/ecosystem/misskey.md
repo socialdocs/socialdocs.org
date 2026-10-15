@@ -2,6 +2,8 @@
 sidebar_position: 6
 title: Misskey
 description: ActivityPub implementation details for Misskey
+last_verified: 2026-10-15
+verified_against: "Misskey 2026.10.0 source (ApRendererService.ts, ApInboxService.ts, type.ts, misc/contexts.ts), FediDB, forge APIs for forks"
 ---
 
 # Misskey
@@ -16,131 +18,133 @@ Misskey is a feature-rich microblogging platform originating from Japan.
 | Database | PostgreSQL |
 | License | AGPL-3.0 |
 | Repository | [github.com/misskey-dev/misskey](https://github.com/misskey-dev/misskey) |
+| Latest release | [2026.10.0](https://github.com/misskey-dev/misskey/releases/tag/2026.10.0) (2026-10-01) |
 | Documentation | [misskey-hub.net](https://misskey-hub.net/) |
 
 ## Forks
 
-- **Sharkey** — the main actively maintained fork
-- **Firefish** (formerly Calckey) — discontinued
-- **Foundkey** — discontinued
+| Fork | Status (October 2026) |
+|------|------------------------|
+| [Sharkey](https://activitypub.software/TransFem-org/Sharkey) | Actively maintained; ~25K accounts on ~500 servers (FediDB) |
+| [FoundKey](https://akkoma.dev/FoundKeyGang/FoundKey) | Occasional commits (latest September 2026), no tagged releases |
+| Firefish (formerly Calckey) | Its source host (git.joinfirefish.org) was unreachable on 2026-10-15; ~20 servers remain on FediDB |
 
 ## ActivityPub Implementation
 
-### Actor Type
+The JSON below follows Misskey's renderer ([`ApRendererService.ts`](https://github.com/misskey-dev/misskey/blob/develop/packages/backend/src/core/activitypub/ApRendererService.ts)) and JSON-LD context ([`misc/contexts.ts`](https://github.com/misskey-dev/misskey/blob/develop/packages/backend/src/core/activitypub/misc/contexts.ts)); values are illustrative.
+
+### Actor
 
 ```json
 {
-  "@context": [
-    "https://www.w3.org/ns/activitystreams",
-    "https://w3id.org/security/v1",
-    { "misskey": "https://misskey-hub.net/ns#" }
-  ],
   "type": "Person",
-  "id": "https://misskey.io/users/abc123",
+  "id": "https://misskey.example/users/9abc",
   "preferredUsername": "alice",
   "name": "Alice",
-  "inbox": "https://misskey.io/users/abc123/inbox",
-  "outbox": "https://misskey.io/users/abc123/outbox",
-  "sharedInbox": "https://misskey.io/inbox",
-  "featured": "https://misskey.io/users/abc123/collections/featured",
-  "misskey:isCat": true
+  "inbox": "https://misskey.example/users/9abc/inbox",
+  "outbox": "https://misskey.example/users/9abc/outbox",
+  "featured": "https://misskey.example/users/9abc/collections/featured",
+  "sharedInbox": "https://misskey.example/inbox",
+  "endpoints": { "sharedInbox": "https://misskey.example/inbox" },
+  "isCat": true,
+  "_misskey_summary": "Profile text in MFM"
 }
 ```
+
+`isCat` maps to `misskey:isCat` in Misskey's context, so it appears as a plain `isCat` key. Misskey also publishes `sharedInbox` at the top level as well as in `endpoints`.
 
 ### Note (Post)
 
 ```json
 {
   "type": "Note",
-  "id": "https://misskey.io/notes/xyz789",
-  "attributedTo": "https://misskey.io/users/abc123",
+  "id": "https://misskey.example/notes/9xyz",
+  "attributedTo": "https://misskey.example/users/9abc",
   "content": "<p>Hello from Misskey! :blobcat:</p>",
-  "published": "2024-01-15T10:00:00Z",
+  "_misskey_content": "Hello from Misskey! :blobcat:",
+  "source": {
+    "content": "Hello from Misskey! :blobcat:",
+    "mediaType": "text/x.misskeymarkdown"
+  },
   "to": ["https://www.w3.org/ns/activitystreams#Public"],
-  "cc": ["https://misskey.io/users/abc123/followers"],
+  "cc": ["https://misskey.example/users/9abc/followers"],
   "tag": [
     {
       "type": "Emoji",
       "name": ":blobcat:",
-      "icon": {
-        "type": "Image",
-        "url": "https://misskey.io/emoji/blobcat.png"
-      }
+      "icon": { "type": "Image", "url": "https://misskey.example/files/blobcat.png" }
     }
-  ],
-  "_misskey_content": "Hello from Misskey! :blobcat:",
-  "_misskey_quote": null
+  ]
 }
 ```
 
 ### Quote Posts
 
-Misskey supports quote posts:
+A quote sets both `_misskey_quote` and `quoteUrl` to the quoted note, and appends an `RE:` link inside a `quote-inline` span to `content` for software that doesn't understand either property:
 
 ```json
 {
   "type": "Note",
-  "id": "https://misskey.io/notes/quote123",
-  "content": "<p>This is important!</p>",
-  "_misskey_quote": "https://other.server/notes/original",
-  "quoteUrl": "https://other.server/notes/original",
-  "tag": [
-    {
-      "type": "Link",
-      "href": "https://other.server/notes/original",
-      "name": "RE: https://other.server/notes/original"
-    }
-  ]
+  "content": "<p>This is important!<br><br><span class=\"quote-inline\">RE: <a href=\"https://other.example/notes/1\">https://other.example/notes/1</a></span></p>",
+  "_misskey_quote": "https://other.example/notes/1",
+  "quoteUrl": "https://other.example/notes/1"
 }
 ```
 
+On receipt Misskey reads `_misskey_quote` or `quoteUrl` ([`ApNoteService.ts`](https://github.com/misskey-dev/misskey/blob/develop/packages/backend/src/core/activitypub/models/ApNoteService.ts)). It does not implement Mastodon's consent-based [FEP-044f](/docs/guides/quote-posts-and-interaction-policies) flow.
+
 ## Supported Activities
 
-| Activity | Support | Notes |
-|----------|---------|-------|
-| Create | ✅ | Notes, reactions |
-| Update | ✅ | Note edits |
-| Delete | ✅ | Removal |
-| Like | ✅ | Reactions |
-| EmojiReact | ✅ | Custom reactions |
-| Announce | ✅ | Renotes |
-| Follow | ✅ | Standard |
-| Undo | ✅ | All reversible |
-| Flag | ✅ | Reports |
+Inbound handlers in [`ApInboxService.ts`](https://github.com/misskey-dev/misskey/blob/develop/packages/backend/src/core/activitypub/ApInboxService.ts):
+
+| Activity | Notes |
+|----------|-------|
+| Create / Update / Delete | Notes (incl. polls as `Question`) |
+| Follow / Accept / Reject | Follow requests |
+| Like | Also accepts `EmojiReact` and `EmojiReaction` as reactions ([`type.ts`](https://github.com/misskey-dev/misskey/blob/develop/packages/backend/src/core/activitypub/type.ts)) |
+| Announce | Renotes |
+| Undo | Follow, Block, Like, Announce, Accept |
+| Add / Remove | Pinned notes |
+| Block, Flag, Move | Blocks, reports, account migration |
 
 ### Emoji Reactions
 
-Unlike Mastodon's simple Like, Misskey supports emoji reactions:
+Misskey sends reactions as a `Like` carrying the emoji in both `content` and `_misskey_reaction`, plus an `Emoji` tag for custom emoji ([`renderLike`](https://github.com/misskey-dev/misskey/blob/develop/packages/backend/src/core/activitypub/ApRendererService.ts)):
 
 ```json
 {
   "type": "Like",
-  "actor": "https://misskey.io/users/abc123",
-  "object": "https://mastodon.social/users/bob/statuses/456",
+  "id": "https://misskey.example/likes/9r1",
+  "actor": "https://misskey.example/users/9abc",
+  "object": "https://mastodon.example/users/bob/statuses/456",
+  "content": ":blobcat:",
   "_misskey_reaction": ":blobcat:",
   "tag": [
     {
       "type": "Emoji",
       "name": ":blobcat:",
-      "icon": { "url": "https://misskey.io/emoji/blobcat.png" }
+      "icon": { "type": "Image", "url": "https://misskey.example/files/blobcat.png" }
     }
   ]
 }
 ```
 
+Servers that only understand `Like` (such as Mastodon) count it as a plain favourite.
+
 ## Custom Extensions
 
 | Property | Description |
 |----------|-------------|
-| `_misskey_content` | Original MFM content |
-| `_misskey_quote` | Quoted post URL |
-| `_misskey_reaction` | Reaction emoji |
-| `misskey:isCat` | Cat mode (nyaizes text) |
-| `quoteUrl` | Alternative quote property |
+| `_misskey_content` | Original MFM text (also in `source` as `text/x.misskeymarkdown`) |
+| `_misskey_quote`, `quoteUrl` | Quoted note |
+| `_misskey_reaction` | Reaction emoji on a `Like` |
+| `_misskey_votes` | Vote counts on poll options |
+| `_misskey_summary` | Profile text in MFM |
+| `isCat` | Cat mode |
 
 ## MFM (Misskey Flavored Markdown)
 
-Misskey uses its own markup format:
+Misskey uses its own markup, [MFM](https://misskey-hub.net/en/docs/for-users/features/mfm/):
 
 ```
 $[x2 Large text]
@@ -149,44 +153,20 @@ $[spin Spinning text]
 $[flip Flipped text]
 ```
 
-This is stored in `_misskey_content` and rendered as HTML in `content`.
+The MFM source is federated in `_misskey_content` and `source`; `content` carries an HTML rendering.
 
 ## API Endpoints
-
-### Standard
 
 ```
 GET /.well-known/webfinger
 GET /.well-known/nodeinfo
 GET /users/{id}
 GET /notes/{id}
+POST /inbox        # shared inbox
 ```
-
-### Shared Inbox
-
-Misskey uses a shared inbox for efficiency:
-```
-POST /inbox
-```
-
-## Compatibility
-
-### With Mastodon
-
-- Quote posts appear as links
-- Reactions become Likes
-- MFM formatting simplified
-- Custom emoji may not display
-
-### Receiving from Mastodon
-
-- Standard Notes work well
-- Polls supported
-- Content warnings respected
 
 ## See Also
 
 - **[Misskey Hub](https://misskey-hub.net/)**
-- **[JavaScript Libraries](/docs/ecosystem/javascript-libraries)**
+- **[Quote Posts and Interaction Policies](/docs/guides/quote-posts-and-interaction-policies)**
 - **[Server Software Overview](/docs/ecosystem/server-software)**
-

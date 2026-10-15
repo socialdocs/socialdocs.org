@@ -2,6 +2,8 @@
 sidebar_position: 9
 title: Other Servers
 description: Additional ActivityPub server implementations
+last_verified: 2026-10-15
+verified_against: "Forge APIs (GitHub, GitLab, Codeberg, Framagit, akkoma.dev, iceshrimp.dev, activitypub.software, git.asonix.dog), PyPI, project READMEs/source (WriteFreely, BookWyrm, Loops, Akkoma), Owncast docs"
 ---
 
 # Other Servers
@@ -12,52 +14,27 @@ Beyond the major platforms, many other ActivityPub servers exist for various use
 
 ### Akkoma
 
-Fork of Pleroma with additional features.
+The most active fork of [Pleroma](/docs/ecosystem/pleroma).
 
 | Property | Value |
 |----------|-------|
 | Language | Elixir |
 | License | AGPL-3.0 |
 | Repository | [akkoma.dev/AkkomaGang/akkoma](https://akkoma.dev/AkkomaGang/akkoma) |
+| Latest release | v3.20.1 (2026-09-27) |
 
-Features:
-- Emoji reactions
-- Quote posts
-- Markdown/BBCode
-- MRF (Message Rewrite Facility)
+Inherits Pleroma's emoji reactions, quote posts, multiple post formats and MRF (Message Rewrite Facility). It has [disabled the ActivityPub C2S write endpoints](https://akkoma.dev/AkkomaGang/akkoma/src/branch/develop/CHANGELOG.md).
 
 ### Rebased (Soapbox)
 
-Pleroma fork with Soapbox frontend and enhanced features.
+Pleroma-based backend with a Mastodon-compatible API; ["the recommended backend for Soapbox"](https://gitlab.com/soapbox-pub/rebased) (a React web frontend).
 
 | Property | Value |
 |----------|-------|
 | Language | Elixir |
 | License | AGPL-3.0 |
 | Website | [soapbox.pub](https://soapbox.pub/) |
-| Repository | [gitlab.com/soapbox-pub/rebased](https://gitlab.com/soapbox-pub/rebased) |
-
-Features:
-- Modern React frontend (Soapbox FE)
-- Quote posts and reactions
-- Improved moderation tools
-- Nostr integration via Mostr
-
-### Ditto
-
-Nostr-native server with ActivityPub support.
-
-| Property | Value |
-|----------|-------|
-| Language | TypeScript (Deno) |
-| License | AGPL-3.0 |
-| Repository | [gitlab.com/soapbox-pub/ditto](https://gitlab.com/soapbox-pub/ditto) |
-
-Features:
-- Nostr as primary protocol
-- ActivityPub federation bridge
-- Soapbox FE compatible
-- Lightweight, single binary
+| Repository | [gitlab.com/soapbox-pub/rebased](https://gitlab.com/soapbox-pub/rebased) (last activity September 2026) |
 
 ### Honk
 
@@ -69,26 +46,17 @@ Minimalist ActivityPub server.
 | License | ISC |
 | Repository | humungus.tedunangst.com/r/honk (unreachable as of October 2026) |
 
-Features:
-- Single user focus
-- Minimal dependencies
-- SQLite database
-- Simple deployment
+A minimal Go server with SQLite. Its project site was unreachable when this page was verified.
 
 ### Takahē
 
-Multi-domain ActivityPub server.
+Multi-domain ActivityPub server (several domains on one instance). **Dormant:** no commits since August 2024.
 
 | Property | Value |
 |----------|-------|
 | Language | Python (Django) |
-| License | BSD-3 |
+| License | BSD-3-Clause |
 | Repository | [github.com/jointakahe/takahe](https://github.com/jointakahe/takahe) |
-
-Features:
-- Multiple domains on one instance
-- Identity-based federation
-- PostgreSQL database
 
 ### Sharkey
 
@@ -101,10 +69,7 @@ The main actively maintained Misskey fork.
 | Website | [joinsharkey.org](https://joinsharkey.org/) |
 | Repository | [activitypub.software/TransFem-org/Sharkey](https://activitypub.software/TransFem-org/Sharkey) |
 
-Features:
-- All Misskey features (reactions, quotes, MFM)
-- Mastodon-compatible client API
-- Regular releases
+Builds on [Misskey](/docs/ecosystem/misskey) (reactions, quotes, MFM) and adds a Mastodon-compatible client API. ~25K accounts on ~500 servers (FediDB, October 2026).
 
 ### Iceshrimp.NET
 
@@ -116,10 +81,7 @@ Ground-up .NET rewrite continuing the Iceshrimp project (Misskey lineage).
 | License | EUPL-1.2 |
 | Repository | [iceshrimp.dev/iceshrimp/Iceshrimp.NET](https://iceshrimp.dev/iceshrimp/Iceshrimp.NET) |
 
-Features:
-- Lightweight compared to Node-based Misskey lineage
-- Mastodon-compatible client API
-- In beta as of 2026
+Beta software (latest: v2026.1.2-beta, July 2026), with a Mastodon-compatible client API tested against many apps ([README](https://iceshrimp.dev/iceshrimp/Iceshrimp.NET)).
 
 ## Blogging
 
@@ -133,10 +95,7 @@ Federated blogging platform.
 | License | AGPL-3.0 |
 | Repository | [github.com/writefreely/writefreely](https://github.com/writefreely/writefreely) |
 
-Federation:
-- Articles appear as Notes
-- Followers can follow blogs
-- Comments via replies
+Federation: each blog is an actor that can be followed. Multi-paragraph posts federate as `Article` and single-paragraph posts as `Note` (or always `Note` with the `notes_only` setting) — see [`posts.go`](https://github.com/writefreely/writefreely/blob/develop/posts.go). Latest release v0.17.2 (August 2026).
 
 ### Plume
 
@@ -148,9 +107,11 @@ Federated blogging engine.
 | License | AGPL-3.0 |
 | Repository | [github.com/Plume-org/Plume](https://github.com/Plume-org/Plume) |
 
+**Dormant:** no commits since April 2025.
+
 ### Ghost
 
-Major open-source publishing platform with built-in ActivityPub since Ghost 6.0 (August 2025) — free on all sites, both Ghost(Pro) and self-hosted.
+Open-source publishing platform with ActivityPub built in since [Ghost 6.0](https://github.com/TryGhost/Ghost/releases/tag/v6.0.0) (August 2025). Interop details are on [Big Platforms](/docs/ecosystem/big-platforms#ghost).
 
 | Property | Value |
 |----------|-------|
@@ -159,10 +120,7 @@ Major open-source publishing platform with built-in ActivityPub since Ghost 6.0 
 | Website | [ghost.org](https://ghost.org/) |
 | AP service | [github.com/TryGhost/ActivityPub](https://github.com/TryGhost/ActivityPub) |
 
-Federation:
-- Long-form posts and short-form notes federate; followers can like and reply
-- Reader splits long-form (Inbox) from short-form (Feed)
-- ActivityPub runs as a separate multi-tenant service; self-hosted installs default to Ghost's hosted gateway, or fully self-host via the Docker `activitypub` profile
+ActivityPub runs as a separate service ([TryGhost/ActivityPub](https://github.com/TryGhost/ActivityPub)).
 
 ### WordPress (ActivityPub plugin)
 
@@ -174,10 +132,7 @@ Automattic-maintained plugin that federates WordPress sites.
 | License | MIT |
 | Repository | [github.com/Automattic/wordpress-activitypub](https://github.com/Automattic/wordpress-activitypub) |
 
-Federation:
-- Author and blog-level actors
-- Posts federate to followers; comments arrive as replies
-- One of the largest fediverse deployments by install base
+Federation: author and blog actors; posts federate to followers and fediverse replies arrive as comments. Latest release 9.3.1 (September 2026). See [Big Platforms](/docs/ecosystem/big-platforms#wordpress-activitypub-plugin) and the plugin's [FEDERATION.md](https://github.com/Automattic/wordpress-activitypub/blob/trunk/FEDERATION.md).
 
 ## Books & Media
 
@@ -188,13 +143,10 @@ Federated book tracking (Goodreads alternative).
 | Property | Value |
 |----------|-------|
 | Language | Python (Django) |
-| License | Anti-Capitalist License |
+| License | Anti-Capitalist Software License |
 | Repository | [github.com/bookwyrm-social/bookwyrm](https://github.com/bookwyrm-social/bookwyrm) |
 
-Federation:
-- Book reviews federate as Articles
-- Reading status updates
-- Shelves as Collections
+Federation: BookWyrm sends its own types (`Review`, `Comment`, `Quotation`, …) to other BookWyrm servers and plain types to everyone else — a review becomes an `Article`, other statuses a `Note` ([`models/status.py`](https://github.com/bookwyrm-social/bookwyrm/blob/main/bookwyrm/models/status.py)). Latest release v0.9.3 (September 2026).
 
 ### Funkwhale
 
@@ -206,10 +158,7 @@ Federated music streaming.
 | License | AGPL-3.0 |
 | Repository | [dev.funkwhale.audio](https://dev.funkwhale.audio/funkwhale/funkwhale) |
 
-Federation:
-- Audio objects
-- Libraries and channels
-- Follows and shares
+Federation ([docs](https://docs.funkwhale.audio/developer/federation/index.html)): libraries and channels can be followed; music is modelled with custom `Artist`, `Album`, `Track`, `Library` and `Audio` objects, and listening history federates as `Listen`. Latest release 2.0.12 (October 2026).
 
 ### Owncast
 
@@ -221,14 +170,11 @@ Federated live streaming.
 | License | MIT |
 | Repository | [github.com/owncast/owncast](https://github.com/owncast/owncast) |
 
-Federation:
-- Stream notifications
-- Follows
-- Chat integration
+Federation ([docs](https://owncast.online/docs/social/)): fediverse users can follow a stream, followers are notified when it goes live and can share that, the admin can send posts to followers, and follows, likes and shares show up in the stream chat. Latest release v0.3.0 (September 2026).
 
 ### Loops
 
-Federated short-form video (TikTok-style), by the Pixelfed team. Open beta.
+Federated short-form video (TikTok-style), by the Pixelfed team. In beta (latest v1.0.0-beta.14, August 2026).
 
 | Property | Value |
 |----------|-------|
@@ -238,7 +184,7 @@ Federated short-form video (TikTok-style), by the Pixelfed team. Open beta.
 | Repository | [github.com/joinloops/loops-server](https://github.com/joinloops/loops-server) |
 
 Federation (beta since October 2025):
-- Videos federate as `Note` objects for maximum compatibility
+- Videos federate as `Note` objects ([`CreateActivityBuilder.php`](https://github.com/joinloops/loops-server/blob/main/app/Federation/ActivityBuilders/CreateActivityBuilder.php))
 - Follows, replies, likes, and shares with Mastodon, Pixelfed, PeerTube
 - WebFinger, HTTP Signatures, shared inboxes
 
@@ -246,7 +192,7 @@ Federation (beta since October 2025):
 
 ### Mbin
 
-Community-maintained fork of /kbin (now abandoned) — combines link aggregation and microblogging.
+A [fork and continuation of /kbin](https://github.com/MbinOrg/mbin) (no /kbin commits since December 2024), combining link aggregation and microblogging. Latest release v1.11.0 (October 2026).
 
 | Property | Value |
 |----------|-------|
@@ -257,7 +203,6 @@ Community-maintained fork of /kbin (now abandoned) — combines link aggregation
 Features:
 - Magazines (communities) federate with Lemmy and PieFed
 - Microblog posts federate with Mastodon
-- Active development
 
 ## Events
 
@@ -269,7 +214,7 @@ Federated event organizing.
 |----------|-------|
 | Language | Elixir |
 | License | AGPL-3.0 |
-| Repository | [framagit.org/framasoft/mobilizon](https://framagit.org/framasoft/mobilizon) |
+| Repository | [framagit.org/kaihuri/mobilizon](https://framagit.org/kaihuri/mobilizon) — developed by Kaihuri since 2025 (previously Framasoft) |
 
 Federation:
 - Event objects
@@ -288,10 +233,7 @@ Full-featured social network.
 | License | AGPL-3.0 |
 | Repository | [github.com/friendica/friendica](https://github.com/friendica/friendica) |
 
-Features:
-- Multiple protocol support
-- Facebook-like interface
-- Events, polls, calendar
+Facebook-like social network that federates over ActivityPub and Diaspora. Latest release 2026.05-1.
 
 ### Hubzilla
 
@@ -303,77 +245,38 @@ Decentralized publishing platform.
 | License | MIT |
 | Repository | [framagit.org/hubzilla/core](https://framagit.org/hubzilla/core) |
 
-Features:
-- Nomadic identity
-- Zot protocol + ActivityPub
-- Channels and permissions
+Channels with nomadic identity over its own Zot/Nomad protocol, plus ActivityPub. Latest release 11.4.1 (September 2026).
 
 ## Commercial Platforms
 
 ### Threads (Meta)
 
-Meta's Threads federates over ActivityPub — the largest commercial platform on the protocol. Worth understanding precisely, because federation is partial.
-
-| Property | Value |
-|----------|-------|
-| Operator | Meta |
-| Federation | Opt-in per user (18+, public profiles) |
-| Availability | Global except the European Region (as last stated, June 2025) |
-
-**What works (as of mid-2026):**
-- Opted-in users' posts federate out; fediverse users can follow, like, reply to, and boost them
-- Threads users can follow fediverse accounts, with a dedicated fediverse feed and user search (since June 2025)
-- Threads users see fediverse replies on their own posts and can like them
-
-**Limitations:**
-- Threads users **cannot reply to fediverse posts** from Threads (stated as a future goal)
-- Posts with polls, restricted replies, or quotes of non-federated posts don't federate out
-- Meta reports Threads has interacted with over 75% of fediverse servers (June 2025)
-
-:::tip For Implementers
-Treat Threads as a large but feature-limited peer: deliveries work like any Mastodon-compatible server, but don't assume bidirectional conversation threads.
-:::
+Threads federates for opted-in users, but only partially — notably, Threads users could not reply to fediverse posts as of Meta's last public update (June 2025). See [Big Platforms](/docs/ecosystem/big-platforms#threads-meta) for what is and isn't verified.
 
 ## Relays
 
 ### Activity Relay
 
-Boost federation between instances.
+A relay re-shares public posts between the servers subscribed to it, which helps small servers discover content.
 
 | Property | Value |
 |----------|-------|
 | Language | Python |
 | Repository | [git.pleroma.social/pleroma/relay](https://git.pleroma.social/pleroma/relay) |
-
-Purpose:
-- Connect smaller instances
-- Share public content
-- Increase discoverability
+| Latest release | [activityrelay 0.3.5](https://pypi.org/project/activityrelay/) (April 2025) |
 
 ### Aode Relay
 
-Modern relay implementation.
+Relay implementation in Rust (last updated July 2026).
 
 | Property | Value |
 |----------|-------|
 | Language | Rust |
 | Repository | [git.asonix.dog/asonix/relay](https://git.asonix.dog/asonix/relay) |
 
-## Comparison
-
-| Server | Focus | Language | Resources |
-|--------|-------|----------|-----------|
-| Akkoma | Microblog | Elixir | Medium |
-| Rebased | Microblog | Elixir | Medium |
-| Ditto | Nostr+AP | TypeScript | Low |
-| Honk | Minimal | Go | Very Low |
-| WriteFreely | Blogging | Go | Low |
-| BookWyrm | Books | Python | Medium |
-| Funkwhale | Music | Python | Medium |
-| Mobilizon | Events | Elixir | Medium |
-
 ## See Also
 
 - **[Server Software Overview](/docs/ecosystem/server-software)**
+- **[Big Platforms](/docs/ecosystem/big-platforms)**
 - **[Libraries Overview](/docs/ecosystem/libraries-overview)**
 

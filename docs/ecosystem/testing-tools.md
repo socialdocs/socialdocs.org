@@ -2,99 +2,57 @@
 sidebar_position: 21
 title: Testing Tools
 description: Tools for testing ActivityPub implementations
+last_verified: 2026-10-15
+verified_against: "Live checks of each tool (2026-10-15): activitypub.academy /api/v1/instance, browser.pub, fedify.dev/cli, mastodon.social responses; Mastodon dev docs"
 ---
 
 # Testing Tools
 
-Tools and resources for testing ActivityPub implementations.
+Tools and resources for testing ActivityPub implementations. This site's own interactive tools are under [Testing & Debugging](/docs/tools/overview).
 
 ## Online Tools
 
-### ActivityPub Academy
-
-Test server for development.
-
-| Property | Value |
-|----------|-------|
-| Website | [activitypub.academy](https://activitypub.academy/) |
-| Purpose | Interactive testing |
-| Features | Test actors, activities |
-
-### Webfinger.net
-
-WebFinger lookup tool.
-
-| Property | Value |
-|----------|-------|
-| Website | [webfinger.net](https://webfinger.net/) |
-| Purpose | Test WebFinger |
-| Usage | Enter handle, see response |
-
-### JSON-LD Playground
-
-Validate JSON-LD documents.
-
-| Property | Value |
-|----------|-------|
-| Website | [json-ld.org/playground](https://json-ld.org/playground/) |
-| Purpose | Expand/compact JSON-LD |
-| Features | Visualize document |
+| Tool | What it does |
+|------|--------------|
+| [BrowserPub](https://browser.pub/) | Browse any actor or object as ActivityPub JSON, following links between them |
+| [ActivityPub Academy](https://activitypub.academy/) | A Mastodon test server (it runs **Mastodon 4.1.18**, so newer 4.5–4.7 behaviour isn't reproduced) |
+| [webfinger.net](https://webfinger.net/) | WebFinger lookups |
+| [JSON-LD Playground](https://json-ld.org/playground/) | Expand, compact and inspect JSON-LD |
 
 ## Command-Line Testing
 
-### curl for ActivityPub
+### Fedify CLI
 
-**Fetch an actor:**
-```bash
-curl -H "Accept: application/activity+json" \
-  https://mastodon.social/users/Gargron
-```
+The [Fedify CLI](https://fedify.dev/cli) (`npx @fedify/cli …`) covers most day-to-day debugging:
 
-**Test WebFinger:**
+| Command | Use |
+|---------|-----|
+| `fedify lookup <handle-or-URL>` | Fetch an actor or object; add `--authorized-fetch` to sign the request (needed for servers in secure mode) |
+| `fedify webfinger <handle>` | WebFinger lookup |
+| `fedify nodeinfo <host>` | NodeInfo lookup |
+| `fedify inbox` | Run a temporary inbox that logs what other servers send you |
+| `fedify tunnel <port>` | Expose a local server over HTTPS for federation testing |
+
+### curl
+
+WebFinger and NodeInfo answer unsigned requests:
+
 ```bash
 curl "https://mastodon.social/.well-known/webfinger?resource=acct:Gargron@mastodon.social"
-```
-
-**Fetch NodeInfo:**
-```bash
 curl https://mastodon.social/.well-known/nodeinfo
 ```
 
-### httpie (alternative to curl)
+Actor and object fetches need the right `Accept` header — and many servers, including mastodon.social, answer **401** unless the request is signed (see [Authorized Fetch](/docs/security/authorized-fetch)):
 
 ```bash
-# Install: pip install httpie
-http GET https://mastodon.social/users/Gargron \
-  Accept:application/activity+json
+# Works only against servers without secure mode
+curl -H "Accept: application/activity+json" https://your-test-server.example/users/test
 ```
 
 ## Local Development
 
-### Test Servers
-
-**ActorServer** - Minimal test server:
-```bash
-# Python example
-python -m http.server 8000
-# Serve static actor JSON
-```
-
-**ngrok** - Expose local server:
-```bash
-ngrok http 3000
-# Get public URL for testing federation
-```
-
-### Local Mastodon
-
-For integration testing:
-
-```bash
-git clone https://github.com/mastodon/mastodon
-cd mastodon
-docker-compose up
-# Access at localhost:3000
-```
+- **Expose a local server** with `fedify tunnel 3000` or [ngrok](https://ngrok.com/) (`ngrok http 3000`) — remote servers need a public HTTPS URL.
+- **Run a real server to federate with.** This site's [tutorial](/docs/getting-started/your-first-activitypub-server) is tested in CI against GoToSocial in Docker; its [integration setup](https://github.com/socialdocs/socialdocs.org/tree/gh-pages/examples/first-server) is a reusable template. For Mastodon, follow its [development setup guide](https://docs.joinmastodon.org/dev/setup/) — a bare `docker compose up` from the repository is not enough.
 
 ## Test Cases
 
@@ -142,7 +100,7 @@ Use existing servers to test signing:
 1. Create test activity
 2. Sign with your implementation
 3. POST to real inbox (test instance)
-4. Check for 202 Accepted
+4. Check for 202 Accepted — but note Mastodon accepts the request before processing it, so a 202 only means the signature passed; confirm the activity actually took effect on the remote side (see [Troubleshooting](/docs/guides/troubleshooting))
 
 ## Integration Testing
 
@@ -197,14 +155,16 @@ if __name__ == "__main__":
 
 | Symptom | Likely Cause | Solution |
 |---------|--------------|----------|
-| 401 on inbox | Bad signature | Check signing |
-| 404 on actor | Wrong Accept | Add header |
-| No federation | Blocked IP | Check firewall |
-| Signature invalid | Clock skew | Sync NTP |
+| 401 on inbox | Bad or missing signature | Read the JSON error in the response body |
+| HTML instead of JSON for an actor | Missing or wrong `Accept` header | Send `Accept: application/activity+json` |
+| 401 when fetching | Server requires signed fetches | Sign `GET`s |
+| Signature rejected as expired | Clock skew | Sync NTP |
+
+See [Troubleshooting by Symptom](/docs/guides/troubleshooting) for more.
 
 ### Logging
 
-Enable verbose logging:
+Log incoming requests while developing (not in production — signatures and bodies may contain private data):
 
 ```javascript
 // Node.js example
@@ -221,17 +181,7 @@ app.use((req, res, next) => {
 
 ## Test Accounts
 
-### Public Test Instances
-
-- **activitypub.academy** - Test server
-- **Your own test instance** - Recommended
-
-### Creating Test Accounts
-
-1. Set up local Mastodon
-2. Create test users
-3. Follow/interact with your server
-4. Check delivery and responses
+Prefer your own test instance (local Docker or a small VPS) so you can read its logs. ActivityPub Academy is useful for quick checks but runs an old Mastodon (4.1.18).
 
 ## See Also
 
