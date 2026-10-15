@@ -175,8 +175,7 @@ Calendar events:
   "endTime": "2024-02-15T21:00:00Z",
   "location": {
     "type": "Place",
-    "name": "Community Center",
-    "address": "123 Main St"
+    "name": "Community Center"
   }
 }
 ```

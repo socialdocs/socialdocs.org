@@ -175,8 +175,7 @@ Calendar events:
   "endTime": "2024-02-15T21:00:00Z",
   "location": {
     "type": "Place",
-    "name": "Community Center",
-    "address": "123 Main St"
+    "name": "Community Center"
   }
 }
 ```
@@ -220,8 +219,7 @@ Location information:
   "type": "Place",
   "name": "Central Park",
   "latitude": 40.785091,
-  "longitude": -73.968285,
-  "address": "New York, NY"
+  "longitude": -73.968285
 }
 ```
 

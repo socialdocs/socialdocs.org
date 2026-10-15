@@ -42,65 +42,39 @@ Building an ActivityPub implementation requires thorough testing to ensure compa
   <text x="15" y="192" fill="currentColor" fontSize="9" opacity="0.8">Linting, types</text>
 </svg>
 
-## Test Suites
+## Testing Tools
 
-### ActivityPub Test Suite (activitypub-testsuite)
+There is no official, maintained W3C conformance test suite for ActivityPub. In practice, implementers test against real servers using these tools:
 
-The official W3C-endorsed test suite for validating ActivityPub compliance:
+### Fedify CLI
 
-```bash
-# Clone the test suite
-git clone https://github.com/w3c/activitypub
-
-# Run against your server
-npm install
-npm test -- --server https://your-server.example
-```
-
-**Tests include:**
-- Actor endpoint validation
-- Inbox/Outbox delivery
-- Activity type handling
-- HTTP Signatures verification
-- Content negotiation
-
-### ap-test
-
-A lightweight testing tool for quick validation:
+The [Fedify CLI](https://fedify.dev/cli) works against any ActivityPub server, not just Fedify-based ones:
 
 ```bash
 # Install
-npm install -g ap-test
+npm install -g @fedify/cli
 
-# Test an actor
-ap-test actor https://your-server.example/users/alice
+# Fetch an actor or object as a remote server would (signed if needed)
+fedify lookup @alice@your-server.example
 
-# Test WebFinger
-ap-test webfinger alice@your-server.example
+# Check WebFinger and NodeInfo
+fedify webfinger alice@your-server.example
+fedify nodeinfo your-server.example
 
-# Test inbox delivery
-ap-test inbox https://your-server.example/users/alice/inbox
+# Spin up an ephemeral inbox that logs everything delivered to it
+fedify inbox
+
+# Expose a local dev server over a public HTTPS URL
+fedify tunnel 3000
 ```
 
-### Fediverse Test Suite
+### browser.pub
 
-Community-maintained comprehensive tests:
+[browser.pub](https://browser.pub/) lets you browse any actor, object or collection as a federated server sees it — useful for checking how your JSON renders to others.
 
-```javascript
-const FediTest = require('fediverse-test-suite');
+### ActivityPub Academy
 
-const tester = new FediTest({
-  server: 'https://your-server.example',
-  testUser: 'testbot'
-});
-
-// Run all tests
-const results = await tester.runAll();
-
-// Run specific category
-const actorResults = await tester.runCategory('actors');
-const deliveryResults = await tester.runCategory('delivery');
-```
+[ActivityPub Academy](https://activitypub.academy/) gives you a temporary account on a Mastodon instance that shows the ActivityPub traffic it sends and receives. Note that it runs an older Mastodon version.
 
 ## Unit Testing
 

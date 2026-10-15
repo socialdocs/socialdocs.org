@@ -53,30 +53,22 @@ Keyword: "uri"
 
 Advanced metrics collection.
 
-**Mastodon metrics:**
+**Mastodon metrics:** Mastodon has a built-in Prometheus exporter, enabled with `MASTODON_PROMETHEUS_EXPORTER_ENABLED=true` (default port 9394). See the [Mastodon configuration docs](https://docs.joinmastodon.org/admin/config/) for the full set of `MASTODON_PROMETHEUS_EXPORTER_*` variables.
+
 ```yaml
 # prometheus.yml
 scrape_configs:
   - job_name: 'mastodon'
     static_configs:
-      - targets: ['localhost:9090']
+      - targets: ['localhost:9394']
 ```
-
-**Key metrics:**
-- Active users
-- Queue depth
-- Response times
-- Error rates
 
 ### Health Checks
 
 **Endpoint monitoring:**
 ```bash
-# Check instance health
+# Check instance health and public stats
 curl -s https://instance.example/api/v1/instance | jq '.stats'
-
-# Check Sidekiq (Mastodon)
-curl -s https://instance.example/api/v1/instance | jq '.stats.status'
 ```
 
 ## Federation Monitoring
@@ -90,10 +82,9 @@ Check federation health:
 curl -X POST https://your-instance.example/api/v1/statuses \
   -H "Authorization: Bearer $TOKEN" \
   -d "status=Federation test $(date)"
-
-# Monitor delivery queue (Mastodon)
-RAILS_ENV=production bundle exec rails mastodon:stats
 ```
+
+For Mastodon's delivery queues, use the Sidekiq web UI at `/sidekiq` (admin only) or the Sidekiq API below.
 
 ### Blocked Instances
 
@@ -116,13 +107,6 @@ stats = Sidekiq::Stats.new
 puts "Processed: #{stats.processed}"
 puts "Failed: #{stats.failed}"
 puts "Queued: #{stats.enqueued}"
-```
-
-### Oban (Elixir platforms)
-
-```elixir
-# Pleroma/Akkoma queue status
-Oban.stats()
 ```
 
 ## Log Analysis

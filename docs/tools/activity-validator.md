@@ -8,29 +8,12 @@ description: Validate your ActivityPub activities against the spec
 
 Use this tool to validate your ActivityStreams activities and objects against the specification.
 
-## Online Validators
+## Online Tools
 
-### ActivityPub.rocks Validator
+There is no maintained online ActivityPub validator. The closest practical options:
 
-The most comprehensive online validator:
-
-**URL**: [https://activitypub.rocks/tools/](https://activitypub.rocks/)
-
-Features:
-- Validates ActivityStreams JSON
-- Checks required properties
-- Verifies JSON-LD context
-- Tests HTTP Signatures
-
-### Go-Fed Validator
-
-Testing tool from the go-fed project:
-
-**URL**: [https://go-fed.org/](https://go-fed.org/)
-
-Features:
-- Comprehensive spec compliance
-- Detailed error messages
+- [browser.pub](https://browser.pub/) — fetch and inspect any actor, object or collection the way a federated server sees it
+- [Fedify CLI](https://fedify.dev/cli) — `fedify lookup` fetches and parses objects from any server, surfacing malformed JSON-LD
 
 ## Local Validation
 
