@@ -6,7 +6,11 @@ description: Implementing federation with PeerTube, the video platform
 
 # PeerTube Compatibility
 
-PeerTube is a decentralized video hosting platform that uses ActivityPub for federation. It has unique requirements for video content, channels, and WebTorrent integration. This guide covers federating with PeerTube instances.
+:::info Verified against
+PeerTube 8.x (8.3.1), checked 2026-10-15 against PeerTube's official [ActivityPub documentation](https://docs.joinpeertube.org/api/activitypub), which includes the TypeScript models and example payloads. Treat that page as the source of truth.
+:::
+
+PeerTube is a decentralized video hosting platform that uses ActivityPub for federation. It has its own requirements for video objects, channels, and HLS streaming. This guide covers federating with PeerTube instances.
 
 ## PeerTube's Federation Model
 
@@ -26,7 +30,7 @@ PeerTube is a decentralized video hosting platform that uses ActivityPub for fed
 │                                                            │
 │  Special Features:                                         │
 │  - Multiple video resolutions                              │
-│  - WebTorrent / HLS streaming                              │
+│  - Web Videos (MP4 files) and HLS streaming               │
 │  - Live streaming support                                  │
 │                                                            │
 └────────────────────────────────────────────────────────────┘
@@ -119,7 +123,8 @@ PeerTube is a decentralized video hosting platform that uses ActivityPub for fed
       "subtitleLanguage": "pt:subtitleLanguage",
       "sensitive": "as:sensitive",
       "downloadEnabled": "pt:downloadEnabled",
-      "commentsEnabled": "pt:commentsEnabled",
+      "commentsPolicy": "pt:commentsPolicy",
+      "canReply": "pt:canReply",
       "isLiveBroadcast": "pt:isLiveBroadcast",
       "liveSaveReplay": "pt:liveSaveReplay",
       "permanentLive": "pt:permanentLive",
@@ -130,7 +135,7 @@ PeerTube is a decentralized video hosting platform that uses ActivityPub for fed
   "id": "https://peertube.example/videos/watch/abc123",
   "name": "Getting Started with ActivityPub",
   "duration": "PT15M30S",
-  "uuid": "abc123-def456-ghi789",
+  "uuid": "9c2e5a1e-4b0f-4c7a-9f1e-2d3b4a5c6d7e",
   "published": "2024-01-15T10:00:00Z",
   "updated": "2024-01-15T12:00:00Z",
   "attributedTo": [
@@ -160,7 +165,8 @@ PeerTube is a decentralized video hosting platform that uses ActivityPub for fed
     "name": "Attribution"
   },
   "sensitive": false,
-  "commentsEnabled": true,
+  "commentsPolicy": 1,
+  "canReply": null,
   "downloadEnabled": true,
   "isLiveBroadcast": false,
   "views": 1234,
@@ -177,7 +183,7 @@ PeerTube is a decentralized video hosting platform that uses ActivityPub for fed
     {
       "type": "Link",
       "mediaType": "video/mp4",
-      "href": "https://peertube.example/static/webseed/abc123-720.mp4",
+      "href": "https://peertube.example/static/web-videos/abc123-720.mp4",
       "height": 720,
       "size": 123456789,
       "fps": 30
@@ -185,7 +191,7 @@ PeerTube is a decentralized video hosting platform that uses ActivityPub for fed
     {
       "type": "Link",
       "mediaType": "video/mp4",
-      "href": "https://peertube.example/static/webseed/abc123-480.mp4",
+      "href": "https://peertube.example/static/web-videos/abc123-480.mp4",
       "height": 480,
       "size": 67890123,
       "fps": 30
@@ -213,26 +219,43 @@ PeerTube is a decentralized video hosting platform that uses ActivityPub for fed
   ],
   "preview": [
     {
-      "type": "Video",
-      "url": "https://peertube.example/static/previews/abc123.mp4",
-      "mediaType": "video/mp4"
+      "type": "Image",
+      "rel": ["storyboard"],
+      "url": [
+        {
+          "mediaType": "image/jpeg",
+          "href": "https://peertube.example/lazy-static/storyboards/abc123.jpg",
+          "width": 1920,
+          "height": 1080,
+          "tileWidth": 192,
+          "tileHeight": 108,
+          "tileDuration": "PT63S"
+        }
+      ]
     }
   ],
   "tag": [
     {
       "type": "Hashtag",
-      "name": "#activitypub"
+      "name": "activitypub"
     },
     {
       "type": "Hashtag",
-      "name": "#tutorial"
+      "name": "tutorial"
     }
   ],
   "subtitleLanguage": [
     {
       "identifier": "en",
       "name": "English",
-      "url": "https://peertube.example/static/captions/abc123-en.vtt"
+      "automaticallyGenerated": false,
+      "url": [
+        {
+          "type": "Link",
+          "mediaType": "text/vtt",
+          "href": "https://peertube.example/lazy-static/video-captions/abc123-en.vtt"
+        }
+      ]
     }
   ]
 }
@@ -248,8 +271,16 @@ PeerTube is a decentralized video hosting platform that uses ActivityPub for fed
 | `licence` | Content license |
 | `views` | View count |
 | `isLiveBroadcast` | Whether this is a live stream |
-| `commentsEnabled` | Whether comments are allowed |
+| `commentsPolicy` | `1` = enabled, `2` = disabled, `3` = requires approval ([enum](https://github.com/Chocobozzz/PeerTube/blob/develop/packages/models/src/videos/comment/video-comment-policy.enum.ts)) |
+| `canReply` | Who may reply without approval (`as:Public`, or `null` when comments need approval or are off); approved replies get an `ApproveReply` |
 | `downloadEnabled` | Whether downloads are allowed |
+| `preview` | A **storyboard** sprite sheet (`rel: ["storyboard"]`), not a preview video |
+| `tag` | `Hashtag` objects; names are sent **without** the leading `#` |
+| `subtitleLanguage` | Captions; each `url` is an **array** of Links (WebVTT, plus an HLS playlist) |
+
+:::note Older fields
+PeerTube 6 renamed "WebTorrent" files to **Web Videos** (served under `/static/web-videos/`), and `commentsEnabled` was replaced by `commentsPolicy` + `canReply`. Older payloads may still use the legacy names, so accept both when parsing but emit the current ones.
+:::
 
 ## Video Resolutions
 
@@ -261,7 +292,7 @@ PeerTube provides multiple video quality options:
     {
       "type": "Link",
       "mediaType": "video/mp4",
-      "href": "https://peertube.example/videos/abc123-1080.mp4",
+      "href": "https://peertube.example/static/web-videos/abc123-1080.mp4",
       "height": 1080,
       "size": 500000000,
       "fps": 60
@@ -269,7 +300,7 @@ PeerTube provides multiple video quality options:
     {
       "type": "Link",
       "mediaType": "video/mp4",
-      "href": "https://peertube.example/videos/abc123-720.mp4",
+      "href": "https://peertube.example/static/web-videos/abc123-720.mp4",
       "height": 720,
       "size": 250000000,
       "fps": 30
@@ -277,7 +308,7 @@ PeerTube provides multiple video quality options:
     {
       "type": "Link",
       "mediaType": "video/mp4",
-      "href": "https://peertube.example/videos/abc123-480.mp4",
+      "href": "https://peertube.example/static/web-videos/abc123-480.mp4",
       "height": 480,
       "size": 100000000,
       "fps": 30
@@ -285,7 +316,7 @@ PeerTube provides multiple video quality options:
     {
       "type": "Link",
       "mediaType": "video/mp4",
-      "href": "https://peertube.example/videos/abc123-360.mp4",
+      "href": "https://peertube.example/static/web-videos/abc123-360.mp4",
       "height": 360,
       "size": 50000000,
       "fps": 30
@@ -298,11 +329,13 @@ PeerTube provides multiple video quality options:
 
 ### Comment Structure
 
+A comment from a remote user keeps its **origin** id (here, Bob's server), even though it replies to a PeerTube video:
+
 ```json
 {
   "@context": "https://www.w3.org/ns/activitystreams",
   "type": "Note",
-  "id": "https://peertube.example/videos/watch/abc123/comments/456",
+  "id": "https://mastodon.example/users/bob/statuses/456",
   "attributedTo": "https://mastodon.example/users/bob",
   "inReplyTo": "https://peertube.example/videos/watch/abc123",
   "content": "<p>Great tutorial! Very helpful for getting started.</p>",
@@ -328,7 +361,7 @@ PeerTube provides multiple video quality options:
 {
   "type": "Note",
   "id": "https://mastodon.example/notes/789",
-  "inReplyTo": "https://peertube.example/videos/watch/abc123/comments/456",
+  "inReplyTo": "https://mastodon.example/users/bob/statuses/456",
   "content": "<p>I agree! The examples were very clear.</p>"
 }
 ```
@@ -363,7 +396,12 @@ async function processVideo(activity) {
   // Parse duration
   const duration = parseDuration(video.duration); // PT15M30S -> 930 seconds
 
-  await db.videos.insert({
+  // Comments: current servers send commentsPolicy (1 enabled, 2 disabled,
+  // 3 requires approval); older ones send commentsEnabled
+  const commentsPolicy = video.commentsPolicy
+    ?? (video.commentsEnabled === false ? 2 : 1);
+
+  const record = {
     id: video.id,
     title: video.name,
     description: video.content,
@@ -380,9 +418,24 @@ async function processVideo(activity) {
     language: video.language?.identifier,
     isLive: video.isLiveBroadcast || false,
     sensitive: video.sensitive || false,
-    commentsEnabled: video.commentsEnabled !== false,
+    commentsPolicy,
     captions: extractCaptions(video.subtitleLanguage)
-  });
+  };
+  await db.videos.insert(record);
+  return record;
+}
+
+function extractCaptions(subtitleLanguage = []) {
+  return subtitleLanguage.map(c => {
+    // url is an array of Links (VTT + HLS); older servers sent a string
+    const links = Array.isArray(c.url) ? c.url : [{ mediaType: 'text/vtt', href: c.url }];
+    const vtt = links.find(l => l.mediaType === 'text/vtt');
+    return { language: c.identifier, name: c.name, url: vtt?.href };
+  }).filter(c => c.url);
+}
+
+function extractTags(tags = []) {
+  return tags.filter(t => t.type === 'Hashtag').map(t => t.name.replace(/^#/, ''));
 }
 
 function extractAuthor(attributedTo) {
@@ -403,6 +456,7 @@ function extractChannel(attributedTo) {
 
 function parseDuration(iso8601) {
   // Parse PT15M30S format
+  if (typeof iso8601 !== 'string') return 0;
   const match = iso8601.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
   if (!match) return 0;
 
@@ -416,7 +470,21 @@ function parseDuration(iso8601) {
 
 ### Rendering Video Player
 
+Everything here comes from a remote server: escape every value you put into HTML (including attributes) and only allow `http(s)` URLs. `application/x-mpegURL` plays natively only in Safari; other browsers need a library such as [hls.js](https://github.com/video-dev/hls.js).
+
 ```javascript
+// escapeHtml must also escape quotes (" and ') for use in attributes
+const attr = (v) => escapeHtml(String(v ?? ''));
+
+function safeHttpUrl(value) {
+  try {
+    const u = new URL(value);
+    return u.protocol === 'https:' || u.protocol === 'http:' ? u.href : '';
+  } catch {
+    return '';
+  }
+}
+
 function renderVideoPlayer(video) {
   // Choose appropriate quality
   const defaultQuality = video.videoUrls.find(v => v.height === 720)
@@ -426,25 +494,25 @@ function renderVideoPlayer(video) {
     <div class="video-player">
       <video
         controls
-        poster="${video.thumbnail}"
+        poster="${attr(safeHttpUrl(video.thumbnail))}"
         preload="metadata"
       >
         ${video.hlsUrl ? `
-          <source src="${video.hlsUrl}" type="application/x-mpegURL">
+          <source src="${attr(safeHttpUrl(video.hlsUrl))}" type="application/x-mpegURL">
         ` : ''}
         ${video.videoUrls.map(v => `
           <source
-            src="${v.url}"
-            type="${v.mediaType}"
-            label="${v.height}p"
+            src="${attr(safeHttpUrl(v.url))}"
+            type="${attr(v.mediaType)}"
+            label="${attr(v.height)}p"
           >
         `).join('')}
         ${video.captions.map(c => `
           <track
             kind="subtitles"
-            src="${c.url}"
-            srclang="${c.language}"
-            label="${c.name}"
+            src="${attr(safeHttpUrl(c.url))}"
+            srclang="${attr(c.language)}"
+            label="${attr(c.name)}"
           >
         `).join('')}
       </video>
@@ -483,7 +551,7 @@ function renderQualitySelector(videoUrls) {
   return `
     <select class="quality-selector" onchange="changeQuality(this.value)">
       ${qualities.map(q => `
-        <option value="${q.url}">${q.height}p${q.fps > 30 ? ` ${q.fps}fps` : ''}</option>
+        <option value="${attr(safeHttpUrl(q.url))}">${attr(q.height)}p${q.fps > 30 ? ` ${q.fps}fps` : ''}</option>
       `).join('')}
     </select>
   `;
@@ -516,20 +584,39 @@ async function followChannel(follower, channelUrl) {
 
 ### Receive Channel Updates
 
+A PeerTube video is **created by the account and announced by the channel**. The `Announce` carries the video as a **URI string**, so you must dereference it (see [Announce](https://docs.joinpeertube.org/api/activitypub#announce)):
+
+```json
+{
+  "type": "Announce",
+  "id": "https://peertube.example/videos/watch/abc123/announces/1",
+  "actor": "https://peertube.example/video-channels/tech_reviews",
+  "object": "https://peertube.example/videos/watch/abc123",
+  "to": [
+    "https://www.w3.org/ns/activitystreams#Public",
+    "https://peertube.example/video-channels/tech_reviews/followers"
+  ],
+  "cc": []
+}
+```
+
 ```javascript
 async function processAnnounce(activity) {
-  const actor = await fetchActor(activity.actor);
+  const objectId = typeof activity.object === 'string'
+    ? activity.object
+    : activity.object?.id;
+  if (!objectId) return;
 
-  // PeerTube channels announce new videos
-  if (actor.type === 'Group') {
-    const innerObject = activity.object;
-
-    if (typeof innerObject === 'object' && innerObject.type === 'Video') {
-      await processVideo({ object: innerObject });
-    }
+  // Fetch the object from its own origin (with an SSRF-safe fetcher)
+  // rather than trusting an embedded copy.
+  const object = await fetchObject(objectId);
+  if (object?.type === 'Video') {
+    await processVideo({ object });
   }
 }
 ```
+
+PeerTube also sends `View` activities to count views (with `expires` while someone is watching a live video), `Flag` for reports, `CacheFile` for redundancy, and `ApproveReply`/`RejectReply` for moderated comments. See the [ActivityPub documentation](https://docs.joinpeertube.org/api/activitypub) for their shapes.
 
 ## Live Streaming
 
@@ -543,25 +630,26 @@ async function processAnnounce(activity) {
   "isLiveBroadcast": true,
   "liveSaveReplay": true,
   "permanentLive": false,
-  "state": {
-    "id": 1,
-    "label": "Published"
-  },
+  "state": 1,
   "url": [
     {
       "type": "Link",
       "mediaType": "application/x-mpegURL",
-      "href": "https://peertube.example/live/stream/live123/master.m3u8"
+      "href": "https://peertube.example/static/streaming-playlists/hls/live123/master.m3u8"
     }
   ]
 }
 ```
 
-### Live Stream States
+`state` is a number. The HLS path above is illustrative; always use the `href` the server sends.
+
+### Video States
+
+The common values are below; PeerTube defines more (see `VideoStateType` in the [models](https://github.com/Chocobozzz/PeerTube/tree/develop/packages/models/src/videos)).
 
 | State ID | Label | Description |
 |----------|-------|-------------|
-| 1 | Published | Stream is live |
+| 1 | Published | Published (or, for a live, currently live) |
 | 2 | To Transcode | Processing |
 | 3 | To Import | Being imported |
 | 4 | Waiting For Live | Waiting to start |
@@ -582,30 +670,44 @@ async function processAnnounce(activity) {
 
 ### Video Dislikes
 
+PeerTube accepts `Dislike` (and other PeerTube instances send it); Mastodon never sends one.
+
 ```json
 {
   "@context": "https://www.w3.org/ns/activitystreams",
   "type": "Dislike",
-  "actor": "https://mastodon.example/users/bob",
+  "actor": "https://peertube-two.example/accounts/bob",
   "object": "https://peertube.example/videos/watch/abc123"
 }
 ```
 
 ## Playlists
 
+A PeerTube `Playlist` extends `OrderedCollectionPage`. Its items are the ids of **`PlaylistElement`** objects, not bare video URLs; each element points at the video and carries its `position` and optional start/stop timestamps (see [Playlist](https://docs.joinpeertube.org/api/activitypub#playlist) and [PlaylistElement](https://docs.joinpeertube.org/api/activitypub#playlistelement)):
+
 ```json
 {
-  "@context": "https://www.w3.org/ns/activitystreams",
   "type": "Playlist",
   "id": "https://peertube.example/video-playlists/fav123",
   "name": "My Favorite Videos",
-  "attributedTo": "https://peertube.example/accounts/alice",
+  "uuid": "4f0c2b1a-7d3e-4b5a-9c8d-1e2f3a4b5c6d",
+  "attributedTo": ["https://peertube.example/video-channels/tech_reviews"],
+  "totalItems": 2,
+  "videoChannelPosition": 1,
   "orderedItems": [
-    "https://peertube.example/videos/watch/video1",
-    "https://peertube.example/videos/watch/video2",
-    "https://peertube.example/videos/watch/video3"
-  ],
-  "totalItems": 3
+    "https://peertube.example/video-playlists/fav123/videos/1",
+    "https://peertube.example/video-playlists/fav123/videos/2"
+  ]
+}
+```
+
+```json
+{
+  "type": "PlaylistElement",
+  "id": "https://peertube.example/video-playlists/fav123/videos/1",
+  "url": "https://peertube.example/videos/watch/video1",
+  "position": 1,
+  "startTimestamp": 30
 }
 ```
 
@@ -619,8 +721,8 @@ When PeerTube videos appear in Mastodon:
 function renderPeerTubeEmbed(video) {
   return `
     <div class="peertube-embed">
-      <a href="${video.url}" target="_blank" rel="noopener">
-        <img src="${video.thumbnail}" alt="${video.title}">
+      <a href="${attr(safeHttpUrl(video.url))}" target="_blank" rel="noopener">
+        <img src="${attr(safeHttpUrl(video.thumbnail))}" alt="${attr(video.title)}">
         <div class="play-overlay">▶</div>
       </a>
       <div class="video-meta">
@@ -678,7 +780,7 @@ describe('PeerTube Compatibility', () => {
       url: [{
         type: 'Link',
         mediaType: 'video/mp4',
-        href: 'https://peertube.example/videos/test.mp4',
+        href: 'https://peertube.example/static/web-videos/test-720.mp4',
         height: 720
       }]
     };
@@ -692,10 +794,13 @@ describe('PeerTube Compatibility', () => {
   it('should handle multiple resolutions', async () => {
     const video = {
       type: 'Video',
+      id: 'https://peertube.example/videos/watch/multi',
+      name: 'Multi-resolution',
+      duration: 'PT1M',
       url: [
-        { type: 'Link', mediaType: 'video/mp4', height: 1080 },
-        { type: 'Link', mediaType: 'video/mp4', height: 720 },
-        { type: 'Link', mediaType: 'video/mp4', height: 480 }
+        { type: 'Link', mediaType: 'video/mp4', href: 'https://peertube.example/static/web-videos/m-1080.mp4', height: 1080 },
+        { type: 'Link', mediaType: 'video/mp4', href: 'https://peertube.example/static/web-videos/m-720.mp4', height: 720 },
+        { type: 'Link', mediaType: 'video/mp4', href: 'https://peertube.example/static/web-videos/m-480.mp4', height: 480 }
       ]
     };
 
