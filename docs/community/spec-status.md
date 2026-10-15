@@ -70,6 +70,7 @@ Newest first. Each entry is dated by when the change happened, with its source.
 | 2026-10-02 | [#637](https://github.com/w3c/activitypub/pull/637) (non-HTTP ids) discussed; no decision. Draft-by-TPAC floated. |
 | 2026-09 | Google's [server-to-service content delivery explainer](https://github.com/explainers-by-googlers/activitypub-service-content-delivery) published. |
 | 2026-08-26 | [FEP-7628 (Move Actor)](https://codeberg.org/fediverse/fep/src/branch/main/fep/7628/fep-7628.md) finalized. |
+| 2026-06-02 | [WebSub republished as a W3C Recommendation](https://www.w3.org/TR/2026/REC-websub-20260602/) — the first of the WG's maintained specs to get an updated version. |
 | 2026-05-28 | Groups task force adopts initial report draft. |
 | 2026-05-19 | C2S Basic Profile initial draft published. |
 | 2026-01-15 | Social Web Working Group chartered. |
