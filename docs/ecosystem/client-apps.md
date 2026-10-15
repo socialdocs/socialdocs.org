@@ -2,11 +2,13 @@
 sidebar_position: 18
 title: Client Apps
 description: Mobile and desktop apps for the Fediverse
+last_verified: 2026-10-15
+verified_against: "GitHub/Codeberg/Gitea repo APIs and LICENSE files, project READMEs (2026-10-15); app-store listings not checked"
 ---
 
 # Client Apps
 
-Third-party apps for accessing Fediverse platforms.
+Third-party apps for accessing Fediverse platforms. Licenses and status are from each project's repository (October 2026); closed-source apps are listed without a repository check.
 
 ## Mobile Apps
 
@@ -15,20 +17,20 @@ Third-party apps for accessing Fediverse platforms.
 | App | Platforms | Features | License |
 |-----|-----------|----------|---------|
 | [Ivory](https://tapbots.com/ivory/) | Mastodon | Polished, paid | Proprietary |
-| [Ice Cubes](https://github.com/Dimillian/IceCubesApp) | Mastodon | Open source, free | MIT |
+| [Ice Cubes](https://github.com/Dimillian/IceCubesApp) | Mastodon | Open source, free | AGPL-3.0 |
 | [Mona](https://apps.apple.com/app/mona-for-mastodon/id1659154653) | Mastodon | Feature-rich | Proprietary |
 | [Toot!](https://apps.apple.com/app/toot/id1229021451) | Mastodon | Playful design | Proprietary |
-| [Tusker](https://apps.apple.com/app/tusker/id1498334597) | Mastodon | Native iOS | Open Source |
+| [Tusker](https://apps.apple.com/app/tusker/id1498334597) | Mastodon | Native iOS ([source](https://git.shadowfacts.net/shadowfacts/Tusker)) | Open source |
 
 ### Android
 
 | App | Platforms | Features | License |
 |-----|-----------|----------|---------|
-| [Tusky](https://tusky.app/) | Mastodon | Popular, mature | GPL-3.0 |
-| [Megalodon](https://github.com/sk22/megalodon) | Mastodon | Tusky fork, extras | GPL-3.0 |
-| [Fedilab](https://fedilab.app/) | Multi | Many platforms | GPL-3.0 |
-| [Moshidon](https://github.com/LucasGGamerM/moshidon) | Mastodon | Material You | GPL-3.0 |
-| [Jerboa](https://github.com/dessalines/jerboa) | Lemmy | Official client | AGPL-3.0 |
+| [Tusky](https://tusky.app/) | Mastodon | Mature ([source](https://codeberg.org/tusky/Tusky), moved to Codeberg) | GPL-3.0 |
+| [Fedilab](https://fedilab.app/) | Multi | Many platforms ([source](https://codeberg.org/tom79/Fedilab)) | GPL-3.0 |
+| [Moshidon](https://github.com/LucasGGamerM/moshidon) | Mastodon | Fork of Megalodon (itself a fork of the official app, now archived); last release June 2025 | GPL-3.0 |
+| [Jerboa](https://github.com/LemmyNet/jerboa) | Lemmy | By the Lemmy project | AGPL-3.0 |
+| [Pixelfed](https://github.com/pixelfed/pixelfed-rn) | Pixelfed | Official app (iOS and Android) | AGPL-3.0 |
 
 ### Cross-Platform
 
@@ -36,7 +38,7 @@ Third-party apps for accessing Fediverse platforms.
 |-----|-----------|----------|---------|
 | [Elk](https://elk.zone/) | Mastodon | Web/PWA | MIT |
 | [Phanpy](https://phanpy.social/) | Mastodon | Minimalist web | MIT |
-| [Voyager](https://vger.app/) | Lemmy | iOS/Android | AGPL-3.0 |
+| [Voyager](https://vger.app/) | Lemmy | iOS/Android/web | AGPL-3.0 |
 
 ## Desktop Apps
 
@@ -44,7 +46,7 @@ Third-party apps for accessing Fediverse platforms.
 
 | App | OS | Platform | License |
 |-----|-------|----------|---------|
-| [Whalebird](https://whalebird.social/) | Win/Mac/Linux | Mastodon | MIT |
+| [Whalebird](https://whalebird.social/) | Win/Mac/Linux | Mastodon | GPL-3.0 |
 | [Sengi](https://github.com/NicolasConstant/sengi) | Win/Mac/Linux | Mastodon | AGPL-3.0 |
 
 ### Web Clients
@@ -53,7 +55,7 @@ Third-party apps for accessing Fediverse platforms.
 |--------|----------|-------------|
 | [Elk](https://elk.zone/) | Mastodon | Modern web client |
 | [Phanpy](https://phanpy.social/) | Mastodon | Minimalist |
-| [Photon](https://phtn.app/) | Lemmy | Modern UI |
+| [Photon](https://phtn.app/) | Lemmy | Modern UI (AGPL-3.0) |
 
 ## Platform-Specific
 
@@ -66,22 +68,21 @@ Most apps use the Mastodon API:
 
 ### Lemmy
 
-- **Voyager** (iOS/Android) - Popular choice
-- **Jerboa** (Android) - Official client
-- **Sync for Lemmy** (Android) - From Reddit Sync dev
-- **Photon** (Web) - Modern interface
+- **Voyager** (iOS/Android/web)
+- **Jerboa** (Android) - by the Lemmy project
+- **Photon** (web)
 
 ### Pixelfed
 
 - Official web interface
-- Some Mastodon clients work partially
-- Native apps in development
+- Official [Pixelfed app](https://github.com/pixelfed/pixelfed-rn) for iOS and Android
+- Pixelfed implements the Mastodon client API, so many Mastodon clients work
 
 ### PeerTube
 
 - Official web interface
-- **NewPipe** (Android) - Supports PeerTube
-- **Thorium** (Android) - Dedicated client
+- **[NewPipe](https://github.com/TeamNewPipe/NewPipe)** (Android) - supports PeerTube alongside other services
+- The dedicated Thorium client ([sschueller/peertube-android](https://github.com/sschueller/peertube-android)) is archived
 
 ## Developing a Client
 
@@ -123,9 +124,7 @@ Content-Type: application/activity+json
 }
 ```
 
-Currently supported by:
-- Pleroma/Akkoma
-- Some experimental servers
+Mastodon, Misskey and GoToSocial do not implement C2S. [Pleroma](/docs/ecosystem/pleroma#client-to-server-c2s) has partial support; its fork Akkoma has disabled the C2S write endpoints. See [Client-to-Server](/docs/specs/activitypub/client-to-server) for the spec and the SocialCG's work on a C2S profile.
 
 ## Choosing a Client
 

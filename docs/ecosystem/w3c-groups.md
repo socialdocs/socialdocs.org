@@ -2,6 +2,8 @@
 sidebar_position: 11
 title: W3C Social Web Groups
 description: History and current status of W3C groups standardizing the Social Web
+last_verified: 2026-10-15
+verified_against: "w3.org group pages, W3C specifications API (version histories), WG charter, w3c/socialwg meeting notes to 2026-10-09"
 ---
 
 # W3C Social Web Groups
@@ -76,7 +78,7 @@ Produced the core Social Web standards in use today.
 4. **[Webmention](https://www.w3.org/TR/webmention/)** (January 2017) — Notification mechanism
 5. **[Linked Data Notifications](https://www.w3.org/TR/ldn/)** (May 2017) — Notification delivery
 6. **[Micropub](https://www.w3.org/TR/micropub/)** (May 2017) — Content publication protocol
-7. **[WebSub](https://www.w3.org/TR/websub/)** — Push notifications (formerly PubSubHubbub)
+7. **[WebSub](https://www.w3.org/TR/websub/)** (January 2018) — Push notifications (formerly PubSubHubbub)
 
 ---
 
@@ -115,7 +117,7 @@ ActivityPub API, Data Portability (LOLA), HTML Discovery, E2EE, Forums, Geosocia
 
 ## Social Web Working Group (2026-2028)
 
-**Chair:** Darius Kazemi (W3C Invited Expert)
+**Chair:** Darius Kazemi ([group page](https://www.w3.org/groups/wg/social/))
 
 Re-chartered to maintain existing specifications and potentially adopt new deliverables from incubation.
 
@@ -127,7 +129,7 @@ Re-chartered to maintain existing specifications and potentially adopt new deliv
 
 ### Specifications Under Maintenance
 
-The charter targeted updated Recommendations for Q3 2026; that target slipped (see Status below):
+The charter targeted updated Recommendations for Q3 2026. So far only **WebSub** has been republished (as a [Recommendation dated 2 June 2026](https://www.w3.org/TR/2026/REC-websub-20260602/)); the others are unchanged since 2017–2018 (see Status below):
 
 1. ActivityPub
 2. Activity Streams (Core)
@@ -139,11 +141,11 @@ The charter targeted updated Recommendations for Q3 2026; that target slipped (s
 
 ### Tentative Deliverables
 
-**LOLA (Live Online Account Portability)** — May be adopted as Recommendation-track specification depending on incubation progress and implementer interest. As of mid-2026 it remains a [CG draft](https://swicg.github.io/activitypub-data-portability/lola) under development in the WG, with the Data Transfer Initiative co-authoring and building an implementer testbed.
+**LOLA (Live Online Account Portability)** — May be adopted as a Recommendation-track specification depending on incubation progress and implementer interest. At the [2 October 2026 meeting](https://github.com/w3c/socialwg/blob/main/meetings/2026/2026-10-02-CG-WG-joint.md) the [CG draft](https://swicg.github.io/activitypub-data-portability/lola) was described as "ready to finalize", with the task force paused because implementers aren't implementing it yet.
 
 ### Status (October 2026)
 
-Maintenance work is underway: accepted errata are being folded into the [ActivityPub Editor's Draft](https://w3c.github.io/activitypub/) (e.g. removal of the C2S `null` partial-update language, February 2026; shared-inbox delivery wording clarified, October 2026). The published 2018 ActivityPub and 2017 Activity Streams Recommendations are unchanged so far — the charter's Q3 2026 target for updated, backwards-compatible Recommendations has slipped, and the WG is aiming to publish a draft around [TPAC 2026](https://www.w3.org/events/tpac/2026/). Follow progress in the [WG meeting notes](https://github.com/w3c/socialwg/tree/main/meetings/2026). For a dated summary of live Editor's Draft changes and task-force status, see the [Spec Status Tracker](/docs/community/spec-status).
+Maintenance work is underway: accepted errata are being folded into the [ActivityPub Editor's Draft](https://w3c.github.io/activitypub/) (e.g. removal of the C2S `null` partial-update language, February 2026; shared-inbox delivery wording clarified, October 2026). The published 2018 ActivityPub and 2017 Activity Streams Recommendations are unchanged so far (only WebSub has a 2026 edition) — the charter's Q3 2026 target for updated, backwards-compatible Recommendations has slipped, and the WG is aiming to publish a draft around [TPAC 2026](https://www.w3.org/events/tpac/2026/). Follow progress in the [WG meeting notes](https://github.com/w3c/socialwg/tree/main/meetings/2026). For a dated summary of live Editor's Draft changes and task-force status, see the [Spec Status Tracker](/docs/community/spec-status).
 
 ### Coordination
 
@@ -158,7 +160,7 @@ Social Web CG, DID WG, JSON-LD WG, IETF (OAuth, HTTP Message Signatures), IndieW
 1. Visit the [SWICG W3C page](https://www.w3.org/community/socialcg/)
 2. Sign up (requires free W3C account)
 3. Subscribe to the [mailing list](https://lists.w3.org/Archives/Public/public-swicg/)
-4. Join monthly meetings (first Friday, 1pm ET)
+4. Join the meetings — dates and times are on the [SocialCG calendar](https://www.w3.org/groups/cg/socialcg/calendar/); in 2026 the CG and WG meet jointly, alternating with WG test-suite calls
 5. Participate in [GitHub](https://github.com/swicg)
 
 ### Join SWWG

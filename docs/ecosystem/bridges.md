@@ -2,6 +2,8 @@
 sidebar_position: 19
 title: Bridges
 description: Bridges connecting ActivityPub to other protocols
+last_verified: 2026-10-15
+verified_against: "fed.brid.gy/docs, Soapbox Mostr announcement, GitHub/GitLab repo APIs, FediDB (2026-10-15)"
 ---
 
 # Bridges
@@ -29,7 +31,7 @@ Connects ActivityPub to multiple protocols.
 |----------|-------|
 | Website | [fed.brid.gy](https://fed.brid.gy/) |
 | Repository | [github.com/snarfed/bridgy-fed](https://github.com/snarfed/bridgy-fed) |
-| License | Public Domain |
+| License | CC0-1.0 (public domain) |
 
 Supported protocols:
 - **Bluesky** (AT Protocol)
@@ -44,15 +46,6 @@ Nostr is not supported; the [docs](https://fed.brid.gy/docs) say only that Farca
 3. Only fully public posts are bridged — unlisted, followers-only posts and DMs never are
 
 Handle formats and other interop details: [Big Platforms → Bridgy Fed](/docs/ecosystem/big-platforms#bridgy-fed).
-
-### Matrix-ActivityPub
-
-Bridges Matrix chat to ActivityPub.
-
-| Property | Value |
-|----------|-------|
-| Status | Experimental |
-| Use Case | Chat ↔ Social |
 
 ## Protocol Bridges
 
@@ -71,23 +64,19 @@ The main bridge between Nostr and the Fediverse is Mostr (Bridgy Fed does not su
 
 #### Mostr
 
-Native Nostr-Fediverse bridge by Soapbox.
+Nostr–Fediverse bridge by Soapbox.
 
 | Property | Value |
 |----------|-------|
 | Website | [mostr.pub](https://mostr.pub/) |
-| Documentation | [soapbox.pub/blog/mostr-fediverse-nostr-bridge](https://soapbox.pub/blog/mostr-fediverse-nostr-bridge/) |
-| Status | Active |
+| Repository | [gitlab.com/soapbox-pub/mostr](https://gitlab.com/soapbox-pub/mostr) (active, October 2026) |
+| Documentation | [Soapbox announcement](https://soapbox.pub/blog/mostr-fediverse-nostr-bridge/) |
 
-How it works:
-- Nostr users appear as `npub...@mostr.pub` on the Fediverse
-- Fediverse users can follow Nostr accounts directly
-- Posts sync bidirectionally
-- Uses Nostr relays for message transport
+How to find people, per the [announcement](https://soapbox.pub/blog/mostr-fediverse-nostr-bridge/):
 
 ```
-Nostr user:     npub1abc...@mostr.pub
-Fediverse user: @alice@mastodon.social (follow npub via mostr.pub)
+Fediverse user on Nostr:  alex_at_gleasonator.com@mostr.pub   (NIP-05, via the wss://relay.mostr.pub relay)
+Nostr user on Fediverse:  https://mostr.pub/users/<hex pubkey>  (search for this URL)
 ```
 
 #### Identity Linking (Alternative to Bridging)
@@ -108,9 +97,7 @@ See the [did:nostr spec](https://nostrcg.github.io/did-nostr/) for the DID forma
 
 ### Twitter/X
 
-No official bridge exists. Historical options:
-- BirdsiteLive (discontinued)
-- Self-hosted instances (legal concerns)
+No bridge exists. [BirdsiteLive](https://github.com/NicolasConstant/BirdsiteLive), which mirrored Twitter accounts into the fediverse, has had no commits since March 2023.
 
 ## Building a Bridge
 

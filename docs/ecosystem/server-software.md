@@ -2,24 +2,26 @@
 sidebar_position: 1
 title: Server Software Overview
 description: Fediverse server software comparison and overview
+last_verified: 2026-10-15
+verified_against: "FediDB per-software API, GitHub/Codeberg/GitLab/Framagit/Akkoma forge APIs, Mastodon v4.7.3, GoToSocial v0.22.2 and Misskey source, Pleroma docs (2026-10-15)"
 ---
 
 # Server Software Overview
 
 The Fediverse consists of many different server software implementations, each with different features, focuses, and communities.
 
+Account counts below are from [FediDB](https://fedidb.org/)'s per-software API on 2026-10-15. FediDB only counts servers that publish NodeInfo and allow crawling, so treat them as lower bounds. GoToSocial in particular [asks crawlers not to collect stats by default](https://codeberg.org/superseriousbusiness/gotosocial/src/branch/main/example/config.yaml) (`instance-stats-mode`), so its figure is a large undercount.
+
 ## Major Platforms
 
 ### Microblogging
 
-| Software | Language | Description | Registered Accounts |
-|----------|----------|-------------|---------------------|
-| [Mastodon](/docs/ecosystem/mastodon) | Ruby | Most popular, Twitter-like | ~10M+ |
-| [Pleroma](/docs/ecosystem/pleroma) | Elixir | Lightweight alternative | ~100K+ |
-| [Misskey](/docs/ecosystem/misskey) | TypeScript | Feature-rich, Japanese | ~500K+ |
-| [GoToSocial](/docs/ecosystem/gotosocial) | Go | Privacy-focused, lightweight | ~10K+ |
-
-Account magnitudes are approximate — see [FediDB](https://fedidb.org/) for live numbers.
+| Software | Language | Description | Accounts (FediDB) |
+|----------|----------|-------------|-------------------|
+| [Mastodon](/docs/ecosystem/mastodon) | Ruby | Most widely deployed; Twitter-like | ~8.5M |
+| [Misskey](/docs/ecosystem/misskey) | TypeScript | Feature-rich, reactions, MFM formatting | ~1.26M |
+| [Pleroma](/docs/ecosystem/pleroma) | Elixir | Lightweight; forks include Akkoma | ~54K (Akkoma ~24K) |
+| [GoToSocial](/docs/ecosystem/gotosocial) | Go | Lightweight, safety-focused, small servers | Undercounted (see above) |
 
 ### Link Aggregation
 
@@ -27,7 +29,7 @@ Account magnitudes are approximate — see [FediDB](https://fedidb.org/) for liv
 |----------|----------|-------------|
 | [Lemmy](/docs/ecosystem/lemmy) | Rust | Reddit-like communities |
 | [PieFed](/docs/ecosystem/piefed) | Python | Reddit-like communities |
-| [Mbin](/docs/ecosystem/other-servers#mbin) | PHP | Link aggregation + microblogging (successor to the abandoned Kbin) |
+| [Mbin](/docs/ecosystem/other-servers#mbin) | PHP | Link aggregation + microblogging; a [fork and continuation of /kbin](https://github.com/MbinOrg/mbin), which has had no commits since December 2024 |
 
 ### Media
 
@@ -35,139 +37,99 @@ Account magnitudes are approximate — see [FediDB](https://fedidb.org/) for liv
 |----------|----------|-------------|
 | [Pixelfed](/docs/ecosystem/pixelfed) | PHP | Instagram-like photos |
 | [PeerTube](/docs/ecosystem/peertube) | TypeScript | YouTube-like videos |
-| [Loops](/docs/ecosystem/other-servers#loops) | PHP | TikTok-like short video (beta) |
-| Funkwhale | Python | Music streaming |
-| Owncast | Go | Live streaming |
+| [Loops](/docs/ecosystem/other-servers#loops) | PHP | TikTok-like short video (beta: v1.0.0-beta.14, August 2026) |
+| [Funkwhale](https://dev.funkwhale.audio/funkwhale/funkwhale) | Python | Music and audio (2.0.12, October 2026) |
+| [Owncast](https://github.com/owncast/owncast) | Go | Live streaming (v0.3.0, September 2026) |
 
 ### Publishing
 
 | Software | Language | Description |
 |----------|----------|-------------|
-| [Ghost](/docs/ecosystem/other-servers#ghost) | JavaScript | Major publishing platform, ActivityPub built in since 6.0 |
+| [Ghost](/docs/ecosystem/other-servers#ghost) | JavaScript | Publishing platform; ActivityPub built in since [6.0 (August 2025)](https://github.com/TryGhost/Ghost/releases/tag/v6.0.0) |
 | [WordPress](/docs/ecosystem/other-servers#wordpress-activitypub-plugin) | PHP | Via the Automattic ActivityPub plugin |
-| WriteFreely | Go | Minimal federated blogging |
+| [WriteFreely](https://github.com/writefreely/writefreely) | Go | Minimal federated blogging (v0.17.2, August 2026) |
 
 ### Minimal / Single-User
 
 | Software | Language | Description |
 |----------|----------|-------------|
-| [Fedbox](/docs/ecosystem/fedbox) | JavaScript | Zero to Fediverse in 60 seconds |
-| [microfed](https://github.com/micro-fed/microfed.org) | JavaScript | Modular ActivityPub library |
-| Takahē | Python | Multi-domain, single-user |
-| Ktistec | Crystal | Single-user, lightweight |
+| [Fedbox](/docs/ecosystem/fedbox) | JavaScript | Experimental CLI-first server by the site owner (see the security note on its page) |
+| [microfed](https://github.com/micro-fed/microfed.org) | JavaScript | Experimental modular ActivityPub library by the site owner |
+| [Ktistec](https://github.com/toddsundsted/ktistec) | Crystal | Single-user, lightweight (v3.13.0, September 2026) |
+| [Takahē](https://github.com/jointakahe/takahe) | Python | Multi-domain server; **dormant** — no commits since August 2024 |
 
 ### Other
 
 | Software | Language | Description |
 |----------|----------|-------------|
-| Friendica | PHP | Facebook-like social network |
-| Hubzilla | PHP | Decentralized publishing |
-| BookWyrm | Python | Book tracking (Goodreads-like) |
-| WriteFreely | Go | Blogging platform |
-| Mobilizon | Elixir | Event organizing |
+| [Friendica](https://github.com/friendica/friendica) | PHP | Facebook-like social network (2026.05-1) |
+| [Hubzilla](https://framagit.org/hubzilla/core) | PHP | Decentralized publishing and nomadic identity (11.4.1, September 2026) |
+| [BookWyrm](https://github.com/bookwyrm-social/bookwyrm) | Python | Book tracking, Goodreads-like (v0.9.3, September 2026) |
+| [Mobilizon](https://framagit.org/kaihuri/mobilizon) | Elixir | Event organizing; now maintained by Kaihuri (5.2.5 release candidates, September 2026) |
 
 ## Choosing Software
 
 ### For Individual Users
 
-Consider:
-- **Mastodon** - Most features, biggest network effect
-- **GoToSocial** - Lightweight, privacy-focused
-- **Pleroma** - Customizable, lower resources
-- **Fedbox** - Minimal CLI-first, Solid-compatible
+- **Mastodon** — biggest network and the de facto reference for interop
+- **GoToSocial** — designed for small servers; its docs suggest ~1 GB of system RAM is enough
+- **Pleroma / Akkoma** — lightweight Elixir servers with Mastodon-compatible client APIs
 
 ### For Communities
 
-Consider:
-- **Mastodon** - Established moderation tools
-- **Lemmy** - For Reddit-like discussions
-- **PieFed** - For Reddit-like discussions
-- **Pixelfed** - For photo communities
+- **Mastodon** — mature moderation tools
+- **Lemmy**, **PieFed** or **Mbin** — Reddit-like discussion
+- **Pixelfed** — photo communities
+- **PeerTube** — video
 
 ### For Developers
 
-Consider:
-- **GoToSocial** - Clean, well-documented Go codebase
-- **Pleroma** - Flexible, good C2S support
-- **PieFed** - Easier to understand than Lemmy
-- **Custom** - Build your own!
+Reading a mature implementation's federation code is one of the best ways to learn. GoToSocial, Mastodon and Lemmy all publish federation documentation alongside their source:
+
+- [GoToSocial federation docs](https://docs.gotosocial.org/en/latest/federation/)
+- [Mastodon ActivityPub spec notes](https://docs.joinmastodon.org/spec/activitypub/)
+- [Lemmy federation docs](https://join-lemmy.org/docs/contributors/05-federation.html)
 
 ## Feature Comparison
 
 | Feature | Mastodon | Pleroma | Misskey | GoToSocial |
 |---------|----------|---------|---------|------------|
-| ActivityPub | ✅ | ✅ | ✅ | ✅ |
-| C2S API | ❌ | ✅ | ❌ | ❌ |
+| ActivityPub S2S | ✅ | ✅ | ✅ | ✅ |
+| ActivityPub C2S | ❌ | ⚠️ partial ¹ | ❌ | ❌ |
 | Polls | ✅ | ✅ | ✅ | ✅ |
 | Custom Emoji | ✅ | ✅ | ✅ | ✅ |
-| Reactions | ❌ | ✅ | ✅ | ❌ |
-| Quote Posts | ✅ (4.5+) | ✅ | ✅ | ❌ (publishes self-only `canQuote`) |
-| Markdown | ❌ | ✅ | ✅ | ✅ |
+| Emoji Reactions | ❌ | ✅ | ✅ | ❌ |
+| Quote Posts | ✅ (4.5+, FEP-044f) | ✅ ³ | ✅ (`_misskey_quote`) | ❌ (publishes self-only `canQuote`) |
+| Markdown input | ❌ | ✅ | MFM ² | ✅ |
 | Local-only Posts | ❌ | ✅ | ✅ | ✅ |
+
+Sources: Mastodon v4.7.3 [`activity.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/activity.rb) (no `EmojiReact` handler) and [CHANGELOG](https://github.com/mastodon/mastodon/blob/v4.7.3/CHANGELOG.md); Pleroma [MastoAPI differences](https://docs.pleroma.social/backend/development/API/differences_in_mastoapi_responses/) (local visibility, emoji reactions) and [NodeInfo](https://docs.pleroma.social/backend/development/API/nodeinfo/) (`text/markdown` post format); Misskey [`ApNoteService.ts`](https://github.com/misskey-dev/misskey/blob/develop/packages/backend/src/core/activitypub/models/ApNoteService.ts); GoToSocial v0.22.2 [`internaltoas.go`](https://codeberg.org/superseriousbusiness/gotosocial/src/tag/v0.22.2/internal/typeutils/internaltoas.go) (quotes), [`status.go`](https://codeberg.org/superseriousbusiness/gotosocial/src/tag/v0.22.2/internal/api/model/status.go) (`local_only`), [posts guide](https://docs.gotosocial.org/en/latest/user_guide/posts/) (markdown) and [federation docs](https://docs.gotosocial.org/en/latest/federation/posts/) (polls).
+
+¹ Pleroma's [client list](https://docs.pleroma.social/backend/clients/) names AndStatus as using ActivityPub C2S. The Akkoma fork has no outbox POST handler.
+² Misskey uses its own MFM markup rather than Markdown.
+³ Pleroma handles quote posts (see its [quote-related MRF policies](https://docs.pleroma.social/backend/configuration/cheatsheet/#mrf)); the exact property it emits was not verified here.
 
 ## Resource Requirements
 
-### Low (Single-user or small)
-
-- **Fedbox**: Minimal RAM, Node.js, SQLite
-- **GoToSocial**: 256MB RAM, single binary
-- **Pleroma**: 512MB RAM
-- **Akkoma**: 512MB RAM
-
-### Medium (100-1000 users)
-
-- **Mastodon**: 2-4GB RAM, PostgreSQL, Redis
-- **Misskey**: 2-4GB RAM, PostgreSQL, Redis
-
-### High (1000+ users)
-
-- Multiple servers
-- Load balancing
-- Dedicated database
-- Object storage
-
-## Implementation Quality
-
-### Best for Compatibility
-
-1. **Mastodon** - De facto standard, most tested
-2. **Pleroma/Akkoma** - Excellent compatibility
-3. **Misskey** - Good, some quirks
-
-### Best Documentation
-
-1. **Mastodon** - Extensive API docs
-2. **GoToSocial** - Clean, modern docs
-3. **Pleroma** - Good technical docs
-
-### Best for Forking
-
-1. **GoToSocial** - Clean Go codebase
-2. **Mastodon** - Many existing forks
-3. **Pleroma/Akkoma** - Flexible architecture
+Only GoToSocial publishes concrete numbers: its [getting started guide](https://docs.gotosocial.org/en/latest/getting_started/) says a small instance (1–20 active users) uses about 250–350 MB of RAM once caches are warm, and recommends about 1 GB of system RAM. Mastodon and Misskey additionally need PostgreSQL and Redis; check each project's installation docs for current requirements.
 
 ## Starting Your Own Instance
 
-### Managed Hosting
+For managed hosting, see [Hosting Providers](/docs/ecosystem/hosting-providers).
 
-- [Masto.host](https://masto.host/) - Mastodon
-- [Spacebear](https://app.spacebear.ee/) - Multiple platforms
-- [Cloudplane](https://cloudplane.org/) - Various options
-
-### Self-Hosting
-
-Most platforms provide Docker images:
+Most platforms provide container images. GoToSocial's [official compose file](https://codeberg.org/superseriousbusiness/gotosocial/src/branch/main/example/docker-compose/docker-compose.yaml) uses:
 
 ```bash
-# Example: GoToSocial
+# Example: GoToSocial (see its docs for the required GTS_* environment variables)
 docker run -d \
   -p 443:8080 \
   -v ./data:/gotosocial/storage \
-  superseriousbusiness/gotosocial:latest
+  docker.io/superseriousbusiness/gotosocial:latest
 ```
 
 ## See Also
 
-- **[Mastodon](/docs/ecosystem/mastodon)** - Most popular platform
+- **[Mastodon](/docs/ecosystem/mastodon)** - Most widely deployed platform
+- **[Big Platforms](/docs/ecosystem/big-platforms)** - Threads, Ghost, WordPress and more
 - **[Libraries Overview](/docs/ecosystem/libraries-overview)** - Development libraries
 - **[Hosting Providers](/docs/ecosystem/hosting-providers)** - Managed options
