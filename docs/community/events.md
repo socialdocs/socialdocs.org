@@ -1,292 +1,59 @@
 ---
 sidebar_position: 3
 title: Events
-description: Fediverse conferences, meetups, and community events
+description: Fediverse conferences, unconferences, and standards meetings for ActivityPub developers
 ---
 
 # Fediverse Events
 
-The Fediverse community organizes conferences, unconferences, and meetups throughout the year. These events bring together developers, designers, and enthusiasts to discuss the future of the open social web.
+Conferences, unconferences and standards meetings where ActivityPub developers meet. *Dates on this page were checked in October 2026 — always confirm on the event's own site.*
 
-## Major Conferences
+## Upcoming
+
+| Event | When | Where | Notes |
+|-------|------|-------|-------|
+| [TPAC 2026](https://www.w3.org/events/tpac/2026/) | 26–30 October 2026 | Dublin, Ireland | W3C's annual meeting; Social Web breakout sessions are being proposed |
+| FOSDEM 2027 | 30–31 January 2027 | Brussels, Belgium | A Social Web devroom ran in [2025](https://socialhub.activitypub.rocks/t/social-web-devroom-at-fosdem-2025/4709) and [2026](https://socialwebfoundation.org/2025/10/31/fosdem-2026-social-web-devroom-call-for-participation); no 2027 call had been announced as of mid-October 2026 |
+| [FediForum](https://fediforum.org/events/) Spring 2027 | 16–18 March 2027 | Online | Listed on the FediForum events calendar |
+
+## Recurring events
 
 ### FediForum
 
-[FediForum](https://fediforum.org/) is the premier unconference for Fediverse builders and thinkers.
+[FediForum](https://fediforum.org/) is an online unconference for people building the open social web, usually held in spring and autumn. Participants propose sessions, and many editions include project demos.
 
-```
-┌────────────────────────────────────────────────────────────┐
-│                      FEDIFORUM                             │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│  Format:     Virtual unconference                          │
-│  Frequency:  Twice yearly (March & September/October)      │
-│  Duration:   2 days                                        │
-│  Cost:       Free to attend                                │
-│  Website:    fediforum.org                                 │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
-```
-
-**What to Expect:**
-- Participant-driven sessions
-- Demos from leading projects
-- Breakout discussions
-- Networking opportunities
-
-**Past Notable Sessions:**
-- Meta demonstrating Threads' Fediverse integration
-- Trust & Safety in the Fediverse
-- Payments on the Fediverse
-- WordPress as a Publishing Tool for the Fediverse
-- How the Fediverse Can Help Artists Thrive
-
-**Upcoming Events:**
-- Next edition: **October 6-7, 2026** — see [fediforum.org](https://fediforum.org/) for registration and the [events archive](https://fediforum.org/events/) for past sessions
+Recent editions: [October 2026](https://fediforum.org/2026-10/) (6–7 October), [April 2026](https://fediforum.org/2026-04/), [October 2025](https://fediforum.org/2025-10/), [June 2025](https://fediforum.org/2025-06/), [April 2025](https://fediforum.org/2025-04/), [September 2024](https://fediforum.org/2024-09/), [March 2024](https://fediforum.org/2024-03/). The [events page](https://fediforum.org/events/) also lists other open social web events.
 
 ### FediCon
 
-[FediCon](https://fedicon.org/) is an in-person conference for Fediverse developers and operators.
+[FediCon](https://fedicon.ca/) is an in-person Canadian Fediverse conference. The 2026 edition ran on 7–8 August 2026 at the UBC campus in Vancouver as part of [FOSSY 2026](https://2026.fossy.ca/).
 
-```
-┌────────────────────────────────────────────────────────────┐
-│                       FEDICON                              │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│  Format:     In-person conference                          │
-│  Location:   Varies by year                                │
-│  Attendees:  Builders, operators, pioneers                 │
-│  Speakers:   Protocol creators, project maintainers        │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
-```
+### FOSDEM Social Web devroom
 
-**Featured Speakers Include:**
-- Creators of ActivityPub and ActivityStreams
-- Maintainers of Pixelfed, GNU Social, FediDB
-- System operators and community leaders
+[FOSDEM](https://fosdem.org/) in Brussels has hosted a Social Web devroom, organized by the Social Web Foundation, in 2025 and 2026, with technical and community talks about ActivityPub and related protocols.
 
-### ActivityPub Conf
+### W3C meetings
 
-Previously organized by the SocialCG, ActivityPub Conf focused specifically on the protocol and its implementations.
+The Social Web Working Group and the SocialCG hold regular online meetings, listed on the [SocialCG calendar](https://www.w3.org/groups/cg/socialcg/calendar/), with 2026 minutes in [w3c/socialwg](https://github.com/w3c/socialwg/tree/main/meetings/2026). See [SocialCG](/docs/community/socialcg) for how to join.
 
-**Historical Events:**
-- ActivityPub Conf 2019 (Prague)
-- ActivityPub Conf 2020 (Virtual)
+### ActivityPub Conf (historical)
 
-While not currently running as a separate event, ActivityPub-focused content is now part of FediForum and FediCon.
+ActivityPub Conf was held in Prague in 2019 and online in 2020. It is not currently running as a separate event; protocol-focused sessions now happen at FediForum, FOSDEM and W3C meetings.
 
-## Regional Meetups
+## Local meetups
 
-### Europe
+There is no central listing of local Fediverse meetups. Look for announcements on your regional instances, and follow hashtags such as `#FediMeetup`.
 
-**Fediverse Meetups:**
-- Various cities host local meetups
-- Check [events.joinmastodon.org](https://events.joinmastodon.org/) for listings
-- Many organized through local Mastodon instances
+## Presenting your project
 
-### North America
+Most of these events welcome demos. Keep a demo short, show how your software interoperates with other Fediverse servers, and have links to your source and documentation ready.
 
-**Bay Area Fediverse Meetup:**
-- Regular gatherings in San Francisco area
-- Mix of developers and users
+## Staying informed
 
-**Other Regions:**
-- Check local instances for meetup announcements
-- Organize through hashtags like #FediMeetup
-
-## Online Events
-
-### SocialCG Meetings
-
-Regular W3C Social Community Group meetings:
-
-```
-┌────────────────────────────────────────────────────────────┐
-│                   SOCIALCG MEETINGS                        │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│  Frequency:   Bi-weekly to monthly                         │
-│  Format:      Video call + IRC/Matrix                      │
-│  Duration:    ~60 minutes                                  │
-│  Open to:     Anyone (W3C account required)                │
-│  Topics:      Specification issues, FEPs, interop          │
-│                                                            │
-│  Join: w3.org/community/socialcg                           │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
-```
-
-### SocialHub Discussions
-
-Ongoing discussions on [SocialHub](https://socialhub.activitypub.rocks/):
-
-- FEP discussions
-- Implementation questions
-- Interoperability challenges
-- New feature proposals
-
-## Event Calendar
-
-### Typical Annual Schedule
-
-```
-┌────────────────────────────────────────────────────────────┐
-│                   TYPICAL YEAR                             │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│  Q1 (Jan-Mar)                                              │
-│  └── FediForum Spring (March)                              │
-│                                                            │
-│  Q2 (Apr-Jun)                                              │
-│  └── FediForum Summer (June) - sometimes                   │
-│                                                            │
-│  Q3 (Jul-Sep)                                              │
-│  ├── FediForum Fall (September)                            │
-│  └── Various regional meetups                              │
-│                                                            │
-│  Q4 (Oct-Dec)                                              │
-│  ├── FediForum Fall (October) - sometimes                  │
-│  └── Year-end community gatherings                         │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
-```
-
-## Participating in Events
-
-### Attending FediForum
-
-1. **Register**: Free registration on [fediforum.org](https://fediforum.org/)
-2. **Prepare**: Think of topics you'd like to discuss or demo
-3. **Propose Sessions**: Unconference format means you can propose sessions
-4. **Participate**: Join sessions, ask questions, share ideas
-
-### Proposing a Session
-
-FediForum uses unconference format:
-
-```
-Session Proposal Tips:
-─────────────────────
-• Keep titles descriptive but concise
-• Specify if it's a demo, discussion, or workshop
-• Note any prerequisites or target audience
-• Be prepared to facilitate if you propose
-```
-
-### Presenting Your Project
-
-Many events welcome project demos:
-
-1. **Prepare a Demo**: 5-15 minutes showing key features
-2. **Focus on Interoperability**: How does it work with other Fediverse software?
-3. **Be Ready for Questions**: Developers will ask technical questions
-4. **Share Resources**: Have links and documentation ready
-
-## Organizing Local Events
-
-### Starting a Meetup
-
-```
-┌────────────────────────────────────────────────────────────┐
-│               ORGANIZING A MEETUP                          │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│  1. Find Interested People                                 │
-│     └── Post on local instances                            │
-│     └── Use #FediMeetup hashtag                            │
-│                                                            │
-│  2. Choose a Venue                                         │
-│     └── Coffee shops, libraries, co-working spaces         │
-│     └── Consider accessibility                             │
-│                                                            │
-│  3. Set Expectations                                       │
-│     └── Casual discussion vs. presentations                │
-│     └── Code of conduct                                    │
-│                                                            │
-│  4. Promote                                                │
-│     └── Local instances and hashtags                       │
-│     └── Cross-post to relevant communities                 │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
-```
-
-### Virtual Events
-
-For virtual gatherings:
-
-- Use open platforms (Jitsi, BigBlueButton)
-- Record sessions if participants consent
-- Share notes and resources afterward
-- Consider time zones for international participation
-
-## Past Event Archives
-
-### FediForum Archives
-
-Past FediForum sessions and notes:
-
-- [March 2024](https://fediforum.org/2024-03/)
-- [September 2024](https://fediforum.org/2024-09/)
-- [Earlier events](https://fediforum.org/)
-
-### Coverage
-
-Community coverage of events:
-
-- [We Distribute](https://wedistribute.org/) - Event coverage and summaries
-- [Fediverse Report](https://fediversereport.com/) - Weekly news including events
-
-## Staying Informed
-
-### Event Announcements
-
-Follow for event updates:
-
-```
-Official Sources:
-─────────────────
-• fediforum.org
-• socialhub.activitypub.rocks
-• w3.org/community/socialcg
-
-Community Sources:
-──────────────────
-• @fediforum@mastodon.social
-• #FediForum hashtag
-• #Fediverse hashtag
-```
-
-### Newsletters
-
-Stay updated via newsletters:
-
-- **This Week in the Fediverse** - Weekly roundup
-- **Fediverse Report** - Periodic updates
-- **SocialCG Announcements** - W3C mailing list
-
-## Code of Conduct
-
-Most Fediverse events have codes of conduct emphasizing:
-
-- **Respect**: Treat all participants with respect
-- **Inclusion**: Welcome diverse perspectives
-- **Safety**: Report harassment immediately
-- **Openness**: Share knowledge freely
-
-## Resources
-
-### Event Websites
-
-- [FediForum](https://fediforum.org/)
-- [SocialCG Meetings](https://www.w3.org/community/socialcg/)
-- [SocialHub Events](https://socialhub.activitypub.rocks/c/meeting/17)
-
-### Community
-
-- [SocialHub Forum](https://socialhub.activitypub.rocks/)
-- [We Distribute](https://wedistribute.org/)
-- [Fediverse.Party](https://fediverse.party/)
+- [FediForum events calendar](https://fediforum.org/events/) (also available as an [iCal feed](https://fediforum.org/events.ics))
+- [SocialHub](https://socialhub.activitypub.rocks/) — developer forum
+- `public-swicg@w3.org` mailing list ([archive](https://lists.w3.org/Archives/Public/public-swicg/))
+- [Fediverse Report](https://fediversereport.com/) and [We Distribute](https://wedistribute.org/) — news coverage
 
 ## Next Steps
 

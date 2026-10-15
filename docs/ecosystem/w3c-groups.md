@@ -82,14 +82,13 @@ Produced the core Social Web standards in use today.
 
 ## Social Web Incubator CG (2016-present)
 
-**Chairs:** Dmitri Zagidulin and nightpool
+**Chairs:** Johannes Ernst and Dmitri Zagidulin ([W3C group page](https://www.w3.org/groups/cg/socialcg/)). Zagidulin announced on [2 October 2026](https://github.com/w3c/socialwg/blob/main/meetings/2026/2026-10-02-CG-WG-joint.md) that he is stepping down; the group is looking for a second co-chair.
 
 Continues and extends development of vocabularies, formats and protocols for the distributed social web.
 
 ### Resources
 
-- **[W3C Page](https://www.w3.org/community/socialcg/)**
-- **[Website](https://swicg.io/)**
+- **[W3C Page](https://www.w3.org/groups/cg/socialcg/)**
 - **[Wiki](https://www.w3.org/wiki/SocialCG)**
 - **[Mailing List](https://lists.w3.org/Archives/Public/public-swicg/)**
 - **[GitHub](https://github.com/swicg)**
@@ -97,11 +96,11 @@ Continues and extends development of vocabularies, formats and protocols for the
 
 ### Meetings
 
-Monthly general meetings on first Friday of each month at 1pm ET
+Dates are on the [SocialCG calendar](https://www.w3.org/groups/cg/socialcg/calendar/). In 2026 the CG and WG hold joint meetings; minutes are in [w3c/socialwg](https://github.com/w3c/socialwg/tree/main/meetings/2026).
 
 ### Active Task Forces
 
-ActivityPub Testing, API, Forum and Threaded Discussions, Data Portability, Trust and Safety, Geosocial, E2EE, HTML Discovery, Remixing and Aggregation
+ActivityPub API, Data Portability (LOLA), HTML Discovery, E2EE, Forums, Geosocial, Groups, Handles, HTTP Signature, Remix, Trust and Safety, Website — see the CG's [task force list](https://github.com/swicg/meetings/blob/main/DELIVERABLES-TASKFORCES.md) and the [SocialCG page](/docs/community/socialcg#task-forces). The Test Suite task force is inactive.
 
 ### Key Repositories
 
@@ -128,7 +127,7 @@ Re-chartered to maintain existing specifications and potentially adopt new deliv
 
 ### Specifications Under Maintenance
 
-All targeted for completion by Q3 2026:
+The charter targeted updated Recommendations for Q3 2026; that target slipped (see Status below):
 
 1. ActivityPub
 2. Activity Streams (Core)

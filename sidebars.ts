@@ -221,9 +221,10 @@ const sidebars: SidebarsConfig = {
   toolsSidebar: [
     {
       type: 'category',
-      label: 'Developer Tools',
+      label: 'Testing & Debugging',
       collapsed: false,
       items: [
+        'tools/overview',
         'tools/activity-validator',
         'tools/actor-inspector',
         'tools/webfinger-lookup',

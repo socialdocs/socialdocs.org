@@ -6,7 +6,7 @@ description: Developer resources, libraries, and tools for building on ActivityP
 
 # Developer Resources
 
-A comprehensive collection of libraries, tools, and resources for building ActivityPub and Fediverse applications.
+A collection of libraries, tools, and resources for building ActivityPub and Fediverse applications.
 
 ## Libraries by Language
 
@@ -20,14 +20,14 @@ A comprehensive collection of libraries, tools, and resources for building Activ
 | [http-signature](https://github.com/joyent/node-http-signature) | HTTP Signatures implementation | MIT |
 
 ```javascript
-// Example: Using Fedify
-import { createFederation } from '@fedify/fedify';
+// Example: Using Fedify 2.x
+import { createFederation, MemoryKvStore } from '@fedify/fedify';
 
 const federation = createFederation({
-  kv: new DenoKvStore(await Deno.openKv()),
+  kv: new MemoryKvStore(), // use a persistent store in production
 });
 
-federation.setActorDispatcher('/users/{handle}', async (ctx, handle) => {
+federation.setActorDispatcher('/users/{identifier}', async (ctx, identifier) => {
   // Return actor object
 });
 ```
@@ -37,7 +37,7 @@ federation.setActorDispatcher('/users/{handle}', async (ctx, handle) => {
 | Library | Description | License |
 |---------|-------------|---------|
 | [federation](https://github.com/jaywink/federation) | Multi-protocol social web library | BSD-3 |
-| [little-boxes](https://github.com/tsileo/little-boxes) | Minimal ActivityPub framework | ISC |
+| [little-boxes](https://github.com/tsileo/little-boxes) | Minimal ActivityPub framework (archived) | ISC |
 | [bovine](https://codeberg.org/bovine/bovine) | Fediverse application library | MIT |
 | [Takahē](https://github.com/jointakahe/takahe) | Multi-domain AP server | BSD-3 |
 
@@ -124,8 +124,6 @@ note.GetActivityStreamsContent().Set(/* ... */)
 
 | Tool | Description |
 |------|-------------|
-| [Fediblock](https://fediblock.org/) | Moderation blocklists |
-| [The Federation](https://the-federation.info/) | Network statistics |
 
 ## Reference Implementations
 
@@ -192,7 +190,6 @@ note.GetActivityStreamsContent().Set(/* ... */)
 |----------|-------------|
 | [ActivityPub Rocks](https://activitypub.rocks/) | Official resource site |
 | [How to Implement ActivityPub](https://blog.joinmastodon.org/2018/06/how-to-implement-a-basic-activitypub-server/) | Mastodon blog tutorial |
-| [Building an ActivityPub Server](https://socialhub.activitypub.rocks/t/building-an-activitypub-server/2019) | SocialHub discussion |
 
 ### Diagrams & Visual References
 
@@ -200,18 +197,12 @@ note.GetActivityStreamsContent().Set(/* ... */)
 |----------|-------------|
 | [boyter/activitypub](https://github.com/boyter/activitypub) | Sequence diagrams for common flows: Follow, Create, Delete, Announce, Move, WebFinger — a "clean room" implementation reference (MIT) |
 
-### Video Content
-
-| Resource | Description |
-|----------|-------------|
-| FediForum Recordings | Past session recordings |
-| PeerTube Instances | Various developer tutorials |
-
 ### Books
 
 | Resource | Description |
 |----------|-------------|
-| [Move Slowly and Build Bridges](https://mitpress.mit.edu/9780262049955/move-slowly-and-build-bridges/) | Robert W. Gehl's book on Mastodon |
+| [ActivityPub: Programming for the Social Web](https://www.oreilly.com/library/view/activitypub/9781098162733/) | Evan Prodromou (O'Reilly, 2024) — building ActivityPub clients and servers, by a co-author of the spec |
+| [Move Slowly and Build Bridges](https://openlibrary.org/isbn/9780197776674) | Robert W. Gehl (Oxford University Press, 2025) — history and culture of Mastodon and the Fediverse |
 
 ## Community Resources
 
@@ -221,7 +212,7 @@ note.GetActivityStreamsContent().Set(/* ... */)
 |----------|-------------|
 | [SocialHub](https://socialhub.activitypub.rocks/) | Developer community forum |
 | [Lemmy Communities](https://lemmy.world/c/fediverse) | Fediverse discussions |
-| [Matrix/Discord](https://matrix.to/#/#fediverse:matrix.org) | Real-time chat |
+| [#fediverse:matrix.org](https://matrix.to/#/#fediverse:matrix.org) | Matrix chat room |
 
 ### News & Updates
 
@@ -229,7 +220,6 @@ note.GetActivityStreamsContent().Set(/* ... */)
 |----------|-------------|
 | [We Distribute](https://wedistribute.org/) | Fediverse news |
 | [Fediverse Report](https://fediversereport.com/) | Weekly updates |
-| [This Week in Matrix](https://matrix.org/blog/category/this-week-in-matrix/) | Related protocol news |
 
 ### Curated Lists
 
@@ -254,8 +244,8 @@ note.GetActivityStreamsContent().Set(/* ... */)
 
 | Library | Documentation |
 |---------|--------------|
-| Fedify | [fedify.dev/docs](https://fedify.dev/docs/) |
-| go-fed/activity | [go-fed.org](https://go-fed.org/) |
+| Fedify | [fedify.dev](https://fedify.dev/) |
+| go-fed/activity (unmaintained since 2022) | [pkg.go.dev/github.com/go-fed/activity](https://pkg.go.dev/github.com/go-fed/activity) |
 | activitypub-federation-rust | [docs.rs/activitypub_federation](https://docs.rs/activitypub_federation/) |
 
 ## Quick Reference

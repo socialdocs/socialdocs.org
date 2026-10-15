@@ -10,6 +10,10 @@ image: /img/socialdocs-social-card.png
 
 # The Complete Guide to ActivityPub Development in 2025
 
+:::info Updated edition available
+This post is from December 2025 and parts of it are out of date (for example, it recommends libraries that are no longer maintained). Read **[The Complete Guide to ActivityPub Development in 2026](/blog/complete-guide-activitypub-development-2026)** instead.
+:::
+
 :::danger Security note (October 2026)
 The code in this post is illustrative and not safe for production as written. See [issue #37](https://github.com/socialdocs/socialdocs.org/issues/37) and use a maintained library for request verification.
 :::

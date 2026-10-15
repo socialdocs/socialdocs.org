@@ -1,10 +1,14 @@
 ---
 sidebar_position: 3
-title: JSON-LD Playground
+title: Working with JSON-LD
 description: Tools for testing and validating JSON-LD in ActivityPub
 ---
 
-# JSON-LD Playground
+# Working with JSON-LD
+
+:::info
+This is a guide, not an interactive tool. For hands-on tools see [Testing & Debugging Tools](/docs/tools/overview).
+:::
 
 ActivityPub uses JSON-LD for semantic data representation. Understanding JSON-LD helps debug context issues and ensure interoperability.
 

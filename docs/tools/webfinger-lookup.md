@@ -1,10 +1,14 @@
 ---
 sidebar_position: 1
-title: WebFinger Lookup
+title: Testing WebFinger
 description: Tools and techniques for testing WebFinger discovery
 ---
 
-# WebFinger Lookup
+# Testing WebFinger
+
+:::info
+This is a guide, not an interactive tool. For hands-on tools see [Testing & Debugging Tools](/docs/tools/overview).
+:::
 
 WebFinger is the first step in ActivityPub federation—discovering an actor's location from their handle. This guide covers tools and techniques for testing WebFinger.
 
