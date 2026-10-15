@@ -310,10 +310,9 @@ app.post('/inbox', (req, res) => {
   // Process activity...
 });
 
-// Verify HTTP signatures
-const isValid = await verifySignature(req);
-console.log('Signature valid:', isValid);
 ```
+
+To check signatures, don't hand-roll a verifier: see [Verifying incoming requests](/docs/security/verifying-requests) for tested code, or use your framework's built-in verification.
 
 ## Next Steps
 

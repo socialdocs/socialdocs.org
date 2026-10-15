@@ -67,7 +67,7 @@ Whatever you use, every inbound POST must pass these checks before you act on it
 
 1. **The signature verifies**, and it covers at least `(request-target)`, `host`, `date` and `digest` (or the RFC 9421 equivalents, including `content-digest`).
 2. **The digest matches the raw request body**, not a re-serialised copy of the parsed JSON.
-3. **The `Date` is recent.** Mastodon itself rejects signatures more than 12 hours old or more than 1 hour in the future.
+3. **The `Date` is recent.** Mastodon treats a signature without an explicit expiry as valid for 5 minutes after it was created, plus a 1-hour clock-skew margin, so roughly 65 minutes in total; it also rejects signatures dated more than 1 hour in the future, and caps any explicit expiry at 12 hours ([signed_request.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/signed_request.rb)).
 4. **The key's `owner` is the activity's `actor`.** A valid signature from one actor must not authorise an activity claiming to be from another.
 5. **Embedded objects come from the same origin as the actor**, or you re-fetch them from their own origin before trusting them.
 6. **Every remote fetch is SSRF-safe**: block private and loopback addresses, re-check after redirects, and cap response sizes.

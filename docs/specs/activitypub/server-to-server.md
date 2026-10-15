@@ -6,10 +6,6 @@ description: The ActivityPub Server-to-Server federation protocol
 
 # Server-to-Server (S2S)
 
-:::danger Not safe for production
-The code on this page is illustrative and **has known security flaws**: incomplete signature verification (signed headers, key-owner ↔ actor binding, Digest over the raw body), missing origin checks, and/or missing SSRF and output-escaping guards. Do not copy it into a real server. Use a maintained library such as [Fedify](https://fedify.dev/) or [activitypub-federation-rust](https://github.com/LemmyNet/activitypub-federation-rust) for request verification. Tracking: [issue #37](https://github.com/socialdocs/socialdocs.org/issues/37).
-:::
-
 The Server-to-Server protocol is how ActivityPub servers federate with each other. This is the heart of the Fediverse — enabling communication across independent servers.
 
 ## Overview
@@ -277,6 +273,10 @@ async function acceptFollow(followActivity) {
     object: followActivity
   };
 
+  // fetchActor must be SSRF-safe (e.g. safeFetchJson from
+  // /docs/security/verifying-requests), and deliverActivity must apply the
+  // same public-address check to the inbox URL before POSTing to it: both
+  // URLs come from a remote server.
   const followerActor = await fetchActor(followActivity.actor);
   await deliverActivity(accept, [followerActor.inbox]);
 }
@@ -411,11 +411,12 @@ async function resolveLocalRecipients(activity) {
     const user = await db.users.findOne({ actorId: address });
     if (user) localUsers.set(user.id, user);
 
-    // A remote actor's followers collection? Look up which remote actor
-    // has this IRI as its `followers`, then find our local users who
-    // follow that actor.
+    // The sender's own followers collection? Only honour the followers
+    // collection of activity.actor itself — otherwise anyone could address
+    // someone else's followers and land in their timelines. (Mastodon
+    // likewise only treats the author's own `followers` URL this way.)
     const remote = await db.remoteActors.findOne({ followers: address });
-    if (remote) {
+    if (remote && remote.id === activity.actor) {
       for (const u of await db.users.find({ following: remote.id })) {
         localUsers.set(u.id, u);
       }

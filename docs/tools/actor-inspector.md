@@ -335,6 +335,6 @@ The `id` is for ActivityPub, `url` is the human-readable profile page.
 
 ## Related Tools
 
-- **[WebFinger Lookup](/docs/tools/webfinger-lookup)** - Discover actor URLs
+- **[WebFinger Lookup](/docs/guides/webfinger-implementation#lookup-tools)** - Discover actor URLs
 - **[HTTP signatures in 2026](/docs/specs/http-signatures/overview)** - Signing, verifying and debugging 401s
 - **[JSON-LD Playground](/docs/tools/json-ld-playground)** - Validate JSON-LD

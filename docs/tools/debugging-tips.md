@@ -342,7 +342,7 @@ http POST localhost:3000/inbox < activity.json
 
 ## Related Tools
 
-- **[WebFinger Lookup](/docs/tools/webfinger-lookup)** - Test discovery
+- **[WebFinger Lookup](/docs/guides/webfinger-implementation#lookup-tools)** - Test discovery
 - **[Actor Inspector](/docs/tools/actor-inspector)** - Validate actors
 - **[HTTP signatures in 2026](/docs/specs/http-signatures/overview)** - Debugging 401s
 - **[Compliance Checklist](/docs/tools/compliance-checklist)** - Full validation

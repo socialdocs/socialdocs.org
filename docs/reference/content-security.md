@@ -6,10 +6,6 @@ description: Security considerations for handling ActivityPub content
 
 # Content Security
 
-:::danger Not safe for production
-The code on this page is illustrative and **has known security flaws**: incomplete signature verification (signed headers, key-owner ↔ actor binding, Digest over the raw body), missing origin checks, and/or missing SSRF and output-escaping guards. Do not copy it into a real server. Use a maintained library such as [Fedify](https://fedify.dev/) or [activitypub-federation-rust](https://github.com/LemmyNet/activitypub-federation-rust) for request verification. Tracking: [issue #37](https://github.com/socialdocs/socialdocs.org/issues/37).
-:::
-
 Handling federated content safely requires careful security practices.
 
 ## HTML Sanitization
@@ -61,6 +57,15 @@ function allowedClass(c) {
 const createDOMPurify = require('dompurify');
 const { JSDOM } = require('jsdom');
 const DOMPurify = createDOMPurify(new JSDOM('').window);
+
+// Enforce the class allowlist defined above (DOMPurify's ALLOWED_ATTR alone
+// would let any class through).
+DOMPurify.addHook('uponSanitizeAttribute', (node, data) => {
+  if (data.attrName !== 'class') return;
+  const kept = data.attrValue.split(/\s+/).filter(allowedClass);
+  if (kept.length) data.attrValue = kept.join(' ');
+  else data.keepAttr = false;
+});
 
 function sanitizeContent(html) {
   return DOMPurify.sanitize(html, {
@@ -140,7 +145,7 @@ Benefits:
 A media proxy that fetches any URL it's given is an **open proxy** and an SSRF hole, and one that echoes the remote `Content-Type` turns a remote `image/svg+xml` or `text/html` file into script running on *your* origin (stored XSS). Only proxy URLs you already know about, and only serve raster media types:
 
 ```javascript
-const fetch = require('node-fetch');
+const fetch = require('node-fetch'); // v2: timeout/size/follow options
 const { useAgent } = require('request-filtering-agent'); // blocks internal IPs
 
 // Raster types only — never image/svg+xml or text/html
@@ -155,16 +160,23 @@ app.get('/media/proxy/:id', async (req, res) => {
   const media = await db.remoteMedia.findOne({ id: req.params.id });
   if (!media) return res.status(404).end();
 
-  const response = await fetch(media.remoteUrl, {
-    agent: useAgent(media.remoteUrl),
-    timeout: 10000,
-    size: 10 * 1024 * 1024, // 10MB limit
-    follow: 3
-  });
+  let response, body;
+  try {
+    response = await fetch(media.remoteUrl, {
+      agent: useAgent(media.remoteUrl),
+      timeout: 10000,
+      size: 10 * 1024 * 1024, // 10MB limit
+      follow: 3
+    });
+    // buffer() enforces the size limit; piping response.body would not.
+    body = response.ok ? await response.buffer() : null;
+  } catch (err) {
+    return res.status(502).end(); // blocked address, timeout, too large, ...
+  }
 
   const contentType = (response.headers.get('content-type') || '')
     .split(';')[0].trim().toLowerCase();
-  if (!response.ok || !SAFE_MEDIA_TYPES.has(contentType)) {
+  if (!body || !SAFE_MEDIA_TYPES.has(contentType)) {
     return res.status(415).end();
   }
 
@@ -172,7 +184,7 @@ app.get('/media/proxy/:id', async (req, res) => {
   res.set('X-Content-Type-Options', 'nosniff');
   res.set('Content-Security-Policy', "default-src 'none'; sandbox");
   res.set('Cache-Control', 'public, max-age=86400');
-  response.body.pipe(res); // node-fetch returns a Node stream
+  res.send(body);
 });
 ```
 

@@ -6,10 +6,6 @@ description: Security considerations for JSON-LD processing
 
 # JSON-LD Security
 
-:::danger Not safe for production
-The code on this page is illustrative and **has known security flaws**: incomplete signature verification (signed headers, key-owner ↔ actor binding, Digest over the raw body), missing origin checks, and/or missing SSRF and output-escaping guards. Do not copy it into a real server. Use a maintained library such as [Fedify](https://fedify.dev/) or [activitypub-federation-rust](https://github.com/LemmyNet/activitypub-federation-rust) for request verification. Tracking: [issue #37](https://github.com/socialdocs/socialdocs.org/issues/37).
-:::
-
 JSON-LD processing introduces unique security considerations.
 
 ## Context Injection
@@ -98,7 +94,7 @@ Checking the hostname's IP and *then* calling `fetch` is not enough: `fetch` res
 Use a maintained filtering agent rather than hand-rolling this. For example, with [`request-filtering-agent`](https://www.npmjs.com/package/request-filtering-agent) and node-fetch:
 
 ```javascript
-const fetch = require('node-fetch');
+const fetch = require('node-fetch'); // v2: timeout/size/follow options
 const { useAgent } = require('request-filtering-agent');
 
 async function safeFetch(url) {

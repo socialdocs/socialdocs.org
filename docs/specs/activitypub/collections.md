@@ -124,7 +124,7 @@ Contains activities by the actor:
 }
 ```
 
-**GET** from outbox: Read activities (public)
+**GET** from outbox: Read activities. An unauthenticated GET must only return activities addressed to `as:Public` — the outbox is not a place to leak followers-only posts or DMs.
 **POST** to outbox: Submit activities (C2S, authenticated)
 
 ### Followers
@@ -222,9 +222,15 @@ app.get('/users/:username/outbox', async (req, res) => {
 
   const baseUrl = `https://example.com/users/${username}/outbox`;
 
+  // Only list activities addressed to the Public collection. An outbox
+  // that returns everything leaks followers-only posts and direct messages
+  // to anyone who asks. (With authorized fetch you can additionally show a
+  // verified requester the items addressed to them.)
+  const visible = { actor: username, isPublic: true };
+
   if (!page) {
     // Return collection metadata
-    const count = await db.activities.count({ actor: username });
+    const count = await db.activities.count(visible);
 
     return res.type('application/activity+json').json({
       '@context': 'https://www.w3.org/ns/activitystreams',
@@ -237,7 +243,7 @@ app.get('/users/:username/outbox', async (req, res) => {
   }
 
   // Return a page
-  const query = { actor: username };
+  const query = { ...visible };
   if (maxId) {
     query.id = { $lt: maxId };
   }
@@ -262,6 +268,8 @@ app.get('/users/:username/outbox', async (req, res) => {
   });
 });
 ```
+
+`isPublic` is a flag you compute when storing the activity: true if `to` or `cc` contains `https://www.w3.org/ns/activitystreams#Public` (or its compact forms `as:Public` / `Public`).
 
 ### Fetching a Collection
 

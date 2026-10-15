@@ -6,10 +6,6 @@ description: Build a minimal ActivityPub server from scratch with Node.js
 
 # Your First ActivityPub Server
 
-:::danger Not safe for production
-The code on this page is illustrative and **has known security flaws**: incomplete signature verification (signed headers, key-owner ↔ actor binding, Digest over the raw body), missing origin checks, and/or missing SSRF and output-escaping guards. Do not copy it into a real server. Use a maintained library such as [Fedify](https://fedify.dev/) or [activitypub-federation-rust](https://github.com/LemmyNet/activitypub-federation-rust) for request verification. Tracking: [issue #37](https://github.com/socialdocs/socialdocs.org/issues/37).
-:::
-
 In this tutorial, we'll build a minimal but functional ActivityPub server from scratch. By the end, you'll have a server that:
 
 - Serves an Actor profile
@@ -266,7 +262,7 @@ function signRequest(method, url, body) {
     : '(request-target) host date';
 
   const signatureString = [
-    `(request-target): ${method.toLowerCase()} ${urlObj.pathname}`,
+    `(request-target): ${method.toLowerCase()} ${urlObj.pathname}${urlObj.search}`,
     `host: ${urlObj.host}`,
     `date: ${date}`,
     digest ? `digest: ${digest}` : null
@@ -291,18 +287,40 @@ function signRequest(method, url, body) {
 Send signed activities to other servers:
 
 ```javascript
+const dns = require('node:dns/promises');
+const { isBlockedAddress } = require('./verify-requests/src/index.js');
+
+// The inbox URL comes from a remote actor document, so treat it as untrusted:
+// HTTPS only, and every address it resolves to must be public. Otherwise a
+// malicious actor can make your server POST to localhost or your internal
+// network (SSRF).
+async function resolveSafeInbox(inboxUrl) {
+  const url = new URL(inboxUrl);
+  if (url.protocol !== 'https:' || url.username || url.password) {
+    throw new Error(`Refusing to deliver to ${inboxUrl}`);
+  }
+  const addresses = await dns.lookup(url.hostname, { all: true, verbatim: true });
+  if (addresses.length === 0 || addresses.some(({ address }) => isBlockedAddress(address))) {
+    throw new Error(`Refusing to deliver to non-public address for ${url.hostname}`);
+  }
+  return { url, address: addresses[0] };
+}
+
 async function sendActivity(inboxUrl, activity) {
   const body = JSON.stringify(activity);
-  const headers = signRequest('POST', inboxUrl, body);
-
-  const urlObj = new URL(inboxUrl);
+  const { url: urlObj, address } = await resolveSafeInbox(inboxUrl);
+  const headers = signRequest('POST', urlObj.href, body);
 
   return new Promise((resolve, reject) => {
     const req = https.request({
       hostname: urlObj.hostname,
-      port: 443,
-      path: urlObj.pathname,
+      port: urlObj.port || 443,
+      path: urlObj.pathname + urlObj.search,
       method: 'POST',
+      timeout: 10_000,
+      // Connect to the address we just checked, so a second DNS answer
+      // can't point the connection somewhere private (DNS rebinding).
+      lookup: (_host, _opts, cb) => cb(null, address.address, address.family),
       headers: {
         'Content-Type': 'application/activity+json',
         'Date': headers.date,
@@ -319,6 +337,7 @@ async function sendActivity(inboxUrl, activity) {
       });
     });
 
+    req.on('timeout', () => req.destroy(new Error('Delivery timed out')));
     req.on('error', reject);
     req.write(body);
     req.end();

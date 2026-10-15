@@ -157,8 +157,8 @@ const config: Config = {
         {
           title: 'Reference',
           items: [
-            {label: 'Object Types', to: '/docs/reference/object-types'},
-            {label: 'Activity Types', to: '/docs/reference/activity-types'},
+            {label: 'Object Types', to: '/docs/specs/activitystreams/object-types'},
+            {label: 'Activity Types', to: '/docs/specs/activitystreams/activity-types'},
             {label: 'Ecosystem', to: '/docs/ecosystem/server-software'},
           ],
         },

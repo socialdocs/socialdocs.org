@@ -53,7 +53,7 @@ app.post('/users/:name/inbox', express.raw({ type: '*/*', limit: '1mb' }), async
     res.status(202).end();
   } catch (err) {
     if (err instanceof SignatureError) return res.status(401).json({ error: err.message });
-    // Couldn't fetch the key: tell the sender to retry later, as Mastodon does since 4.6.
+    // Couldn't fetch the key: tell the sender to retry later, as Mastodon does since 4.5.4.
     return res.status(503).json({ error: 'Temporarily unable to verify' });
   }
 });

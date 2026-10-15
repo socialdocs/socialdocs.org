@@ -371,6 +371,29 @@ curl "https://example.com/.well-known/webfinger?resource=acct:alice@example.com"
 }
 ```
 
+### Lookup Tools
+
+- [webfinger.net](https://webfinger.net/lookup/?resource=acct:Gargron@mastodon.social) — look up any resource in the browser and see the raw JRD
+- [webfinger.js](https://silverbucket.github.io/webfinger.js/) — open-source JavaScript client with a browser demo
+- [Fedify CLI](https://fedify.dev/cli) — `fedify webfinger alice@example.com` from the terminal; `fedify lookup @alice@example.com` follows through to the actor
+
+### URL Encoding
+
+The `resource` value should be percent-encoded. Servers must accept both forms, because clients send both:
+
+```bash
+curl "https://example.com/.well-known/webfinger?resource=acct%3Aalice%40example.com"
+curl "https://example.com/.well-known/webfinger?resource=acct:alice@example.com"
+```
+
+### Verify the Actor Fetch
+
+WebFinger only proves discovery. Follow the `self` link and make sure the actor itself is served as ActivityPub:
+
+```bash
+curl -H 'Accept: application/activity+json' https://example.com/users/alice
+```
+
 ### Validation Checklist
 
 - [ ] Returns 200 for valid users

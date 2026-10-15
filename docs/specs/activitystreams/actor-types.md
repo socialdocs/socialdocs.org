@@ -264,6 +264,11 @@ All actors must have these properties for ActivityPub:
 | `movedTo` | Migration target |
 | `alsoKnownAs` | Aliases for migration |
 | `attachment` | Profile fields |
+| `indexable` | Opt in to full-text search of the account's public posts |
+| `memorial` | Account has been memorialized |
+| `attributionDomains` | Domains allowed to credit this account as author of linked articles |
+
+All of these are in the `toot:` namespace (`http://joinmastodon.org/ns#`), per Mastodon's [context_helper.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/helpers/context_helper.rb).
 
 ## Profile Fields
 
@@ -290,6 +295,8 @@ Mastodon uses `attachment` with `PropertyValue` type for profile fields:
   ]
 }
 ```
+
+Mastodon marks a link field as verified when the linked page links back to the profile with `rel="me"`. The verification happens on the server that displays the profile; nothing about it federates.
 
 ## Public Key Structure
 

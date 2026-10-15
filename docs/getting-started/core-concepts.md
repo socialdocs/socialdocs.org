@@ -321,4 +321,4 @@ Now that you understand the core concepts:
 
 1. **[Your First ActivityPub Server](/docs/getting-started/your-first-activitypub-server)** - Put these concepts into practice
 2. **[ActivityStreams Reference](/docs/specs/activitystreams/overview)** - Complete vocabulary reference
-3. **[Object Types Reference](/docs/reference/object-types)** - All object types with examples
+3. **[Object Types Reference](/docs/specs/activitystreams/object-types)** - All object types with examples
