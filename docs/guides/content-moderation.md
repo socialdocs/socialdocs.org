@@ -2,6 +2,8 @@
 sidebar_position: 13
 title: Content Moderation
 description: Implementing moderation tools using ActivityPub Block, Flag, and domain controls
+last_verified: 2026-10-15
+verified_against: "Mastodon v4.7.3 source (activity/block.rb, block_service.rb, activity/flag.rb, flag_serializer.rb, domain_block.rb, export_domain_blocks_controller.rb, custom_filter.rb), ActivityPub REC §6.9, IFTAS DNI list page, FediMod FIRES site"
 ---
 
 # Content Moderation
@@ -57,15 +59,12 @@ async function blockUser(blocker, blockedId) {
     createdAt: new Date()
   });
 
-  // Remove any existing follow relationship
-  await db.followers.remove({
-    actor: blocker.id,
-    follower: blockedId
-  });
-  await db.following.remove({
-    actor: blocker.id,
-    following: blockedId
-  });
+  // End follow relationships in both directions first, as Mastodon does
+  // (it sends Undo Follow / Reject Follow, and rejects pending requests)
+  // — see block_service.rb
+  await unfollow(blocker, blockedId);          // sends Undo(Follow) if following
+  await removeFollower(blocker, blockedId);    // sends Reject(Follow) if followed
+  await rejectPendingFollowRequest(blocker, blockedId);
 
   // Create Block activity
   const activity = {
@@ -76,9 +75,9 @@ async function blockUser(blocker, blockedId) {
     object: blockedId
   };
 
-  // Optionally notify the blocked user's server
-  // Note: The spec says servers SHOULD NOT deliver Block
-  // but Mastodon does to hide the blocker's profile
+  // The spec says servers SHOULD NOT deliver Block to its object
+  // (ActivityPub §6.9), but Mastodon does deliver it to remote accounts,
+  // and Mastodon receivers use it to cut follows and record the block
   try {
     const blockedActor = await fetchActor(blockedId);
     await deliverActivity(activity, blockedActor.inbox, blocker);
@@ -97,17 +96,17 @@ async function processBlock(activity, signer) {
   }
 
   const blockerId = activity.actor;
-  const blockedId = activity.object;
+  const blockedId = typeof activity.object === 'string' ? activity.object : activity.object?.id;
 
-  // Find local user being blocked
-  const localUser = await db.actors.findOne({ id: blockedId });
+  // Only blocks of our own users matter
+  const localUser = await db.actors.findOne({ id: blockedId, local: true });
   if (!localUser) return;
 
-  // Remove the blocker from local user's followers
-  await db.followers.remove({
-    actor: blockedId,
-    follower: blockerId
-  });
+  // Like Mastodon (activity/block.rb): drop follows both ways and any
+  // pending follow request
+  await db.followers.remove({ actor: blockedId, follower: blockerId });
+  await db.followers.remove({ actor: blockerId, follower: blockedId });
+  await db.followRequests.remove({ from: blockedId, to: blockerId });
 
   // Record the block for reference
   await db.incomingBlocks.insert({
@@ -155,6 +154,8 @@ async function processInboxActivity(activity, signer) {
 
 ### Report Format
 
+Mastodon sends a `Flag` from its **instance actor** (so the reporter isn't revealed), with the reported account and any reported posts in `object` and the comment in `content` ([`flag_serializer.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/serializers/activitypub/flag_serializer.rb)):
+
 ```json
 {
   "@context": "https://www.w3.org/ns/activitystreams",
@@ -184,7 +185,8 @@ async function submitReport(reporter, reportedUserId, postIds, reason) {
   });
 
   // If remote user, send Flag to their server
-  if (!reportedUserId.startsWith(`https://${config.domain}`)) {
+  // (compare origins: startsWith() would also match example.com.evil)
+  if (new URL(reportedUserId).origin !== `https://${config.domain}`) {
     const activity = {
       '@context': 'https://www.w3.org/ns/activitystreams',
       id: `https://${config.domain}/reports/${report._id}`,
@@ -204,89 +206,74 @@ async function submitReport(reporter, reportedUserId, postIds, reason) {
 
 ### Receiving a Report
 
+Don't rely on the order of `object`: Mastodon looks up **each** entry and groups reported posts under their author ([`flag.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/activity/flag.rb)). It files a report for each reported local account, skips servers whose domain block has "reject reports" set, and truncates the comment to 5,000 characters:
+
 ```javascript
 async function processFlag(activity, signer) {
-  // Extract reported user and posts
-  const objects = Array.isArray(activity.object)
-    ? activity.object
-    : [activity.object];
+  const fromDomain = new URL(signer.id).hostname;
+  if (await domainRule(fromDomain)?.rejectReports) return;
 
-  // First object should be the user
-  const reportedUserId = objects[0];
-  const reportedPostIds = objects.slice(1);
+  const uris = [].concat(activity.object || [])
+    .map(o => (typeof o === 'string' ? o : o?.id))
+    .filter(Boolean);
 
-  // Verify this is about a local user
-  const localUser = await db.actors.findOne({ id: reportedUserId });
-  if (!localUser) {
-    return; // Not our user
+  const accounts = await db.actors.find({ id: { $in: uris }, local: true });
+  const posts = await db.notes.find({ id: { $in: uris } });
+
+  for (const account of accounts) {
+    await db.adminReports.insert({
+      fromServer: fromDomain,
+      reportedUser: account.id,
+      reportedPosts: posts.filter(p => p.attributedTo === account.id).map(p => p.id),
+      reason: String(activity.content || '').slice(0, 5000),
+      activityId: activity.id,
+      status: 'pending',
+      createdAt: new Date()
+    });
+    await notifyAdmins('new_report', { user: account.id });
   }
-
-  // Store the report for admin review
-  await db.adminReports.insert({
-    fromServer: new URL(signer.id).hostname,
-    reportedUser: reportedUserId,
-    reportedPosts: reportedPostIds,
-    reason: activity.content || '',
-    activityId: activity.id,
-    status: 'pending',
-    createdAt: new Date()
-  });
-
-  // Notify admins
-  await notifyAdmins('new_report', {
-    user: reportedUserId,
-    reason: activity.content
-  });
 }
 ```
+
+Mastodon additionally accepts a report about a *remote* account when the reported posts replied to one of its local users.
 
 ## Domain-Level Moderation
 
 ### Domain Block (Defederation)
 
+Mastodon's domain blocks have a severity of `suspend`, `silence` (shown as "Limit" in its UI) or `noop`, plus independent `reject_media` and `reject_reports` flags, and a block on `example.com` also covers `*.example.com` ([`domain_block.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/models/domain_block.rb)). Store each actor's and note's host when you ingest it, and match hosts exactly — never build a regular expression from a domain name (the dots in `example.com` match any character):
+
 ```javascript
 async function blockDomain(domain, options = {}) {
   await db.domainBlocks.insert({
-    domain,
-    severity: options.severity || 'suspend', // suspend, silence
+    domain: domain.toLowerCase(),
+    severity: options.severity || 'suspend', // suspend | silence | noop
+    rejectMedia: !!options.rejectMedia,
+    rejectReports: !!options.rejectReports,
     reason: options.reason,
     createdAt: new Date()
   });
 
-  // Clean up existing data from this domain
-  if (options.severity === 'suspend') {
-    // Remove all cached actors
-    await db.cachedActors.remove({
-      id: { $regex: new RegExp(`^https://${domain}/`) }
-    });
-
-    // Remove all cached posts
-    await db.cachedNotes.remove({
-      id: { $regex: new RegExp(`^https://${domain}/`) }
-    });
-
-    // Remove follows from that domain
-    await db.followers.remove({
-      follower: { $regex: new RegExp(`^https://${domain}/`) }
-    });
+  if ((options.severity || 'suspend') === 'suspend') {
+    const hosts = { $in: await hostsUnder(domain) }; // domain + known subdomains
+    await db.cachedActors.remove({ host: hosts });
+    await db.cachedNotes.remove({ host: hosts });
+    await db.followers.remove({ followerHost: hosts });
   }
 }
 
-// Check before federation
-async function shouldFederateWith(domain) {
-  const block = await db.domainBlocks.findOne({ domain });
+// The most specific rule for a host or any parent domain, like Mastodon's rule_for
+async function domainRule(host) {
+  const parts = host.toLowerCase().split('.');
+  const variants = parts.map((_, i) => parts.slice(i).join('.'));
+  const rules = await db.domainBlocks.find({ domain: { $in: variants } });
+  return rules.sort((a, b) => b.domain.length - a.domain.length)[0] || null;
+}
 
-  if (!block) return { allowed: true };
-
-  if (block.severity === 'suspend') {
-    return { allowed: false, reason: 'Domain suspended' };
-  }
-
-  if (block.severity === 'silence') {
-    return { allowed: true, silenced: true };
-  }
-
-  return { allowed: true };
+async function shouldFederateWith(host) {
+  const rule = await domainRule(host);
+  if (rule?.severity === 'suspend') return { allowed: false, reason: 'Domain suspended' };
+  return { allowed: true, silenced: rule?.severity === 'silence', rejectMedia: !!rule?.rejectMedia };
 }
 ```
 
@@ -296,20 +283,10 @@ Silenced domains can still federate, but their content is hidden from public:
 
 ```javascript
 async function getPublicTimeline(options = {}) {
-  // Get silenced domains
-  const silencedDomains = await db.domainBlocks.find({
-    severity: 'silence'
-  });
-  const silencedHosts = silencedDomains.map(d => d.domain);
-
+  // Notes store a `silenced` flag set at ingest from domainRule(host)
   return db.notes.find({
-    'to': 'https://www.w3.org/ns/activitystreams#Public',
-    // Exclude silenced domains from public timeline
-    attributedTo: {
-      $not: {
-        $regex: new RegExp(`^https://(${silencedHosts.join('|')})/`)
-      }
-    }
+    to: 'https://www.w3.org/ns/activitystreams#Public',
+    silenced: { $ne: true }
   }).sort({ published: -1 }).limit(20);
 }
 ```
@@ -329,9 +306,10 @@ async function suspendUser(userId, reason) {
     }
   );
 
-  // Reject all inbox activities from this user
-  // Hide their content from public
-  // Optionally send Delete activities for their content
+  // Reject all inbox activities from this user and hide their content.
+  // Mastodon tells other servers by sending an Update of the actor with
+  // `suspended: true` (toot:suspended) — suspend_account_service.rb —
+  // rather than deleting anything, so the suspension can be reversed.
 }
 
 async function processInboxActivity(activity, signer) {
@@ -349,19 +327,22 @@ async function processInboxActivity(activity, signer) {
 
 ### Keyword Filters
 
+Mastodon's filter actions are `warn`, `hide` and `blur` ([`custom_filter.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/models/custom_filter.rb)). Match keywords against the post's **text** (HTML stripped), and treat them as literal strings — compiling user input with `new RegExp()` invites broken patterns and catastrophic backtracking:
+
 ```javascript
-async function applyFilters(userId, content) {
+const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+async function applyFilters(userId, text) {
   const filters = await db.filters.find({ userId });
 
   for (const filter of filters) {
-    const regex = new RegExp(filter.keyword, 'i');
+    const pattern = escapeRegExp(filter.keyword);
+    const regex = filter.wholeWord
+      ? new RegExp(`(?<![\\p{L}\\p{N}])${pattern}(?![\\p{L}\\p{N}])`, 'iu')
+      : new RegExp(pattern, 'iu');
 
-    if (regex.test(content)) {
-      return {
-        filtered: true,
-        action: filter.action, // warn, hide, drop
-        filter: filter.keyword
-      };
+    if (regex.test(text)) {
+      return { filtered: true, action: filter.action, filter: filter.keyword }; // warn | hide | blur
     }
   }
 
@@ -369,7 +350,7 @@ async function applyFilters(userId, content) {
 }
 
 async function displayNote(note, viewerId) {
-  const filterResult = await applyFilters(viewerId, note.content);
+  const filterResult = await applyFilters(viewerId, htmlToText(note.content));
 
   if (filterResult.filtered) {
     if (filterResult.action === 'hide') {
@@ -464,27 +445,29 @@ async function suspendUser(userId, reason, admin) {
 
 ### Shared Blocklists
 
-Some servers share blocklists:
+The common interchange format is Mastodon's domain-block CSV, with the header `#domain,#severity,#reject_media,#reject_reports,#public_comment,#obfuscate` ([`export_domain_blocks_controller.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/controllers/admin/export_domain_blocks_controller.rb)). The [IFTAS DNI ("Do Not Interact") list](https://about.iftas.org/library/iftas-dni-list/) is published in that format and via [FediMod FIRES](https://fires.fedimod.org/), a protocol for publishing moderation advisories that consumers choose whether to apply.
+
+Import lists as **suggestions** for a moderator to review, not as rules applied automatically:
 
 ```javascript
-async function importBlocklist(url) {
-  const response = await fetch(url);
-  const blocklist = await response.json();
+import { parse } from 'csv-parse/sync';
 
-  for (const entry of blocklist.domains) {
-    const existing = await db.domainBlocks.findOne({
-      domain: entry.domain
+async function importBlocklistCsv(csvText, source) {
+  const rows = parse(csvText, { columns: true, skip_empty_lines: true });
+
+  for (const row of rows) {
+    const domain = (row['#domain'] || '').trim().toLowerCase();
+    if (!domain) continue;
+
+    await db.blocklistSuggestions.upsert({ domain, source }, {
+      $set: {
+        severity: row['#severity'] || 'suspend',
+        rejectMedia: row['#reject_media'] === 'true',
+        rejectReports: row['#reject_reports'] === 'true',
+        comment: row['#public_comment'] || '',
+        importedAt: new Date()
+      }
     });
-
-    if (!existing) {
-      await db.domainBlocks.insert({
-        domain: entry.domain,
-        severity: entry.severity,
-        reason: entry.reason,
-        source: url,
-        createdAt: new Date()
-      });
-    }
   }
 }
 ```

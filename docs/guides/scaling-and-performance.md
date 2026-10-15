@@ -2,11 +2,13 @@
 sidebar_position: 14
 title: Scaling and Performance
 description: Best practices for scaling ActivityPub servers and optimizing federation performance
+last_verified: 2026-10-15
+verified_against: "Mastodon v4.7.3 delivery behaviour (via Delivery at Scale), BullMQ and Bull READMEs, undici README, Mastodon 4.7.0 release notes (inbox collections)"
 ---
 
 # Scaling and Performance
 
-Federation presents unique scaling challenges. When you have 100 federated servers and a post gets 100 comments with 100 votes each, that's potentially millions of HTTP requests. This guide covers strategies for building performant, scalable ActivityPub implementations.
+Federation presents unique scaling challenges: every post fans out to one HTTP request per receiving inbox, and every incoming activity may trigger fetches. This page covers the server-side architecture; for retry schedules, terminal errors, dead-server tracking and circuit breakers see **[Delivery at Scale](/docs/guides/delivery-at-scale)**, which documents what Mastodon actually does.
 
 ## The Scaling Challenge
 
@@ -62,38 +64,46 @@ async function createPost(author, content) {
 
 ### Queue Worker
 
+Fan out in two steps: one job resolves the recipients, then **one job per inbox** does the delivery, so a slow or dead server only delays its own job and a retry resends to one server. The example uses [BullMQ](https://github.com/taskforcesh/bullmq) (the older `bull` package is in maintenance mode):
+
 ```javascript
-const Queue = require('bull');
+import { Queue, Worker } from 'bullmq';
 
-const deliveryQueue = new Queue('delivery', {
-  redis: { host: 'localhost', port: 6379 }
-});
+const connection = { host: 'localhost', port: 6379 };
+const fanoutQueue = new Queue('fanout', { connection });
+const deliveryQueue = new Queue('delivery', { connection });
 
-// Process deliveries with concurrency control
-deliveryQueue.process(10, async (job) => {
-  const { activity, actor } = job.data;
-  const authorActor = await db.actors.findOne({ id: actor });
-
-  // Get all recipients
-  const inboxes = await resolveRecipientInboxes(activity);
-
-  // Deduplicate by shared inbox
-  const uniqueInboxes = deduplicateInboxes(inboxes);
-
-  // Deliver to each inbox
-  const results = await Promise.allSettled(
-    uniqueInboxes.map(inbox =>
-      deliverWithRetry(activity, inbox, authorActor)
-    )
-  );
-
-  // Log failures for retry
-  const failures = results.filter(r => r.status === 'rejected');
-  if (failures.length > 0) {
-    console.log(`${failures.length} deliveries failed`);
+// Step 1: resolve recipients once, enqueue one job per unique inbox
+new Worker('fanout', async (job) => {
+  const { activity, actorId } = job.data;
+  const recipients = await resolveRecipients(activity); // actor documents
+  for (const inbox of deduplicateInboxes(recipients)) {
+    await deliveryQueue.add('deliver', { activity, actorId, inbox }, {
+      attempts: 17,                 // first try + 16 retries, like Mastodon
+      backoff: { type: 'custom' },
+    });
   }
+}, { connection });
+
+// Step 2: deliver; throw to retry, return to finish
+new Worker('delivery', async (job) => {
+  const { activity, actorId, inbox } = job.data;
+  if (!(await shouldDeliverTo(new URL(inbox).hostname))) return;
+
+  const outcome = await deliverOnce(activity, inbox, actorId); // 'success' | 'permanent' | 'retry'
+  if (outcome === 'retry') throw new Error(`retry ${inbox}`);
+}, {
+  connection,
+  concurrency: 10,
+  settings: {
+    // Mastodon-like curve: n^4 + 15 s plus jitter (see Delivery at Scale)
+    backoffStrategy: (attemptsMade) =>
+      ((attemptsMade - 1) ** 4 + 15 + Math.random() * 10) * 1000,
+  },
 });
 ```
+
+`deliverOnce` and the success/permanent/retry classification are shown in [Delivery at Scale](/docs/guides/delivery-at-scale#a-delivery-job).
 
 ### Shared Inbox Optimization
 
@@ -121,63 +131,32 @@ With shared inbox, 1000 followers on 500 servers becomes ~500 requests instead o
 
 ## Retry Strategies
 
-### Exponential Backoff
-
-```javascript
-async function deliverWithRetry(activity, inbox, actor, attempt = 0) {
-  const maxAttempts = 5;
-  const baseDelay = 1000; // 1 second
-
-  try {
-    await deliverActivity(activity, inbox, actor);
-  } catch (error) {
-    if (attempt >= maxAttempts) {
-      // Mark server as potentially dead
-      await markServerUnreachable(new URL(inbox).hostname);
-      throw error;
-    }
-
-    // Exponential backoff: 1s, 2s, 4s, 8s, 16s
-    const delay = baseDelay * Math.pow(2, attempt);
-    await sleep(delay);
-
-    return deliverWithRetry(activity, inbox, actor, attempt + 1);
-  }
-}
-```
+Retry from the **queue**, not with `sleep()` inside a worker — a sleeping worker holds a concurrency slot for nothing. Retry over days, not seconds: Mastodon retries a delivery 16 times over roughly 2–3 days and gives up immediately on most 4xx responses (except 401, 408 and 429). Details and the exact curve: [Delivery at Scale → Retry schedule](/docs/guides/delivery-at-scale#retry-schedule).
 
 ### Dead Server Tracking
 
+Count failures by **distinct days**, and clear the record on any success — Mastodon marks a host unavailable after failures on 7 different days, and makes it deliverable again as soon as a delivery succeeds or the host sends a signed request ([Delivery at Scale → Unavailable domains](/docs/guides/delivery-at-scale#unavailable-domains)):
+
 ```javascript
-async function markServerUnreachable(hostname) {
-  await db.serverStatus.upsert(
+async function recordFailure(hostname) {
+  const day = new Date().toISOString().slice(0, 10);
+  const { days } = await db.serverStatus.upsert(
     { hostname },
-    {
-      $set: { lastFailure: new Date() },
-      $inc: { failureCount: 1 }
-    }
+    { $addToSet: { days: day } },
+    { returnDocument: 'after' }
   );
+  if (days.length >= 7) {
+    await db.serverStatus.update({ hostname }, { $set: { unavailable: true } });
+  }
+}
+
+async function recordSuccess(hostname) {
+  await db.serverStatus.remove({ hostname });
 }
 
 async function shouldDeliverTo(hostname) {
   const status = await db.serverStatus.findOne({ hostname });
-
-  if (!status) return true;
-
-  // If failed recently, skip
-  if (status.failureCount >= 5) {
-    const hoursSinceFailure =
-      (Date.now() - status.lastFailure) / (1000 * 60 * 60);
-
-    // Back off exponentially up to 24 hours
-    const backoffHours = Math.min(24, Math.pow(2, status.failureCount - 5));
-
-    if (hoursSinceFailure < backoffHours) {
-      return false;
-    }
-  }
-
-  return true;
+  return !status?.unavailable;
 }
 ```
 
@@ -249,10 +228,13 @@ async function fetchActor(actorId) {
   return actor;
 }
 
-// Invalidate on Update
-async function processUpdate(activity) {
-  if (activity.object?.type === 'Person') {
-    await redis.del(`actor:${activity.object.id}`);
+// Invalidate on Update — any actor type, and only for the signer's own actor
+const ACTOR_TYPES = new Set(['Person', 'Service', 'Application', 'Group', 'Organization']);
+
+async function processUpdate(activity, signer) {
+  const object = activity.object;
+  if (ACTOR_TYPES.has(object?.type) && object.id === signer.id) {
+    await redis.del(`actor:${object.id}`);
   }
   // Process update...
 }
@@ -262,29 +244,27 @@ async function processUpdate(activity) {
 
 ### Connection Keep-Alive
 
-```javascript
-const https = require('https');
-const http = require('http');
+Node's built-in `fetch` (undici) keeps connections alive by default and ignores the old `agent` option; tune it with an [undici](https://github.com/nodejs/undici) `Agent` passed as `dispatcher`. Capping connections per origin also stops a big fan-out from hammering one server:
 
-const httpsAgent = new https.Agent({
-  keepAlive: true,
-  maxSockets: 100,
-  maxFreeSockets: 10,
-  timeout: 60000
+```javascript
+import { Agent } from 'undici';
+
+const dispatcher = new Agent({
+  connections: 8,            // max sockets per origin
+  keepAliveTimeout: 30_000,
 });
 
-async function deliverActivity(activity, inbox, actor) {
-  const response = await fetch(inbox, {
+async function deliverActivity(activity, inbox, signedHeaders) {
+  return fetch(inbox, {
     method: 'POST',
-    agent: httpsAgent, // Reuse connections
+    dispatcher,
     headers: {
       'Content-Type': 'application/activity+json',
-      // ... signature headers
+      ...signedHeaders,
     },
-    body: JSON.stringify(activity)
+    body: JSON.stringify(activity),
+    signal: AbortSignal.timeout(10_000),
   });
-
-  return response;
 }
 ```
 
@@ -442,36 +422,13 @@ setInterval(async () => {
 - [ ] Add read replicas for database
 - [ ] Use CDN for media
 - [ ] Implement rate limiting
-- [ ] Consider aggregating activities
+- [ ] Debounce count updates (see below)
 
-### Activity Aggregation
+### Batching and Debouncing
 
-Reduce vote/like spam by aggregating:
+There is no interoperable way to batch several activities into one delivery: Mastodon 4.7 stopped processing collections of activities posted to an inbox, and [FEP-49eb](https://codeberg.org/fediverse/fep/src/branch/main/fep/49eb/fep-49eb.md) (batched delivery) is still a draft — see [Delivery at Scale → Batching](/docs/guides/delivery-at-scale#batching-not-yet). Every Like, vote or Follow is its own activity, and receivers expect it.
 
-```javascript
-// Instead of sending 100 Like activities immediately
-// Batch them into periodic updates
-
-async function recordLike(actor, objectId) {
-  // Store locally
-  await db.likes.insert({ actor: actor.id, object: objectId });
-
-  // Don't deliver immediately
-}
-
-// Periodic job to send aggregated notifications
-async function sendLikeAggregates() {
-  const recentLikes = await db.likes.aggregate([
-    { $match: { notified: false } },
-    { $group: { _id: '$object', count: { $sum: 1 } } }
-  ]);
-
-  for (const { _id: objectId, count } of recentLikes) {
-    // Send single notification: "Your post got 15 new likes"
-    // Instead of 15 separate Like activities
-  }
-}
-```
+What you *can* debounce is your own outgoing `Update`s. Mastodon, for example, sends one `Update` of a poll about 3 minutes after votes arrive rather than one per vote (see [Polls](/docs/guides/polls)).
 
 ## Next Steps
 

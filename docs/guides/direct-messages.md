@@ -2,6 +2,8 @@
 sidebar_position: 7
 title: Direct Messages
 description: Implementing private messaging in ActivityPub using addressing
+last_verified: 2026-10-15
+verified_against: "Mastodon v4.7.3 source (activitypub/tag_manager.rb, parser/status_parser.rb, activity/create.rb, status_reach_finder.rb, account.rb), ActivityPub REC §6, Pleroma AP extensions docs"
 ---
 
 # Direct Messages
@@ -19,13 +21,15 @@ There are no "visibility levels" in the ActivityPub spec. Privacy is controlled 
 │                                                         │
 │  Public:      to: [as:Public], cc: [followers]          │
 │  Unlisted:    to: [followers], cc: [as:Public]          │
-│  Followers:   to: [followers], cc: []                   │
-│  Direct:      to: [user1, user2], cc: []                │
+│  Followers:   to: [followers], cc: [mentioned users]    │
+│  Direct:      to: [mentioned users], cc: []             │
 │                                                         │
-│  No as:Public + No followers = Direct Message           │
+│  No as:Public + no followers = Direct Message           │
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 ```
+
+These are the shapes Mastodon sends ([`tag_manager.rb` `to`/`cc`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/tag_manager.rb)); mentioned users are also added to `cc` on public, unlisted and followers-only posts. On receipt, Mastodon derives visibility the same way: `as:Public` in `to` → public, in `cc` → unlisted, the author's followers collection in `to` → followers-only, otherwise direct ([`status_parser.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/parser/status_parser.rb)).
 
 ## Sending a Direct Message
 
@@ -116,11 +120,14 @@ async function sendDirectMessage(sender, recipientIds, content) {
   // Store locally
   await db.notes.insert(note);
 
-  // Deliver directly to each recipient's inbox (not shared inbox!)
+  // Deliver once per inbox (shared inbox if advertised, as Mastodon does)
+  const inboxes = new Set();
   for (const recipientId of recipientIds) {
     const recipient = await fetchActor(recipientId);
-    // Use personal inbox for privacy
-    await deliverActivity(activity, recipient.inbox, sender);
+    inboxes.add(recipient.endpoints?.sharedInbox || recipient.inbox);
+  }
+  for (const inbox of inboxes) {
+    await deliverActivity(activity, inbox, sender);
   }
 
   return { note, activity };
@@ -131,53 +138,29 @@ async function sendDirectMessage(sender, recipientIds, content) {
 
 ### Check Addressing
 
+Compare against the author's real `followers` URL (from their actor document) — followers collections can live at any URL, so don't guess from a `/followers` suffix. Treat all three spellings of the Public collection as public:
+
 ```javascript
-function isDirectMessage(note) {
-  const publicAddress = 'https://www.w3.org/ns/activitystreams#Public';
+const PUBLIC = new Set([
+  'https://www.w3.org/ns/activitystreams#Public',
+  'as:Public',
+  'Public',
+]);
 
-  // No public addressing
-  const toPublic = note.to?.includes(publicAddress);
-  const ccPublic = note.cc?.includes(publicAddress);
-
-  if (toPublic || ccPublic) {
-    return false;
-  }
-
-  // No followers collection
-  const hasFollowers = (addresses) =>
-    addresses?.some(addr => addr.endsWith('/followers'));
-
-  if (hasFollowers(note.to) || hasFollowers(note.cc)) {
-    return false;
-  }
-
-  return true;
+// Mirrors Mastodon's visibility rules (status_parser.rb)
+function visibilityOf(note, author) {
+  const to = [].concat(note.to || []);
+  const cc = [].concat(note.cc || []);
+  if (to.some(a => PUBLIC.has(a))) return 'public';
+  if (cc.some(a => PUBLIC.has(a))) return 'unlisted';
+  if (author.followers && to.includes(author.followers)) return 'private';
+  return 'direct';
 }
 ```
 
-### Mastodon's Approach
+### Mastodon's Extra Rule: Mentions
 
-Mastodon identifies DMs as posts where all recipients are also Mentioned in tags:
-
-```javascript
-function isMastodonDirectMessage(note) {
-  const allRecipients = [...(note.to || []), ...(note.cc || [])];
-  const publicAddress = 'https://www.w3.org/ns/activitystreams#Public';
-
-  // Filter out public and get actual recipients
-  const actualRecipients = allRecipients.filter(r =>
-    r !== publicAddress && !r.endsWith('/followers')
-  );
-
-  // Get mentioned actors
-  const mentionedActors = (note.tag || [])
-    .filter(t => t.type === 'Mention')
-    .map(t => t.href);
-
-  // All recipients should be mentioned
-  return actualRecipients.every(r => mentionedActors.includes(r));
-}
-```
+A post that comes out as `direct` stays a DM on Mastodon only if every **local** account it is addressed to is also tagged with a `Mention`. An addressed account without a `Mention` becomes a *silent mention*, and the post is downgraded to **limited** visibility — still private, but not shown as a direct message, and no notification ([`create.rb` `process_audience`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/activity/create.rb)). So always send a `Mention` tag for each DM recipient.
 
 ## Group Direct Messages
 
@@ -232,28 +215,13 @@ async function getConversation(userId, participants) {
 
 ## Delivery Considerations
 
-### Use Personal Inbox, Not Shared Inbox
+### Personal or Shared Inbox
 
-For privacy, DMs should be delivered to personal inboxes:
-
-```javascript
-async function deliverDirectMessage(activity, sender) {
-  const recipients = activity.to || [];
-
-  for (const recipientId of recipients) {
-    const recipient = await fetchActor(recipientId);
-
-    // Use personal inbox for DMs, never shared inbox
-    const inbox = recipient.inbox;
-
-    await deliverActivity(activity, inbox, sender);
-  }
-}
-```
+Either works. Mastodon delivers every post, DMs included, to the recipient server's shared inbox when one is advertised ([`account.rb` `preferred_inbox_url`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/models/account.rb)); the receiving server then decides who may see it from `to`/`cc`. That means a receiving server **must** enforce addressing on shared-inbox deliveries — never show a delivered object to local users who aren't addressed. Delivering to a personal inbox additionally tells the receiver which account it is for: Mastodon gives that account access to the post even if it isn't addressed (it is added as a silent mention, see `postprocess_audience_and_deliver` in `create.rb`).
 
 ### Strip bto/bcc Before Delivery
 
-The spec requires removing `bto` and `bcc` before federation:
+The spec requires removing `bto` and `bcc` before delivery ([AP §6](https://www.w3.org/TR/activitypub/#client-to-server-interactions), [§7.1](https://www.w3.org/TR/activitypub/#delivery)):
 
 ```javascript
 function prepareForDelivery(activity) {
@@ -274,15 +242,14 @@ function prepareForDelivery(activity) {
 
 ### Grouping Messages
 
+Store the visibility computed by `visibilityOf()` when you ingest a note, then query on it:
+
 ```javascript
 async function getConversations(userId) {
   // Get all DMs involving this user
   const dms = await db.notes.find({
-    $and: [
-      { $or: [{ attributedTo: userId }, { 'to': userId }] },
-      // Is a DM (no public, no followers)
-      { 'to': { $not: { $regex: /Public$|\/followers$/ } } }
-    ]
+    visibility: 'direct',
+    $or: [{ attributedTo: userId }, { to: userId }, { cc: userId }]
   }).sort({ published: -1 });
 
   // Group by participants
@@ -353,30 +320,30 @@ async function processDirectMessage(activity, signer) {
 
 ## Pleroma ChatMessage Extension
 
-Pleroma introduced a separate `ChatMessage` type for better DM UX:
+Pleroma has a separate 1-on-1 chat type, `ChatMessage` (`http://litepub.social/ns#ChatMessage`). It is wrapped in a `Create`, is always private, and **must have exactly one actor in `to`** — multi-user chats go through a `Group` that `Announce`s messages ([Pleroma AP extensions](https://docs.pleroma.social/backend/development/ap_extensions/#chatmessages)):
 
 ```json
 {
-  "@context": [
-    "https://www.w3.org/ns/activitystreams",
-    "https://pleroma.social/litepub"
-  ],
-  "type": "ChatMessage",
-  "id": "https://pleroma.example/chat/123",
+  "type": "Create",
+  "id": "https://pleroma.example/objects/1",
   "actor": "https://pleroma.example/users/alice",
   "to": ["https://other.example/users/bob"],
-  "content": "Hey!"
+  "object": {
+    "type": "ChatMessage",
+    "id": "https://pleroma.example/objects/2",
+    "attributedTo": "https://pleroma.example/users/alice",
+    "to": ["https://other.example/users/bob"],
+    "content": "Hey!",
+    "published": "2026-10-15T10:00:00Z"
+  }
 }
 ```
 
-**Key differences:**
-- Only one recipient allowed per ChatMessage
-- Cleaner conversation threading
-- Not converted to mention-style display
+Mastodon only accepts `Note` and `Question` (plus a few converted types such as `Article`) in `Create`, so it ignores `ChatMessage` entirely ([`activity.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/activity.rb)). Send ordinary DMs to non-Pleroma software.
 
 ```javascript
 function isChatMessage(activity) {
-  return activity.object?.type === 'ChatMessage';
+  return activity.type === 'Create' && activity.object?.type === 'ChatMessage';
 }
 ```
 
@@ -403,7 +370,7 @@ function validateDirectMessage(note) {
 
 ### Missing Mentions
 
-Ensure all recipients are mentioned for Mastodon compatibility:
+Ensure every recipient is tagged, otherwise Mastodon downgrades the post to "limited" and doesn't notify (see above):
 
 ```javascript
 function ensureMentions(note) {

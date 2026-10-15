@@ -2,6 +2,8 @@
 sidebar_position: 10
 title: Polls
 description: Implementing polls using ActivityPub Question type
+last_verified: 2026-10-15
+verified_against: "Mastodon v4.7.3 source (activity/create.rb poll_vote?, vote_validator.rb, vote_serializer.rb, note_serializer.rb, distribute_poll_update_worker.rb), AS2 Vocabulary (Question, oneOf, anyOf, closed, endTime)"
 ---
 
 # Polls
@@ -96,7 +98,9 @@ Users can select multiple options:
 | `anyOf` | Array of multiple-choice options |
 | `endTime` | When voting closes (ISO 8601) |
 | `closed` | Timestamp when poll closed (if ended) |
-| `votersCount` | Total unique voters |
+| `votersCount` | Total unique voters — a Mastodon extension (`toot:votersCount`), not AS2 |
+
+Each option's vote count is its `replies.totalItems`. `Question`, `oneOf`, `anyOf`, `closed` and `endTime` are defined in the [Activity Vocabulary](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-question).
 
 ## Creating a Poll
 
@@ -130,7 +134,7 @@ async function createPoll(author, question, options, settings = {}) {
     [settings.multiple ? 'anyOf' : 'oneOf']: pollOptions,
     votersCount: 0,
     to: ['https://www.w3.org/ns/activitystreams#Public'],
-    cc: [`${author.id}/followers`]
+    cc: [author.followers]
   };
 
   // Store poll
@@ -162,7 +166,7 @@ async function createPoll(author, question, options, settings = {}) {
 
 ### Vote Format
 
-A vote is a Create activity with a Note that references the poll:
+A vote is a `Create` of a `Note` whose `name` is the chosen option and whose `inReplyTo` is the poll. One `Create` per choice; Mastodon addresses votes only to the poll's author ([`vote_serializer.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/serializers/activitypub/vote_serializer.rb)):
 
 ```json
 {
@@ -184,21 +188,19 @@ A vote is a Create activity with a Note that references the poll:
 
 ### Identifying a Vote
 
+Mastodon's rule: a `Create` whose object replies to one of **its own** polls and whose `name` exactly matches one of that poll's options is a vote ([`create.rb` `poll_vote?`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/activity/create.rb)). Anything else is an ordinary reply.
+
 ```javascript
-function isVote(activity) {
-  if (activity.type !== 'Create') return false;
-
+async function findVotedPoll(activity) {
   const object = activity.object;
-  if (object.type !== 'Note') return false;
+  if (activity.type !== 'Create' || object?.type !== 'Note') return null;
+  if (typeof object.name !== 'string' || !object.inReplyTo) return null;
 
-  // Has name (the vote choice) but no content
-  if (!object.name) return false;
-  if (object.content) return false;
+  const poll = await db.polls.findOne({ id: object.inReplyTo, local: true });
+  if (!poll) return null;
 
-  // Must reply to something
-  if (!object.inReplyTo) return false;
-
-  return true;
+  const options = poll.oneOf || poll.anyOf;
+  return options.some(opt => opt.name === object.name) ? poll : null;
 }
 ```
 
@@ -267,47 +269,41 @@ async function submitVote(voter, pollId, choices) {
 
 ### Receiving Votes
 
+Mirror Mastodon's [`VoteValidator`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/validators/vote_validator.rb): no votes after expiry, no voting on your own poll, one vote per voter on a `oneOf` poll, and one vote per voter **per option** on an `anyOf` poll:
+
 ```javascript
 async function processVote(activity, signer) {
   const vote = activity.object;
+  if (activity.actor !== signer.id || vote.attributedTo !== signer.id) return;
 
-  // Verify it's a vote
-  if (!isVote(activity)) return;
+  const poll = await findVotedPoll(activity);
+  if (!poll) return; // not a vote: handle as an ordinary reply
 
-  // Find the poll
-  const poll = await db.polls.findOne({ id: vote.inReplyTo });
-  if (!poll) return;
+  if (poll.closed || (poll.endTime && new Date(poll.endTime) < new Date())) return;
+  if (poll.attributedTo === signer.id) return; // no self-votes
 
-  // Check if poll is open
-  if (poll.closed || (poll.endTime && new Date(poll.endTime) < new Date())) {
-    return; // Ignore votes on closed polls
-  }
-
-  // Check if already voted
-  const existingVote = poll.votes.find(v => v.voter === signer.id);
-  if (existingVote) {
-    return; // Already voted (for single choice)
-  }
-
-  // Validate the choice
   const options = poll.oneOf || poll.anyOf;
   const choiceIndex = options.findIndex(opt => opt.name === vote.name);
+  const mine = poll.votes.filter(v => v.voter === signer.id);
 
-  if (choiceIndex === -1) {
-    return; // Invalid choice
-  }
+  if (poll.oneOf && mine.length > 0) return;                          // single choice
+  if (poll.anyOf && mine.some(v => v.choice === vote.name)) return;   // same option twice
 
-  // Record the vote
   await db.polls.update(
     { id: poll.id },
     {
-      $push: { votes: { voter: signer.id, choice: vote.name } },
+      $push: { votes: { voter: signer.id, choice: vote.name, id: vote.id } },
       $inc: {
         [`options.${choiceIndex}.count`]: 1,
-        votersCount: existingVote ? 0 : 1
+        votersCount: mine.length === 0 ? 1 : 0
       }
     }
   );
+
+  // Debounced: Mastodon sends an Update of the Question ~3 minutes after a
+  // vote, to everyone who voted, boosted or was mentioned (plus followers
+  // for public polls) — see distribute_poll_update_worker.rb
+  schedulePollUpdate(poll.id, { delayMs: 3 * 60 * 1000 });
 }
 ```
 
@@ -382,7 +378,14 @@ async function closePoll(poll) {
 
 ## Displaying Polls
 
+Option names and the poll id come from remote servers — escape them, and attach the submit handler in client code rather than inline:
+
 ```javascript
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+}
+
 function renderPoll(poll, currentUser) {
   const options = poll.oneOf || poll.anyOf;
   const isMultiple = !!poll.anyOf;
@@ -396,7 +399,7 @@ function renderPoll(poll, currentUser) {
 
   return `
     <div class="poll ${isClosed ? 'closed' : ''}">
-      <form onsubmit="submitVote(event, '${poll.id}')">
+      <form class="poll-form" data-poll-id="${escapeHtml(poll.id)}">
         ${options.map((option, i) => {
           const count = option.replies?.totalItems || 0;
           const percentage = totalVotes > 0
@@ -408,14 +411,14 @@ function renderPoll(poll, currentUser) {
               ${hasVoted || isClosed
                 ? `<div class="poll-result">
                      <div class="poll-bar" style="width: ${percentage}%"></div>
-                     <span class="poll-text">${option.name}</span>
+                     <span class="poll-text">${escapeHtml(option.name)}</span>
                      <span class="poll-percentage">${percentage}%</span>
                    </div>`
                 : `<label>
                      <input type="${isMultiple ? 'checkbox' : 'radio'}"
                             name="poll-choice"
-                            value="${option.name}">
-                     ${option.name}
+                            value="${escapeHtml(option.name)}">
+                     ${escapeHtml(option.name)}
                    </label>`
               }
             </div>
@@ -429,7 +432,7 @@ function renderPoll(poll, currentUser) {
       </form>
 
       <div class="poll-info">
-        ${poll.votersCount || 0} voters ·
+        ${Number(poll.votersCount) || 0} voters ·
         ${isClosed
           ? 'Closed'
           : `Ends ${formatRelativeTime(poll.endTime)}`
@@ -450,7 +453,7 @@ async function refreshPollResults(pollId) {
 
   // Only refresh open polls from remote servers
   if (poll.closed) return;
-  if (poll.id.startsWith(`https://${config.domain}`)) return;
+  if (new URL(poll.id).origin === `https://${config.domain}`) return;
 
   try {
     const fresh = await fetchObject(pollId);
@@ -479,58 +482,11 @@ async function refreshPollResults(pollId) {
 
 ### Multiple Votes Per User
 
-For multiple choice polls, users can send multiple vote activities:
-
-```javascript
-async function processVote(activity, signer) {
-  const vote = activity.object;
-  const poll = await db.polls.findOne({ id: vote.inReplyTo });
-
-  // For anyOf (multiple choice), allow multiple votes
-  // but track which choices they've made
-  if (poll.anyOf) {
-    const existingChoices = poll.votes
-      .filter(v => v.voter === signer.id)
-      .map(v => v.choice);
-
-    if (existingChoices.includes(vote.name)) {
-      return; // Already voted for this choice
-    }
-
-    // Record additional vote
-    await db.polls.update(
-      { id: poll.id },
-      {
-        $push: { votes: { voter: signer.id, choice: vote.name } },
-        $inc: {
-          [`options.${choiceIndex}.count`]: 1,
-          // Only increment votersCount if first vote
-          votersCount: existingChoices.length === 0 ? 1 : 0
-        }
-      }
-    );
-  }
-}
-```
+On an `anyOf` poll each choice arrives as its own `Create`, so a voter legitimately sends several. Count `votersCount` once per voter, and options once per voter per choice — `processVote` above does both.
 
 ### Vote vs Reply Ambiguity
 
-Distinguish votes from regular replies:
-
-```javascript
-function isVote(activity) {
-  const object = activity.object;
-
-  // Votes have name but no content
-  return (
-    activity.type === 'Create' &&
-    object.type === 'Note' &&
-    object.name && // Has choice text
-    !object.content && // No message content
-    object.inReplyTo // References the poll
-  );
-}
-```
+Use the poll, not the shape of the Note: only a reply to one of your own polls whose `name` matches an option is a vote (`findVotedPoll` above). Everything else — including a reply that happens to have a `name` — is a normal reply.
 
 ### Timezone Handling
 
