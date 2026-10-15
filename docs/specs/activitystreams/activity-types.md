@@ -2,11 +2,13 @@
 sidebar_position: 3
 title: Activity Types
 description: All activity types defined in ActivityStreams 2.0
+last_verified: 2026-10-15
+verified_against: "AS2 Core & Vocabulary (W3C REC 2017), the published AS2 JSON-LD context, ActivityPub REC, Mastodon v4.7.3 source (context_helper.rb, account.rb, json_ld_helper.rb), Mastodon block_service.rb, Lemmy fixtures"
 ---
 
 # Activity Types
 
-ActivityStreams 2.0 defines a comprehensive set of activity types for describing actions. These are organized into categories based on their purpose.
+The [Activity Vocabulary](https://www.w3.org/TR/activitystreams-vocabulary/#activity-types) defines 28 activity types: Accept, Add, Announce, Arrive, Block, Create, Delete, Dislike, Flag, Follow, Ignore, Invite, Join, Leave, Like, Listen, Move, Offer, Question, Reject, Read, Remove, TentativeReject, TentativeAccept, Travel, Undo, Update and View. The grouping below is editorial — AS2 itself does not categorise them. Side effects (what a server must *do*) come from [ActivityPub §6–7](https://www.w3.org/TR/activitypub/#client-to-server-interactions), not from AS2.
 
 ## Activity Categories
 
@@ -46,7 +48,7 @@ ActivityStreams 2.0 defines a comprehensive set of activity types for describing
 
   {/* Notification */}
   <rect x="185" y="115" width="155" height="55" rx="8" fill="url(#actGrad)" stroke="#6364FF" strokeWidth="1.5"/>
-  <text x="262" y="135" textAnchor="middle" fill="#6364FF" fontSize="11" fontWeight="600">Notification</text>
+  <text x="262" y="135" textAnchor="middle" fill="#6364FF" fontSize="11" fontWeight="600">Offer &amp; Report</text>
   <text x="262" y="153" textAnchor="middle" fill="currentColor" fontSize="10">Offer, Invite, Flag</text>
 
   {/* Negation */}
@@ -86,7 +88,7 @@ Indicates a new object has been created.
 
 ### Update
 
-Indicates an existing object has been modified.
+Indicates an existing object has been modified. Between servers, the `object` is a **complete replacement**, not a patch, so send the whole object; the receiver must check the Update is authorised, at minimum that the Update and its object share an origin ([AP §7.3](https://www.w3.org/TR/activitypub/#update-activity-inbox)).
 
 ```json
 {
@@ -97,9 +99,16 @@ Indicates an existing object has been modified.
   "object": {
     "type": "Note",
     "id": "https://example.com/notes/1",
-    "content": "Hello, world! (edited)"
+    "attributedTo": "https://example.com/users/alice",
+    "content": "Hello, world! (edited)",
+    "published": "2024-01-15T10:00:00Z",
+    "updated": "2024-01-15T12:00:00Z",
+    "to": ["https://www.w3.org/ns/activitystreams#Public"],
+    "cc": ["https://example.com/users/alice/followers"]
   },
-  "published": "2024-01-15T12:00:00Z"
+  "published": "2024-01-15T12:00:00Z",
+  "to": ["https://www.w3.org/ns/activitystreams#Public"],
+  "cc": ["https://example.com/users/alice/followers"]
 }
 ```
 
@@ -120,7 +129,7 @@ Indicates an object has been deleted.
 }
 ```
 
-**Result:** The object should return a Tombstone or 410 Gone.
+**Result:** The origin server MAY replace the object with a `Tombstone`; requests for it then get `410 Gone` with the Tombstone, or `404 Not Found` if no Tombstone is kept ([AP §6.4](https://www.w3.org/TR/activitypub/#delete-activity-outbox)). See [Deletion](/docs/guides/deletion).
 
 ## Relationship Activities
 
@@ -138,7 +147,7 @@ Indicates the actor wants to receive updates from the object.
 }
 ```
 
-**Response:** The target should respond with Accept or Reject.
+**Response:** The followed actor replies with `Accept` or `Reject` ([AP §7.5](https://www.w3.org/TR/activitypub/#follow-activity-inbox)); until then the follow is pending.
 
 ### Accept
 
@@ -196,11 +205,11 @@ Indicates the actor is blocking the object.
 }
 ```
 
-**Note:** Block activities should generally not be delivered to the blocked actor.
+**Note:** ActivityPub says servers SHOULD NOT deliver a Block to its object ([AP §6.9](https://www.w3.org/TR/activitypub/#block-activity-outbox)), but Mastodon does deliver it to the blocked account's inbox ([block_service.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/services/block_service.rb#L44-L46)) so the remote server can hide content. Expect to receive Blocks.
 
 ### Ignore
 
-Indicates the actor is ignoring the object (muting).
+Indicates the actor is ignoring the object. Mastodon does not federate mutes, so in practice `Ignore` is rarely sent.
 
 ```json
 {
@@ -319,7 +328,7 @@ Indicates the actor is moving the object to a new location.
 }
 ```
 
-**Usage:** Account migration between servers.
+**Usage:** Account migration between servers. Mastodon sends Move from the old account with `target` set to the new one, and the new account must list the old one in `alsoKnownAs`. See [Account Migration](/docs/guides/account-migration) for FEP-7628.
 
 ## Notification Activities
 
@@ -404,6 +413,8 @@ Reverses a previous activity.
 
 ## Less Common Activities
 
+`TentativeAccept` (extends Accept), `TentativeReject` (extends Reject) and `Travel` (an IntransitiveActivity with `origin`/`target`) are also defined but rarely seen in the fediverse.
+
 ### Arrive
 
 Indicates the actor has arrived at a location (IntransitiveActivity).
@@ -431,6 +442,7 @@ Indicates the actor has left a location or group.
   "actor": "https://example.com/users/alice",
   "object": {
     "type": "Group",
+    "id": "https://example.com/groups/photography",
     "name": "Photography Club"
   }
 }

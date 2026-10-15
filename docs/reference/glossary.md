@@ -2,11 +2,13 @@
 sidebar_position: 20
 title: Glossary
 description: Definitions of key terms in ActivityPub and the Fediverse
+last_verified: 2026-10-15
+verified_against: "AS2 Core & Vocabulary (W3C REC 2017), the published AS2 JSON-LD context, ActivityPub REC, Mastodon v4.7.3 source (context_helper.rb, account.rb, json_ld_helper.rb), RFC 7033, FEP index (codeberg), Mastodon v4.7.3 locales"
 ---
 
 # Glossary
 
-A comprehensive glossary of terms used in ActivityPub, ActivityStreams, and the Fediverse.
+Terms used in ActivityPub, ActivityStreams and the Fediverse, with links to the pages that cover them in depth.
 
 ## A
 
@@ -26,7 +28,7 @@ A JSON-LD based vocabulary for representing social data. ActivityPub uses Activi
 **See also:** [ActivityStreams Overview](/docs/specs/activitystreams/overview)
 
 ### Actor
-An entity that can perform activities. Actors have an `inbox` for receiving activities and an `outbox` for publishing them. Types include `Person`, `Group`, `Service`, `Application`, and `Organization`.
+An entity that can perform activities. Actors have an `inbox` for receiving activities and an `outbox` for publishing them. Types include `Person`, `Group`, `Service`, `Application`, and `Organization` — there is no `Actor` type itself in AS2.
 
 **See also:** [Actor Types](/docs/specs/activitystreams/actor-types), [Building an Actor](/docs/guides/building-an-actor)
 
@@ -49,7 +51,7 @@ An [Actor](#actor) type representing a software application, often used for bots
 Fetching content you missed: an account's older posts after a new follow, or the rest of a conversation (replies, parents) when you only received part of a thread. See FEP-7458 (replies collection), FEP-7888 (`context`) and FEP-f228 (conversation backfill), all drafts.
 
 ### Block
-An activity that prevents interaction between actors. Blocked actors cannot see content or interact with the blocking actor.
+An activity by which an actor blocks another. Enforcement is up to each server: the blocking user's server stops showing and accepting the blocked actor's interactions, and Mastodon also delivers the Block so the remote server can hide content. Public posts can still be fetched unless the server requires signed fetches ([Authorized Fetch](/docs/security/authorized-fetch)).
 
 ### Boost
 Common term for sharing/reblogging content. Implemented as an `Announce` activity in ActivityPub.
@@ -79,7 +81,7 @@ Accept: application/activity+json
 ```
 
 ### Content Warning (CW)
-A summary/spoiler text that hides the main content behind a click. Implemented using the `summary` property with `sensitive: true`.
+A summary/spoiler text that hides the main content behind a click. The warning text goes in `summary`; Mastodon also sets the `sensitive` extension to `true`.
 
 ### Context
 In JSON-LD, the `@context` property defines the vocabulary used in a document. ActivityPub uses `https://www.w3.org/ns/activitystreams` as its primary context.
@@ -92,7 +94,7 @@ In JSON-LD, the `@context` property defines the vocabulary used in a document. A
 The process of fetching a remote object by its URL/ID. When you receive an activity with an object ID, you dereference it to get the full object.
 
 ### Digest
-An HTTP header containing a hash of the request body, used with [HTTP Signatures](#http-signatures) to ensure message integrity.
+An HTTP header containing a hash of the request body, signed along with the request by [HTTP Signatures](#http-signatures) (draft-cavage). RFC 9421 signatures use the `Content-Digest` header instead.
 
 ```http
 Digest: SHA-256=X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=
@@ -179,7 +181,7 @@ A tag starting with `#` used to categorize content. Implemented using the `Hasht
 **See also:** [Mentions and Hashtags](/docs/guides/mentions-and-hashtags)
 
 ### HTTP Signatures
-A mechanism for authenticating HTTP requests using public key cryptography. Required for inbox delivery.
+A mechanism for authenticating HTTP requests using public key cryptography. ActivityPub itself doesn't mandate an authentication method, but in practice every major server requires signed inbox deliveries: draft-cavage signatures everywhere, and RFC 9421 increasingly (Mastodon 4.5+).
 
 **See also:** [HTTP Signatures Overview](/docs/specs/http-signatures/overview)
 
@@ -313,17 +315,17 @@ Interactive voting content implemented using the `Question` type with `oneOf` or
 The local part of an actor's handle (without the domain).
 
 ### Public Address
-The special URL `https://www.w3.org/ns/activitystreams#Public` indicating public visibility.
+The special URL `https://www.w3.org/ns/activitystreams#Public` indicating public visibility. Receivers must also accept the compact forms `as:Public` and `Public`. It is never a delivery target.
 
 ### publicKey
-The RSA public key associated with an actor, used for HTTP Signature verification.
+The key (usually RSA) an actor publishes for HTTP Signature verification, from the W3C Security Vocabulary. Newer keys such as Ed25519 are published in `assertionMethod` ([FEP-521a](https://codeberg.org/fediverse/fep/src/branch/main/fep/521a/fep-521a.md)); see [Keys and Identity](/docs/security/keys-and-identity).
 
 ---
 
 ## Q
 
 ### Question
-An object type representing a poll with voting options.
+An IntransitiveActivity type, used as the object type for polls: options go in `oneOf` (single choice) or `anyOf` (multiple choice), never both.
 
 ---
 
@@ -390,7 +392,7 @@ Mastodon's original term for a post (now officially called "post"). Technically 
 An activity that reverses a previous activity, such as unfollowing or unliking.
 
 ### Unlisted
-A visibility level where content is public but not shown in public timelines.
+A visibility level where content is public but kept out of public timelines. Mastodon now labels it **"Quiet public"** and also keeps it out of search, trending and hashtag feeds. In ActivityPub it is addressed with `Public` in `cc` instead of `to`.
 
 ---
 

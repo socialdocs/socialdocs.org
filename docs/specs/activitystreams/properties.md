@@ -2,11 +2,13 @@
 sidebar_position: 7
 title: Properties
 description: Complete reference of ActivityStreams 2.0 properties
+last_verified: 2026-10-15
+verified_against: "AS2 Core & Vocabulary (W3C REC 2017), the published AS2 JSON-LD context, ActivityPub REC, Mastodon v4.7.3 source (context_helper.rb, account.rb, json_ld_helper.rb)"
 ---
 
 # Properties Reference
 
-This is a comprehensive reference of all properties defined in ActivityStreams 2.0.
+A reference for the properties you will meet most often. The full, normative list is the [Activity Vocabulary §4](https://www.w3.org/TR/activitystreams-vocabulary/#properties). Actor properties such as `inbox`, `outbox` and `preferredUsername` are defined by [ActivityPub §4.1](https://www.w3.org/TR/activitypub/#actor-objects), not AS2, and extensions are marked as such.
 
 ## Core Properties
 
@@ -37,11 +39,11 @@ Can be an array for multiple contexts:
 
 ### type
 
-The object type(s).
+The object type(s) — a string or an array; consumers must handle both.
 
 ```json
 { "type": "Note" }
-{ "type": ["Note", "Object"] }
+{ "type": ["Note", "http://schema.org/CreativeWork"] }
 ```
 
 ### id
@@ -209,7 +211,7 @@ Application that created the object.
 
 ### to
 
-Primary recipients (public).
+Primary recipients. Visible to everyone who can see the object; addressing the special `Public` collection makes the object public.
 
 ```json
 { "to": ["https://www.w3.org/ns/activitystreams#Public"] }
@@ -217,7 +219,7 @@ Primary recipients (public).
 
 ### cc
 
-Secondary recipients (public).
+Secondary recipients, also visible to everyone who can see the object.
 
 ```json
 { "cc": ["https://example.com/users/alice/followers"] }
@@ -225,7 +227,7 @@ Secondary recipients (public).
 
 ### bto
 
-Blind primary recipients (hidden).
+Blind primary recipients. The sending server MUST remove `bto` and `bcc` before delivery ([AP §6](https://www.w3.org/TR/activitypub/#client-to-server-interactions)).
 
 ```json
 { "bto": ["https://example.com/users/admin"] }
@@ -233,7 +235,7 @@ Blind primary recipients (hidden).
 
 ### bcc
 
-Blind secondary recipients (hidden).
+Blind secondary recipients (stripped before delivery, like `bto`).
 
 ```json
 { "bcc": ["https://example.com/users/moderator"] }
@@ -346,14 +348,18 @@ Outcome of the activity.
 
 ### origin
 
-Where the object came from.
+Where the object came from — "the actor has moved `object` from `origin` to `target`" ([AS2 Vocab: Move](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-move)).
 
 ```json
 {
   "type": "Move",
-  "origin": "https://old.example/users/alice"
+  "object": "http://example.org/posts/1",
+  "origin": { "type": "Collection", "name": "List A" },
+  "target": { "type": "Collection", "name": "List B" }
 }
 ```
+
+Account migration (Mastodon) uses `Move` differently: `object` is the old account and `target` the new one, with no `origin`.
 
 ### instrument
 
@@ -481,7 +487,7 @@ Liked items collection.
 
 ### preferredUsername
 
-The @handle part (ASCII, no spaces).
+The @handle part. ActivityPub only calls it "a short username… with no uniqueness guarantees" ([AP §4.1](https://www.w3.org/TR/activitypub/#actor-objects)); Mastodon expects ASCII letters, digits and `_`, with `.` or `-` only between them (`USERNAME_RE` in [account.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/models/account.rb#L75)), so stick to that for interop.
 
 ```json
 { "preferredUsername": "alice" }
@@ -660,6 +666,8 @@ When the object was deleted.
 
 ## Mastodon Extensions
 
+None of these are AS2 core. `manuallyApprovesFollowers` and `movedTo` map to `as:` terms, `alsoKnownAs` is in the published AS2 context, and `discoverable` and `featured` are in Mastodon's `toot:` namespace ([context_helper.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/helpers/context_helper.rb)).
+
 ### discoverable
 
 Show in directory.
@@ -686,13 +694,14 @@ Pinned posts collection.
 
 ### movedTo / alsoKnownAs
 
-Account migration.
+Account migration. `movedTo` is set on the **old** account, `alsoKnownAs` on the **new** one (listing the old account) — they appear on different actors.
 
 ```json
-{
-  "movedTo": "https://new.example/users/alice",
-  "alsoKnownAs": ["https://old.example/users/alice"]
-}
+// Old account (https://old.example/users/alice)
+{ "movedTo": "https://new.example/users/alice" }
+
+// New account (https://new.example/users/alice)
+{ "alsoKnownAs": ["https://old.example/users/alice"] }
 ```
 
 ### publicKey
@@ -715,16 +724,16 @@ Public key for HTTP Signatures, from the [W3C Security Vocabulary](https://w3id.
 |----------|------------|------|----------|
 | id | All | URI | Yes* |
 | type | All | String/Array | Yes |
-| actor | Activity | URI/Object | Yes |
-| object | Activity | URI/Object | Usually |
+| actor | Activity | URI/Object | Yes (in practice) |
+| object | Activity | URI/Object | Yes, except IntransitiveActivity |
 | inbox | Actor | URI | Yes |
 | outbox | Actor | URI | Yes |
 | content | Object | String | Common |
 | published | Object | DateTime | Common |
-| to | Object/Activity | Array | Common |
-| cc | Object/Activity | Array | Common |
+| to | Object/Activity | URI/Object, one or many | Common |
+| cc | Object/Activity | URI/Object, one or many | Common |
 
-*Not required for transient objects
+*ActivityPub requires `id` except on intentionally transient objects ([AP §3.1](https://www.w3.org/TR/activitypub/#obj-id)).
 
 ## Next Steps
 

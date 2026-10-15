@@ -2,11 +2,13 @@
 sidebar_position: 2
 title: Core Types
 description: The fundamental types in ActivityStreams 2.0
+last_verified: 2026-10-15
+verified_against: "AS2 Core & Vocabulary (W3C REC 2017), the published AS2 JSON-LD context, ActivityPub REC, Mastodon v4.7.3 source (context_helper.rb, account.rb, json_ld_helper.rb)"
 ---
 
 # Core Types
 
-ActivityStreams 2.0 defines a small set of core types that form the foundation for all ActivityPub objects. Every object in ActivityStreams inherits from these base types.
+ActivityStreams 2.0 defines a small set of core types that form the foundation for all ActivityPub objects. There are two base types — `Object` and `Link` — and every other type extends one of them ([AS2 Core §4](https://www.w3.org/TR/activitystreams-core/#model)). "Actor types" in the diagram is a grouping, not a class: Person, Group, Application, Service and Organization each extend Object directly.
 
 ## Type Hierarchy
 
@@ -43,7 +45,7 @@ ActivityStreams 2.0 defines a small set of core types that form the foundation f
   <line x1="40" y1="100" x2="40" y2="175" stroke="#6364FF" strokeWidth="1.5"/>
   <line x1="40" y1="175" x2="55" y2="175" stroke="#6364FF" strokeWidth="1.5"/>
   <rect x="55" y="163" width="90" height="24" rx="5" fill="url(#typeGrad)" stroke="#6364FF" strokeWidth="1"/>
-  <text x="100" y="180" textAnchor="middle" fill="currentColor" fontSize="11" fontWeight="500">Actor</text>
+  <text x="100" y="180" textAnchor="middle" fill="currentColor" fontSize="11" fontWeight="500">Actor types</text>
 
   <text x="155" y="168" fill="currentColor" fontSize="9" opacity="0.7">Person, Group,</text>
   <text x="155" y="180" fill="currentColor" fontSize="9" opacity="0.7">Application, Service,</text>
@@ -110,10 +112,10 @@ The base type for all ActivityStreams objects.
 | `published` | DateTime | When created |
 | `updated` | DateTime | When last modified |
 | `attributedTo` | Object/Link | Creator/author |
-| `to` | Array | Primary recipients |
-| `cc` | Array | Secondary recipients |
-| `bto` | Array | Blind primary recipients |
-| `bcc` | Array | Blind secondary recipients |
+| `to` | Object/Link, one or many | Primary recipients |
+| `cc` | Object/Link, one or many | Secondary recipients |
+| `bto` | Object/Link, one or many | Blind primary recipients |
+| `bcc` | Object/Link, one or many | Blind secondary recipients |
 
 ### Example
 
@@ -271,7 +273,7 @@ Represents an ordered or unordered set of Objects or Links.
 | Property | Type | Description |
 |----------|------|-------------|
 | `totalItems` | Integer | Total number of items |
-| `items` | Array | The items (unordered) |
+| `items` | Object/Link, one or many | The items (unordered) |
 | `current` | CollectionPage/Link | Current page |
 | `first` | CollectionPage/Link | First page |
 | `last` | CollectionPage/Link | Last page |
@@ -309,11 +311,7 @@ A Collection where the order of items is significant.
 
 ### Used For
 
-- Outbox (newest first)
-- Inbox (newest first)
-- Followers lists
-- Following lists
-- Liked posts
+ActivityPub requires `inbox` and `outbox` to be OrderedCollections, presented in reverse chronological order (newest first). `followers`, `following`, `liked`, `likes` and `shares` MUST be either an OrderedCollection or a Collection ([AP §5](https://www.w3.org/TR/activitypub/#collections)).
 
 ### Example
 
@@ -408,14 +406,14 @@ A single page of an OrderedCollection.
 }
 ```
 
-## Type Coercion
+## Multiple Types
 
-Objects can have multiple types:
+`type` may hold more than one value, so consumers must handle an array. A common use is adding an extension type alongside an AS2 type that non-aware consumers still understand:
 
 ```json
 {
   "@context": "https://www.w3.org/ns/activitystreams",
-  "type": ["Person", "Object"],
+  "type": ["Person", "http://schema.org/Person"],
   "id": "https://example.com/users/alice",
   "name": "Alice"
 }
@@ -423,7 +421,7 @@ Objects can have multiple types:
 
 ## Null Values
 
-Properties with null values should be omitted rather than included:
+AS2 Core treats an omitted property and a `null` value as equivalent — "no value has been assigned" — and an empty array MUST be represented by omitting the property or setting it to `null` ([AS2 Core §2](https://www.w3.org/TR/activitystreams-core/#syntaxconventions)). Omitting is the simpler choice and what most implementations emit:
 
 ```json
 // Correct

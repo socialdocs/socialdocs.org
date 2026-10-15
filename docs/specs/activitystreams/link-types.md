@@ -2,6 +2,8 @@
 sidebar_position: 6
 title: Link Types
 description: Link types in ActivityStreams 2.0
+last_verified: 2026-10-15
+verified_against: "AS2 Core & Vocabulary (W3C REC 2017), the published AS2 JSON-LD context, ActivityPub REC, Mastodon v4.7.3 source (context_helper.rb, account.rb, json_ld_helper.rb), Mastodon tag.rb"
 ---
 
 # Link Types
@@ -26,7 +28,7 @@ The base Link type for referencing external resources.
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `href` | URI | Target resource URL (required) |
+| `href` | URI | Target resource URL (a Link without it points nowhere) |
 | `rel` | String/Array | Link relation type |
 | `mediaType` | String | MIME type of target |
 | `name` | String | Human-readable name |
@@ -37,7 +39,7 @@ The base Link type for referencing external resources.
 
 ### Link vs Object Reference
 
-Links and objects can often be used interchangeably:
+AS2 lets most properties take an Object, a Link, or a bare URI. In practice, use a **URI string or an embedded object with `id`**: Mastodon reads an embedded value's `id` ([`value_or_id`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/helpers/json_ld_helper.rb#L83-L85)), so a `Link` (which has `href`, not `id`) in `actor` or `object` is read as empty and the activity is dropped. All three forms below are valid AS2; only the first and third interoperate:
 
 ```json
 // As Object reference (just the URL)
@@ -100,33 +102,27 @@ References an actor in content. Used for @mentions.
 | `href` | URI | Actor's ID URL |
 | `name` | String | @handle format |
 
+A Mention tag alone does not notify anyone on Mastodon: the mentioned actor must also be in `to` or `cc`. See [Mentions and Hashtags](/docs/guides/mentions-and-hashtags).
+
 ### Processing Mentions
 
 ```javascript
+// Matches @user@domain. The domain must end in a letter or digit, so a
+// trailing full stop ("…@bob@example.com.") is not swallowed.
+const MENTION_RE = /@([\p{L}\p{N}_.-]+)@((?:[\p{L}\p{N}-]+\.)+[\p{L}\p{N}-]*[\p{L}\p{N}])/gu;
+
 function extractMentions(text) {
-  const mentionRegex = /@(\w+)@([\w.-]+)/g;
-  const mentions = [];
-  let match;
-
-  while ((match = mentionRegex.exec(text)) !== null) {
-    const [fullMatch, username, domain] = match;
-    mentions.push({
-      type: 'Mention',
-      name: fullMatch,
-      href: null // Will be resolved via WebFinger
-    });
-  }
-
-  return mentions;
-}
-
-async function resolveMention(mention) {
-  const [, username, domain] = mention.name.match(/@(\w+)@([\w.-]+)/);
-  const webfinger = await lookupWebFinger(`${username}@${domain}`);
-  mention.href = webfinger.actorUrl;
-  return mention;
+  return [...text.matchAll(MENTION_RE)].map(([name, username, domain]) => ({
+    type: 'Mention',
+    name,
+    username,
+    domain,
+    href: null // resolve via WebFinger before sending; drop mentions that don't resolve
+  }));
 }
 ```
+
+Resolve each `username@domain` with [WebFinger](/docs/guides/webfinger-implementation), take the `self` link with type `application/activity+json` as `href`, and fetch the actor to confirm it exists.
 
 ## Common Link Uses
 
@@ -226,6 +222,7 @@ The `tag` property can contain various link types:
       "name": ":blobcat:",
       "icon": {
         "type": "Image",
+        "mediaType": "image/png",
         "url": "https://example.com/emoji/blobcat.png"
       }
     }
@@ -255,13 +252,15 @@ References a topic tag.
 | Property | Type | Description |
 |----------|------|-------------|
 | `href` | URI | Tag page URL |
-| `name` | String | Tag with # prefix |
+| `name` | String | Tag, normally with `#` prefix (Mastodon sends it; not every implementation does, so strip a leading `#` when reading) |
 
 ### Processing Hashtags
 
+Mastodon accepts Unicode letters and digits in hashtags ([tag.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/models/tag.rb#L42-L46)), so don't limit them to ASCII `\w`:
+
 ```javascript
 function extractHashtags(text) {
-  const hashtagRegex = /#(\w+)/g;
+  const hashtagRegex = /#([\p{L}\p{N}_]+)/gu;
   const tags = [];
   let match;
 
@@ -297,8 +296,10 @@ The `rel` property specifies the relationship:
 | `self` | Canonical representation |
 | `alternate` | Alternative representation |
 | `preview` | Preview of the resource |
-| `http://webfinger.net/rel/profile-page` | Profile page |
-| `http://ostatus.org/schema/1.0/subscribe` | Remote follow URL |
+| `http://webfinger.net/rel/profile-page` | Profile page (used in WebFinger) |
+| `http://ostatus.org/schema/1.0/subscribe` | Remote follow URL template (used in WebFinger) |
+
+Per the AS2 Vocabulary, `rel` values must be valid HTML/RFC 5988 link relations: no whitespace or commas ([AS2 Vocab: rel](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-rel)).
 
 ## Preview Links
 
