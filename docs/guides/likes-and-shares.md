@@ -2,6 +2,8 @@
 sidebar_position: 6
 title: Likes and Shares
 description: Implementing Like (favourite) and Announce (boost/reblog) activities in ActivityPub
+last_verified: 2026-10-15
+verified_against: "Mastodon v4.7.3 source (activity/like.rb, activity/announce.rb, activity/undo.rb, tag_manager.rb, status_policy.rb, likes_controller.rb, shares_controller.rb), ActivityPub REC §5.7-5.8, §7.8-7.11"
 ---
 
 # Likes and Shares
@@ -102,7 +104,8 @@ async function processLike(activity, signer) {
     createdAt: new Date()
   });
 
-  // Create notification for the author
+  // Mastodon treats every Like as a plain favourite — it ignores any
+  // emoji `content`/`_misskey_reaction` (see Custom Emoji)
   await createNotification(object.attributedTo, 'favourite', {
     actor: activity.actor,
     object: objectId
@@ -115,6 +118,8 @@ async function processLike(activity, signer) {
 The Announce activity shares content to your followers—known as "boosting" or "reblogging."
 
 ### Announce Format
+
+Mastodon sends a public boost to `as:Public`, with the boosted post's author and the booster's followers in `cc` ([`tag_manager.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/tag_manager.rb)):
 
 ```json
 {
@@ -149,12 +154,8 @@ async function sendAnnounce(actor, objectId) {
   // Fetch the original object
   const object = await fetchObject(objectId);
 
-  // Can't boost non-public posts
-  const isPublic = object.to?.includes('https://www.w3.org/ns/activitystreams#Public') ||
-                   object.cc?.includes('https://www.w3.org/ns/activitystreams#Public');
-
-  if (!isPublic) {
-    throw new Error('Cannot boost non-public posts');
+  if (!canBoost(object, actor)) {
+    throw new Error('This post cannot be boosted');
   }
 
   const activity = {
@@ -166,7 +167,7 @@ async function sendAnnounce(actor, objectId) {
     to: ['https://www.w3.org/ns/activitystreams#Public'],
     cc: [
       object.attributedTo, // Notify the original author
-      `${actor.id}/followers`
+      actor.followers
     ],
     object: objectId
   };
@@ -195,6 +196,8 @@ async function sendAnnounce(actor, objectId) {
 
 ### Receiving an Announce
 
+The announced object usually belongs to a *third* server, so an embedded copy proves nothing: fetch it from its own origin. Mastodon also drops boosts nobody local cares about (the booster isn't followed locally, it didn't arrive via a relay, and the post isn't local) and only accepts boosts of public/unlisted posts, or of the booster's own posts ([`announce.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/activity/announce.rb)):
+
 ```javascript
 async function processAnnounce(activity, signer) {
   if (activity.actor !== signer.id) {
@@ -203,19 +206,24 @@ async function processAnnounce(activity, signer) {
 
   const objectId = typeof activity.object === 'string'
     ? activity.object
-    : activity.object.id;
+    : activity.object?.id;
+  if (!objectId) return;
 
-  // Try to fetch the announced object if we don't have it
   let object = await db.notes.findOne({ id: objectId });
-
   if (!object) {
+    if (!(await isFollowedLocally(activity.actor))) return; // nobody here cares
+
     try {
-      object = await fetchObject(objectId);
-      await db.notes.insert(object);
+      // Ignore any embedded copy; fetch from the object's origin and make
+      // sure the document really lives there (see the Origin Model page)
+      object = await safeFetchObject(objectId);
+      if (new URL(object.id).origin !== new URL(objectId).origin) return;
     } catch (error) {
       console.log('Could not fetch announced object:', objectId);
       return;
     }
+    if (!canBoost(object, { id: activity.actor })) return;
+    await db.notes.insert(object);
   }
 
   // Record the announce
@@ -227,7 +235,8 @@ async function processAnnounce(activity, signer) {
   });
 
   // If the announced object is ours, notify the author
-  if (object.attributedTo?.startsWith(`https://${config.domain}`)) {
+  // (compare origins — a startsWith() prefix check also matches example.com.evil)
+  if (new URL(object.id).origin === `https://${config.domain}`) {
     await createNotification(object.attributedTo, 'reblog', {
       actor: activity.actor,
       object: objectId
@@ -296,28 +305,31 @@ async function sendUndoLike(actor, objectId) {
 
 ### Receiving Undo Like
 
+The wrapped Like may be embedded or just its `id`, so look it up by id when you can, and only ever remove the signer's own likes:
+
 ```javascript
 async function processUndoLike(activity, signer) {
-  const likeActivity = activity.object;
-
-  // Verify actor owns the Like
-  const likeActor = typeof likeActivity.actor === 'string'
-    ? likeActivity.actor
-    : likeActivity.actor.id;
-
-  if (likeActor !== signer.id) {
-    throw new Error('Cannot undo like from another actor');
+  if (activity.actor !== signer.id) {
+    throw new Error('Actor mismatch');
   }
 
-  const objectId = typeof likeActivity.object === 'string'
-    ? likeActivity.object
-    : likeActivity.object.id;
+  const likeActivity = activity.object;
+  const likeId = typeof likeActivity === 'string' ? likeActivity : likeActivity?.id;
 
-  // Remove the like
-  await db.likes.remove({
-    actor: signer.id,
-    object: objectId
-  });
+  // Prefer the stored Like (works when only the id is sent)
+  const stored = likeId && await db.likes.findOne({ id: likeId, actor: signer.id });
+  if (stored) {
+    await db.likes.remove({ id: stored.id });
+    return;
+  }
+
+  // Fall back to the embedded Like's object
+  const objectId = typeof likeActivity?.object === 'string'
+    ? likeActivity.object
+    : likeActivity?.object?.id;
+  if (objectId) {
+    await db.likes.remove({ actor: signer.id, object: objectId });
+  }
 }
 ```
 
@@ -359,7 +371,7 @@ async function sendUndoAnnounce(actor, objectId) {
     type: 'Undo',
     actor: actor.id,
     to: ['https://www.w3.org/ns/activitystreams#Public'],
-    cc: [`${actor.id}/followers`],
+    cc: [actor.followers],
     object: {
       id: announce.id,
       type: 'Announce',
@@ -391,7 +403,7 @@ app.get('/notes/:id/likes', async (req, res) => {
     type: 'Collection',
     id: `${noteId}/likes`,
     totalItems
-    // Note: Mastodon doesn't expose individual likes
+    // Mastodon's likes/shares collections also carry only totalItems
   });
 });
 ```
@@ -433,21 +445,19 @@ async function getEngagementCounts(noteId) {
 
 ### Who Can See Likes?
 
-Different implementations handle this differently:
-- **Mastodon**: Like counts visible, individual likers are not exposed via AP
-- **Pleroma**: Full like list available
-- **Your choice**: Decide based on your privacy goals
+Mastodon's `likes` and `shares` collections expose only `totalItems`, never who liked or boosted ([`likes_controller.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/controllers/activitypub/likes_controller.rb)). Whether you list individual likers is a privacy decision for your software.
 
 ### Boost Restrictions
 
-Only public and unlisted posts should be boostable:
+Mastodon lets anyone boost public and unlisted posts, and lets authors boost their **own** followers-only posts; direct and limited posts can't be boosted ([`status_policy.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/policies/status_policy.rb)). Also respect a post's `interactionPolicy.canAnnounce` where present (see [Quote Posts and Interaction Policies](/docs/guides/quote-posts-and-interaction-policies)).
 
 ```javascript
-function canBoost(object) {
-  const publicAddress = 'https://www.w3.org/ns/activitystreams#Public';
+const PUBLIC = new Set(['https://www.w3.org/ns/activitystreams#Public', 'as:Public', 'Public']);
 
-  return object.to?.includes(publicAddress) ||
-         object.cc?.includes(publicAddress);
+function canBoost(object, booster) {
+  const addressed = [].concat(object.to || [], object.cc || []);
+  if (addressed.some(a => PUBLIC.has(a))) return true;      // public or unlisted
+  return object.attributedTo === booster.id;                // self-boost
 }
 ```
 
@@ -497,10 +507,12 @@ function isBoost(activity) {
   return activity.type === 'Announce';
 }
 
-function getOriginalAuthor(activity) {
+async function getOriginalAuthor(activity) {
   if (isBoost(activity)) {
-    // The object's attributedTo is the real author
-    return activity.object.attributedTo;
+    // The real author is the announced object's attributedTo — read it from
+    // the copy you fetched from its origin, not from an embedded object
+    const object = await db.notes.findOne({ id: activity.object?.id ?? activity.object });
+    return object?.attributedTo;
   }
   return activity.actor;
 }

@@ -2,6 +2,8 @@
 sidebar_position: 9
 title: Media Attachments
 description: Implementing image, video, and audio attachments in ActivityPub
+last_verified: 2026-10-15
+verified_against: "Mastodon v4.7.3 source (note_serializer.rb MediaAttachmentSerializer, parser/media_attachment_parser.rb, activity/create.rb, media_attachment.rb, status.rb), Mastodon API guidelines (focal points), AS2 Vocabulary, sharp docs"
 ---
 
 # Media Attachments
@@ -34,10 +36,15 @@ Media attachments allow posts to include images, videos, and audio files. Activi
 | `type` | `Document`, `Image`, `Video`, or `Audio` |
 | `mediaType` | MIME type (e.g., `image/jpeg`, `video/mp4`) |
 | `url` | Direct URL to the media file |
-| `name` | Alt text / description (accessibility) |
+| `name` | Alt text. Mastodon sends alt text as `name`, and when reading prefers `summary`, then `name` ([`media_attachment_parser.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/parser/media_attachment_parser.rb)) |
 | `width` | Width in pixels (optional) |
 | `height` | Height in pixels (optional) |
-| `blurhash` | BlurHash string for placeholder (Mastodon extension) |
+| `duration` | Length of audio/video as an [`xsd:duration`](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-duration) string such as `PT2M` — not a number (optional) |
+| `icon` | Thumbnail for video/audio; Mastodon reads `icon` (a URL or an `Image` with `url`) (optional) |
+| `blurhash` | BlurHash placeholder (Mastodon extension, `toot:blurhash`). Mastodon ignores it if either component count is above 5 |
+| `focalPoint` | `[x, y]` crop focus (Mastodon extension, `toot:focalPoint`) |
+
+These are the properties Mastodon serializes on each attachment ([`MediaAttachmentSerializer`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/serializers/activitypub/note_serializer.rb)).
 
 ## Type Variations
 
@@ -57,9 +64,9 @@ Mastodon uses `Document` for all attachments:
 }
 ```
 
-### Using Image (Threads Style)
+### Using Specific Types
 
-Some implementations use specific types:
+Other implementations use the specific AS2 types:
 
 ```json
 {
@@ -103,11 +110,13 @@ function getAttachmentType(attachment) {
   "name": "Video description",
   "width": 1280,
   "height": 720,
-  "duration": 120
+  "duration": "PT2M"
 }
 ```
 
-### Video with Preview
+### Video with Thumbnail
+
+Mastodon puts a custom thumbnail in `icon` and reads it from there; it does not read AS2 `preview` ([`media_attachment_parser.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/parser/media_attachment_parser.rb)):
 
 ```json
 {
@@ -115,8 +124,9 @@ function getAttachmentType(attachment) {
   "mediaType": "video/mp4",
   "url": "https://example.com/media/video.mp4",
   "name": "Video description",
-  "preview": {
+  "icon": {
     "type": "Image",
+    "mediaType": "image/jpeg",
     "url": "https://example.com/media/video-thumb.jpg"
   }
 }
@@ -130,7 +140,7 @@ function getAttachmentType(attachment) {
   "mediaType": "audio/mpeg",
   "url": "https://example.com/media/audio.mp3",
   "name": "Podcast episode",
-  "duration": 3600
+  "duration": "PT1H"
 }
 ```
 
@@ -138,79 +148,82 @@ function getAttachmentType(attachment) {
 
 ### Media Upload Endpoint
 
-```javascript
-const multer = require('multer');
-const sharp = require('sharp');
+Three rules for uploads:
 
-const upload = multer({
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
-  fileFilter: (req, file, cb) => {
-    const allowed = [
-      'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-      'video/mp4', 'video/webm',
-      'audio/mpeg', 'audio/ogg'
-    ];
-    cb(null, allowed.includes(file.mimetype));
-  }
-});
+- **Never use the client's filename** in a path (`../../` traversal) — generate the name and extension yourself.
+- **Don't trust the declared MIME type** — `file.mimetype` is whatever the client sent. Decode the file and use the detected format.
+- **Strip metadata.** Phone photos carry EXIF GPS coordinates. Re-encode images (sharp drops metadata unless you ask it to keep it, and `.rotate()` first applies the EXIF orientation), and strip video/audio metadata with `ffmpeg -map_metadata -1`, as Mastodon does ([`vips_lazy_thumbnail.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/lib/paperclip/vips_lazy_thumbnail.rb)).
+
+```javascript
+import multer from 'multer';
+import sharp from 'sharp';
+import { encode } from 'blurhash';
+import { randomUUID } from 'node:crypto';
+
+const upload = multer({ limits: { fileSize: 10 * 1024 * 1024 } }); // 10 MB
+
+// sharp format -> [mediaType, extension]; no SVG (it can carry script)
+const IMAGE_FORMATS = {
+  jpeg: ['image/jpeg', 'jpg'],
+  png: ['image/png', 'png'],
+  webp: ['image/webp', 'webp'],
+  gif: ['image/gif', 'gif'],
+};
 
 app.post('/api/media', authenticate, upload.single('file'), async (req, res) => {
-  const file = req.file;
-
-  // Generate unique filename
-  const filename = `${uuid()}-${file.originalname}`;
-  const filepath = `media/${filename}`;
-
-  // Process image
-  if (file.mimetype.startsWith('image/')) {
-    const metadata = await sharp(file.buffer).metadata();
-
-    // Generate blurhash
-    const { data, info } = await sharp(file.buffer)
-      .resize(32, 32, { fit: 'inside' })
-      .raw()
-      .ensureAlpha()
-      .toBuffer({ resolveWithObject: true });
-
-    const blurhash = encode(
-      new Uint8ClampedArray(data),
-      info.width,
-      info.height,
-      4, 4
-    );
-
-    // Save file
-    await saveFile(filepath, file.buffer);
-
-    return res.json({
-      id: uuid(),
-      type: 'Document',
-      mediaType: file.mimetype,
-      url: `https://${config.domain}/${filepath}`,
-      width: metadata.width,
-      height: metadata.height,
-      blurhash
-    });
+  const meta = await sharp(req.file.buffer, { animated: true }).metadata().catch(() => null);
+  const format = meta && IMAGE_FORMATS[meta.format];
+  if (!format) {
+    // Video/audio: probe and strip with ffmpeg in a job, then store the same way
+    return res.status(415).json({ error: 'Unsupported media type' });
   }
+  const [mediaType, ext] = format;
 
-  // Handle video/audio
-  await saveFile(filepath, file.buffer);
+  // Re-encode: applies EXIF orientation, drops EXIF/GPS and other metadata
+  const { data: clean, info } = await sharp(req.file.buffer, { animated: true })
+    .rotate()
+    .toFormat(meta.format)
+    .toBuffer({ resolveWithObject: true });
 
-  res.json({
-    id: uuid(),
-    type: 'Document',
-    mediaType: file.mimetype,
-    url: `https://${config.domain}/${filepath}`
-  });
+  const { data: pixels, info: small } = await sharp(clean)
+    .resize(32, 32, { fit: 'inside' })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const blurhash = encode(new Uint8ClampedArray(pixels), small.width, small.height, 4, 4);
+
+  const id = randomUUID();
+  const filepath = `media/${id}.${ext}`;
+  await saveFile(filepath, clean);
+
+  const media = {
+    id,
+    ownerId: req.user.id,
+    mediaType,
+    url: `https://${config.domain}/${filepath}`,
+    width: info.width,
+    height: meta.pageHeight ?? info.height, // one frame of an animation
+    blurhash,
+    description: String(req.body.description || '').slice(0, 10000), // Mastodon's limit
+  };
+  await db.media.insert(media);
+  res.json({ id, url: media.url });
 });
 ```
+
+Serve uploaded files with the stored `Content-Type` and `X-Content-Type-Options: nosniff`, from a separate domain if you can.
 
 ### Creating Post with Attachments
 
 ```javascript
 async function createPostWithMedia(author, content, mediaIds, options = {}) {
-  // Fetch media records
-  const attachments = await db.media.find({ _id: { $in: mediaIds } });
+  // Only the uploader's own media, in the order given, at most 4
+  // (Mastodon keeps only the first 4 attachments of remote posts too)
+  const owned = await db.media.find({ id: { $in: mediaIds }, ownerId: author.id });
+  const attachments = mediaIds
+    .map(id => owned.find(m => m.id === id))
+    .filter(Boolean)
+    .slice(0, 4);
 
   const note = {
     '@context': 'https://www.w3.org/ns/activitystreams',
@@ -220,7 +233,7 @@ async function createPostWithMedia(author, content, mediaIds, options = {}) {
     content: sanitizeHtml(content),
     published: new Date().toISOString(),
     to: options.to || ['https://www.w3.org/ns/activitystreams#Public'],
-    cc: options.cc || [`${author.id}/followers`],
+    cc: options.cc || [author.followers],
     attachment: attachments.map(media => ({
       type: 'Document',
       mediaType: media.mediaType,
@@ -299,18 +312,19 @@ Mastodon supports focal points for image cropping:
 }
 ```
 
-Values range from -1.0 to 1.0 (center is 0,0).
+Values range from -1.0 to 1.0, **left-to-right and bottom-to-top**; `(0, 0)` is the centre, so `[0.5, 0.25]` is right of and above centre ([Mastodon API guidelines](https://docs.joinmastodon.org/api/guidelines/#focal-points)). CSS `object-position` runs top-to-bottom, so flip `y`:
 
 ```javascript
 function applyFocalPoint(element, focalPoint) {
-  if (!focalPoint) {
+  if (!Array.isArray(focalPoint) || focalPoint.length !== 2) {
     element.style.objectPosition = 'center';
     return;
   }
 
-  const [x, y] = focalPoint;
+  const clamp = (v) => Math.max(-1, Math.min(1, Number(v) || 0));
+  const [x, y] = focalPoint.map(clamp);
   const percentX = ((x + 1) / 2) * 100;
-  const percentY = ((y + 1) / 2) * 100;
+  const percentY = ((1 - y) / 2) * 100; // +1 is the top edge
 
   element.style.objectPosition = `${percentX}% ${percentY}%`;
 }
@@ -318,39 +332,46 @@ function applyFocalPoint(element, focalPoint) {
 
 ## Processing Incoming Attachments
 
+Mastodon treats an attachment with an `href` as a link (a preview-card candidate), not media, and keeps at most 4 media attachments ([`create.rb` `process_attachments`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/activity/create.rb)). `url` may be a string or a `Link` object.
+
 ```javascript
+const urlOf = (u) => (typeof u === 'string' ? u : Array.isArray(u) ? urlOf(u[0]) : u?.href);
+
 async function processIncomingNote(note) {
-  const attachments = note.attachment || [];
+  const attachments = [].concat(note.attachment || [])
+    .filter(a => a && !a.href)          // href = link, not media
+    .slice(0, 4);
 
   for (const attachment of attachments) {
-    // Cache remote media locally (optional)
-    if (shouldCacheMedia(attachment)) {
-      const localUrl = await cacheRemoteMedia(attachment.url);
-      attachment.localUrl = localUrl;
-    }
+    const url = urlOf(attachment.url);
+    if (!url || new URL(url).protocol !== 'https:') continue;
 
-    // Store attachment metadata
     await db.attachments.insert({
       noteId: note.id,
       type: attachment.type,
       mediaType: attachment.mediaType,
-      url: attachment.url,
-      localUrl: attachment.localUrl,
-      name: attachment.name,
+      url,
+      description: attachment.summary || attachment.name || '',
       width: attachment.width,
       height: attachment.height,
-      blurhash: attachment.blurhash
+      blurhash: attachment.blurhash,
+      // optional: cached copy made by a background job
+      localUrl: shouldCacheMedia(attachment) ? await cacheRemoteMedia(url) : null
     });
   }
 }
 
 async function cacheRemoteMedia(url) {
-  const response = await fetch(url);
-  const buffer = await response.buffer();
+  // SSRF-safe fetch with a byte cap and timeout (see the media proxy in
+  // /docs/reference/content-security), then decode and re-encode it like an
+  // upload — never store remote bytes under a remote-chosen name or type
+  const buffer = await safeFetchBuffer(url, { maxBytes: 10 * 1024 * 1024 });
+  const meta = await sharp(buffer).metadata().catch(() => null);
+  const format = meta && IMAGE_FORMATS[meta.format];
+  if (!format) return null;
 
-  const filename = `cache/${uuid()}-${path.basename(new URL(url).pathname)}`;
-  await saveFile(filename, buffer);
-
+  const filename = `cache/${randomUUID()}.${format[1]}`;
+  await saveFile(filename, await sharp(buffer).rotate().toFormat(meta.format).toBuffer());
   return `https://${config.domain}/${filename}`;
 }
 ```
@@ -374,28 +395,36 @@ Mark attachments as sensitive:
 }
 ```
 
+`sensitive` is a Mastodon extension (`as:sensitive`), not part of AS2.
+
 ### Handling Sensitive Media
 
-```javascript
-function renderAttachment(attachment, isSensitive) {
-  if (isSensitive) {
-    return `
-      <div class="sensitive-media" onclick="revealMedia(this)">
-        <div class="blur-overlay">
-          ${attachment.blurhash
-            ? `<img src="${blurhashToDataURL(attachment.blurhash)}">`
-            : '<div class="placeholder"></div>'
-          }
-          <span>Click to reveal</span>
-        </div>
-        <img src="${attachment.url}" alt="${attachment.name}" hidden>
-      </div>
-    `;
-  }
+Every value here came from a remote server: escape it, and accept only `https:` media URLs.
 
-  return `<img src="${attachment.url}" alt="${attachment.name}">`;
+```javascript
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+}
+
+function renderAttachment(attachment, isSensitive) {
+  const url = new URL(attachment.localUrl || attachment.url);
+  if (url.protocol !== 'https:') return '';
+  const img = `<img src="${escapeHtml(url.href)}" alt="${escapeHtml(attachment.description)}"`;
+
+  if (isSensitive) {
+    // Reveal with a <button> + event listener in your client code, not inline JS
+    return `
+      <div class="sensitive-media">
+        <button type="button" class="reveal">Show sensitive media</button>
+        ${img} hidden>
+      </div>`;
+  }
+  return `${img}>`;
 }
 ```
+
+The BlurHash placeholder is drawn client-side (see above) from a value Mastodon validates; validate it the same way before decoding.
 
 ## Multiple Attachments
 
@@ -428,21 +457,19 @@ Posts can have multiple attachments:
 }
 ```
 
-Mastodon limits to 4 attachments per post.
+Mastodon allows 4 attachments per post and keeps only the first 4 of a remote post ([`Status::MEDIA_ATTACHMENTS_LIMIT`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/models/status.rb)).
 
 ## Alt Text
 
 Always include descriptive alt text:
 
 ```javascript
-async function uploadMedia(file, description) {
-  // ... upload processing ...
-
+function toAttachment(media) {
   return {
     type: 'Document',
-    mediaType: file.mimetype,
-    url: mediaUrl,
-    name: description || '' // Alt text goes in name
+    mediaType: media.mediaType,
+    url: media.url,
+    name: media.description || '' // Alt text goes in name
   };
 }
 ```
@@ -503,21 +530,7 @@ function inferMediaType(url) {
 
 ### Remote Media Failures
 
-Handle unavailable media gracefully:
-
-```javascript
-async function renderAttachment(attachment) {
-  try {
-    const response = await fetch(attachment.url, { method: 'HEAD' });
-    if (!response.ok) {
-      return '<div class="media-unavailable">Media unavailable</div>';
-    }
-    return `<img src="${attachment.url}" alt="${attachment.name}">`;
-  } catch (error) {
-    return '<div class="media-unavailable">Media unavailable</div>';
-  }
-}
-```
+Don't probe remote media from the server while rendering (it's slow, and an SSRF vector). Cache media in a background job, or let the client handle failures — e.g. swap in a "media unavailable" placeholder from an `error` event listener on the `<img>`.
 
 ## Next Steps
 
