@@ -1,0 +1,143 @@
+---
+sidebar_position: 1
+title: HTTP signatures in 2026
+description: How ActivityPub servers sign and verify requests in 2026. Covers draft-cavage vs RFC 9421, double-knocking, hs2019, Ed25519 and multiple keys (FEP-521a), capability discovery (FEP-844e), and a "why did I get a 401?" checklist.
+---
+
+import CodeBlock from '@theme/CodeBlock';
+import signSrc from '!!raw-loader!@site/examples/verify-requests/src/sign.js';
+
+# HTTP signatures in 2026
+
+ActivityPub doesn't define how servers authenticate each other. In practice, every server signs its HTTP requests and every receiver checks those signatures against the sender's actor key. Two signature schemes are in use, and as of October 2026 you need to handle both.
+
+| | draft-cavage | RFC 9421 |
+|---|---|---|
+| Spec | [draft-cavage-http-signatures-12](https://datatracker.ietf.org/doc/html/draft-cavage-http-signatures-12) (an expired Internet-Draft) | [RFC 9421: HTTP Message Signatures](https://www.rfc-editor.org/rfc/rfc9421) (Proposed Standard, February 2024) |
+| Headers | `Signature` | `Signature-Input` + `Signature` |
+| Body digest | `Digest: SHA-256=…` ([RFC 3230](https://www.rfc-editor.org/rfc/rfc3230)) | `Content-Digest: sha-256=:…:` ([RFC 9530](https://www.rfc-editor.org/rfc/rfc9530)) |
+| Covered parts | `(request-target) host date digest` | `"@method" "@target-uri" "content-digest"` plus a `created` parameter |
+| Who sends it | Effectively every ActivityPub server | Mastodon ≥ 4.7 as a fallback; others are adding it |
+| Who verifies it | Effectively every ActivityPub server | Mastodon ≥ 4.5 (experimental in 4.4), others |
+
+Sources: Mastodon [CHANGELOG](https://github.com/mastodon/mastodon/blob/main/CHANGELOG.md) and [`app/lib/request.rb`](https://github.com/mastodon/mastodon/blob/main/app/lib/request.rb). For the profile of draft-cavage most servers actually implement, read the SocialCG report **[ActivityPub and HTTP Signatures](https://swicg.github.io/activitypub-http-signature/)** (editors Ryan Barrett and nightpool; [final report, 2024-06-07](https://www.w3.org/community/reports/socialcg/CG-FINAL-apsig-20240607/)).
+
+:::tip Verifying?
+The receiving side is covered with tested code on [Verifying incoming requests](/docs/security/verifying-requests). This page covers the schemes, signing, and debugging.
+:::
+
+## What to send: double-knocking
+
+Mastodon 4.7's outgoing requests are a good default to copy ([`request.rb`](https://github.com/mastodon/mastodon/blob/main/app/lib/request.rb)):
+
+1. Sign with **draft-cavage** first: `rsa-sha256` over `(request-target) host date digest`, plus any other headers you send.
+2. If the response is **400 or 401**, retry **once** with **RFC 9421**, covering `@method`, `@target-uri` and `content-digest`, with a `created` parameter.
+
+This "double-knock" lets you move to RFC 9421 without breaking servers that only know draft-cavage. To skip the first knock, look for [FEP-844e: Capability discovery](https://codeberg.org/fediverse/fep/src/branch/main/fep/844e/fep-844e.md) (DRAFT). A server can advertise RFC 9421 support in an `implements` list on its `Application` object, linked from actors through `generator`:
+
+```json
+{
+  "@context": ["https://www.w3.org/ns/activitystreams", "https://w3id.org/fep/844e"],
+  "id": "https://social.example/server",
+  "type": "Application",
+  "implements": [
+    { "href": "https://datatracker.ietf.org/doc/html/rfc9421", "name": "RFC-9421: HTTP Message Signatures" }
+  ]
+}
+```
+
+### Signing code
+
+Tested in [`examples/verify-requests`](https://github.com/socialdocs/socialdocs.org/tree/gh-pages/examples/verify-requests): the tests sign with this code and verify with the code on [Verifying incoming requests](/docs/security/verifying-requests).
+
+<CodeBlock language="js" title="examples/verify-requests/src/sign.js">{signSrc}</CodeBlock>
+
+Rules that trip people up:
+
+- **Include the query string** in `(request-target)` and `@target-uri`. Old Mastodon versions omitted it, and Mastodon still accepts both forms for compatibility. New code should always include it.
+- **Sign the exact bytes you send.** Compute the digest over the serialised body, then send that same buffer.
+- **Send a current `Date`.** Mastodon treats a signature without `expires` as valid for 5 minutes after its creation time, with 1 hour of tolerated clock skew. Explicit expiries are capped at 12 hours ([`signed_request.rb`](https://github.com/mastodon/mastodon/blob/main/app/lib/signed_request.rb)).
+- **Sign GETs too.** Servers in "secure mode" / authorized fetch (mastodon.social, for example) answer **401** to unsigned GETs, even for public actors. Sign fetches with a server-wide **instance actor** key so you aren't tied to a particular user.
+
+## `hs2019` and algorithms
+
+- `algorithm="rsa-sha256"`: RSASSA-PKCS1-v1_5 with SHA-256. This is the interoperable choice for draft-cavage.
+- `algorithm="hs2019"`: a placeholder from cavage-12 meaning "work out the algorithm from the key". It was dropped again in later drafts. In practice, for an RSA key, treat it as `rsa-sha256`, as the [SocialCG report](https://swicg.github.io/activitypub-http-signature/) recommends. Mastodon accepts both values for draft-cavage, RSA only.
+- **RFC 9421** has no algorithm placeholder problem. The optional `alg` parameter (`rsa-v1_5-sha256`, `rsa-pss-sha512`, `ed25519`, …) comes from [the RFC's registry](https://www.rfc-editor.org/rfc/rfc9421#section-6.2.2), or is inferred from the key.
+
+## Keys: RSA, Ed25519 and several at once
+
+The classic actor key is one RSA key in `publicKey`, conventionally at `#main-key`:
+
+```json
+{
+  "id": "https://social.example/users/alice",
+  "type": "Person",
+  "publicKey": {
+    "id": "https://social.example/users/alice#main-key",
+    "owner": "https://social.example/users/alice",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\n…\n-----END PUBLIC KEY-----\n"
+  }
+}
+```
+
+[FEP-521a: Representing actor's public keys](https://codeberg.org/fediverse/fep/src/branch/main/fep/521a/fep-521a.md) (**FINAL**, June 2025) adds **multiple keys** of any type as `Multikey` entries in `assertionMethod`:
+
+```json
+{
+  "@context": ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1", "https://w3id.org/security/multikey/v1"],
+  "id": "https://social.example/users/alice",
+  "type": "Person",
+  "publicKey": { "id": "https://social.example/users/alice#main-key", "owner": "https://social.example/users/alice", "publicKeyPem": "…" },
+  "assertionMethod": [
+    {
+      "id": "https://social.example/users/alice#ed25519-key",
+      "type": "Multikey",
+      "controller": "https://social.example/users/alice",
+      "publicKeyMultibase": "z6Mk…"
+    }
+  ]
+}
+```
+
+Where Mastodon stands:
+
+- **4.6.0:** stores multiple keypairs per remote account, which makes rotation possible.
+- **4.7.0:** reads FEP-521a keys and accepts **Ed25519 in RFC 9421** signatures.
+
+Keep an RSA key in `publicKey` for everyone else. Ed25519 under draft-cavage isn't widely accepted.
+
+**Rotation:** publish the new key alongside the old one, start signing with the new one, and remove the old one later. Receivers that fail to verify with a cached key refetch the actor once and retry. Mastodon does this, and so does the [reference verifier](/docs/security/verifying-requests).
+
+Generate an RSA key for testing:
+
+```bash
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out private.pem
+openssl pkey -in private.pem -pubout -out public.pem
+```
+
+## Why did I get a 401?
+
+Mastodon puts the reason in the response body as JSON (`{"error": "…"}`), so **log the response body**. The messages below are quoted from [`signed_request.rb`](https://github.com/mastodon/mastodon/blob/main/app/lib/signed_request.rb) and [`signature_verification.rb`](https://github.com/mastodon/mastodon/blob/main/app/controllers/concerns/signature_verification.rb).
+
+1. **"Request not signed"**: there's no `Signature` header. Are you signing GETs to a server in secure mode?
+2. **"Signed request date outside acceptable time window"**: your `Date` is more than about 65 minutes old or more than 1 hour in the future. Check NTP, and make sure you don't reuse a signed request from a retry queue without re-signing it.
+3. **"Mastodon requires the Digest header to be signed when doing a POST request"**, or the Date / `(request-target)` variants: your `headers=` list is too short. Sign `(request-target) host date digest`.
+4. **"Invalid Digest value. Computed SHA-256 digest: …; given: …"**: you signed a different byte string from the one you sent, for example by serialising the JSON twice.
+5. **"Public key not found for key …"** or **"Could not refresh public key …"**: the receiver couldn't fetch your `keyId`. Check:
+   - it resolves to a document listing that key;
+   - it's served as `application/activity+json`;
+   - your own server doesn't require signatures for fetching the instance actor's key (a chicken-and-egg deadlock).
+6. **"Verification failed for …"**: the signature doesn't match. Usual causes:
+   - the signing string differs from what the receiver rebuilt: header order, a lower-case method in `(request-target)`, a missing or extra query string, or `Host` including or omitting the port;
+   - you signed with a different key from the one published.
+7. **503 instead of 401**: the receiver couldn't reach your server to fetch the key and wants you to retry later. Mastodon has returned 503 for this since 4.5.4.
+
+For an interactive check, look your actor up with [BrowserPub](https://browser.pub/) or `fedify lookup` ([Fedify CLI](https://fedify.dev/cli)), and see [Debugging tips](/docs/tools/debugging-tips).
+
+## See also
+
+- [Verifying incoming requests](/docs/security/verifying-requests): tested receiver code
+- [Origin-based security](/docs/security/origin-model): what a verified actor may do
+- [Known vulnerability classes](/docs/security/known-vulnerability-classes)
+- [Actors](/docs/specs/activitypub/actors)

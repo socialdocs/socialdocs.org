@@ -66,5 +66,5 @@ app.post('/users/:username/inbox', async (req, res) => {
 
 ## See Also
 
-- **[HTTP Signatures](/docs/reference/http-signatures-reference)**
+- **[HTTP Signatures](/docs/specs/http-signatures/overview)**
 - **[Outbox Endpoint](/docs/reference/outbox-endpoint)**

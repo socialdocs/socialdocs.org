@@ -270,6 +270,6 @@ app.post('/inbox', inboxLimiter, handleInbox);
 ## See Also
 
 - **[JSON-LD Security](/docs/reference/json-ld-security)**
-- **[HTTP Signatures](/docs/reference/http-signatures-reference)**
+- **[HTTP Signatures](/docs/specs/http-signatures/overview)**
 - **[Authentication Guide](/docs/getting-started/authentication-and-security)**
 

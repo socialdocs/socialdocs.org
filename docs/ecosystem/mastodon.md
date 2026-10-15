@@ -145,7 +145,7 @@ Check the [release notes](https://github.com/mastodon/mastodon/releases) for the
 ### Quirks
 
 1. **Signature Algorithm**: Uses `rsa-sha256` (not RS256)
-2. **Date Header**: Signatures older than 12 hours (or more than 1 hour in the future) are rejected
+2. **Date Header**: A signature without `expires` is valid for 5 minutes after its `Date`/`created`, plus 1 hour of clock skew (so about 65 minutes); explicit expiries are capped at 12 hours; anything more than 1 hour in the future is rejected ([`signed_request.rb`](https://github.com/mastodon/mastodon/blob/main/app/lib/signed_request.rb))
 3. **Digest Header**: Required for POST requests
 4. **Content-Type**: Prefers `application/activity+json`
 

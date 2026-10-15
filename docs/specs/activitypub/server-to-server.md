@@ -99,44 +99,17 @@ Signature: keyId="https://server-a.com/users/alice#main-key",
 ### Verification Process
 
 ```
-1. Parse Signature header
-2. Extract keyId URL
-3. Fetch actor from keyId domain
-4. Get publicKeyPem from actor
-5. Verify signature against request
-6. Verify actor domain matches keyId domain
+1. Parse the signature (draft-cavage Signature, or RFC 9421 Signature-Input + Signature)
+2. Require the right signed components: target with query, host, date/created, digest
+3. Check the digest over the raw body, and the time window
+4. Fetch the keyId with an SSRF-safe fetch, then find the key in its owner actor's document
+5. Verify the signature; on failure refetch the key once and retry
+6. Require key owner == activity.actor, then apply the origin rules
 ```
 
-```javascript
-async function verifyRequest(req) {
-  const sig = parseSignatureHeader(req.headers.signature);
-
-  // Fetch the key
-  const keyUrl = new URL(sig.keyId);
-  const actorUrl = sig.keyId.split('#')[0];
-  const actor = await fetchActor(actorUrl);
-
-  // Verify key ownership
-  if (actor.publicKey.id !== sig.keyId) {
-    throw new Error('Key not found on actor');
-  }
-
-  // Verify domains match
-  const actorDomain = new URL(actor.id).hostname;
-  const keyDomain = keyUrl.hostname;
-  if (actorDomain !== keyDomain) {
-    throw new Error('Domain mismatch');
-  }
-
-  // Verify signature
-  const valid = verifySignature(req, actor.publicKey.publicKeyPem, sig);
-  if (!valid) {
-    throw new Error('Invalid signature');
-  }
-
-  return actor;
-}
-```
+:::tip Use the tested verifier
+Request verification has its own page with tested code: **[Verifying incoming requests](/docs/security/verifying-requests)**. It covers draft-cavage and RFC 9421, the digest over the raw body, the required signed headers, binding the key owner to `activity.actor`, and SSRF-safe key fetching.
+:::
 
 ## Activity Processing
 
@@ -145,14 +118,21 @@ When receiving an activity:
 ### 1. Verify Request
 
 ```javascript
-app.post('/users/:username/inbox', async (req, res) => {
+// verifyRequest, parseActivityFrom, authorizeActivity: /docs/security/verifying-requests
+app.post('/users/:username/inbox', express.raw({ type: '*/*', limit: '1mb' }), async (req, res) => {
+  let activity;
   try {
-    const actor = await verifyRequest(req);
-    await processActivity(req.body, actor);
-    res.status(202).send();
+    const signer = await verifyRequest({
+      method: req.method, url: `https://${DOMAIN}${req.originalUrl}`,
+      headers: req.headers, rawBody: req.body,
+    }, { keyStore });
+    activity = parseActivityFrom(signer, req.body); // signer must be activity.actor
+    authorizeActivity(activity);                    // origin rules (see below)
   } catch (error) {
-    res.status(401).json({ error: error.message });
+    return res.status(error instanceof SignatureError ? 401 : 403).json({ error: error.message });
   }
+  await queue.add(activity); // process asynchronously
+  res.status(202).send();
 });
 ```
 
@@ -227,10 +207,8 @@ async function processActivity(activity, actor) {
 async function processCreate(activity) {
   const object = activity.object;
 
-  // Verify attribution
-  if (object.attributedTo !== activity.actor) {
-    throw new Error('Attribution mismatch');
-  }
+  // authorizeActivity() already enforces the checks below; see
+  // /docs/security/origin-model
 
   // Origin check: the object must live on the actor's server. Without
   // this, evil.example can overwrite objects "owned" by victim.example
@@ -312,6 +290,7 @@ async function processDelete(activity) {
     ? activity.object
     : activity.object.id;
 
+  // authorizeActivity() already enforces this; repeated here for clarity.
   // Verify actor owns the object: same origin, and the stored copy
   // (if any) is attributed to them
   if (new URL(objectId).origin !== new URL(activity.actor).origin) {
@@ -395,9 +374,19 @@ When delivering to multiple users on the same server, send once to the shared in
 ### Handling Shared Inbox
 
 ```javascript
-app.post('/inbox', async (req, res) => {
-  const actor = await verifyRequest(req);
-  const activity = req.body;
+app.post('/inbox', express.raw({ type: '*/*', limit: '1mb' }), async (req, res) => {
+  // Same verification as the per-user inbox above
+  let activity;
+  try {
+    const signer = await verifyRequest({
+      method: req.method, url: `https://${DOMAIN}${req.originalUrl}`,
+      headers: req.headers, rawBody: req.body,
+    }, { keyStore });
+    activity = parseActivityFrom(signer, req.body);
+    authorizeActivity(activity);
+  } catch (error) {
+    return res.status(error instanceof SignatureError ? 401 : 403).json({ error: error.message });
+  }
 
   // Determine local recipients
   const recipients = await resolveLocalRecipients(activity);

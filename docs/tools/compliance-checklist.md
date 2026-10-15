@@ -96,9 +96,9 @@ Use this checklist to verify your ActivityPub implementation meets the specifica
 │                                                            │
 │  Signature Verification:                                   │
 │  [ ] Parses Signature header                               │
-│  [ ] Fetches public key from keyId                        │
+│  [ ] Fetches public key from keyId                         │
 │  [ ] Verifies signature against request                    │
-│  [ ] Allows reasonable clock skew (Mastodon: 12 h + 1 h)   │
+│  [ ] Time window like Mastodon's (5 min + 1 h skew)        │
 │  [ ] Requires Digest on POST, checked over the raw body    │
 │                                                            │
 └────────────────────────────────────────────────────────────┘
@@ -374,5 +374,5 @@ async function testActor(domain, username) {
 
 - **[WebFinger Lookup](/docs/tools/webfinger-lookup)** - Test discovery
 - **[Actor Inspector](/docs/tools/actor-inspector)** - Validate actors
-- **[Signature Tester](/docs/tools/signature-tester)** - Debug signatures
+- **[HTTP signatures in 2026](/docs/specs/http-signatures/overview)** - Debugging 401s
 - **[Debugging Tips](/docs/tools/debugging-tips)** - Troubleshooting

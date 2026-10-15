@@ -120,6 +120,12 @@ const config: Config = {
           label: 'Ecosystem',
         },
         {
+          type: 'docSidebar',
+          sidebarId: 'securitySidebar',
+          position: 'left',
+          label: 'Security',
+        },
+        {
           to: '/blog',
           label: 'Blog',
           position: 'left',

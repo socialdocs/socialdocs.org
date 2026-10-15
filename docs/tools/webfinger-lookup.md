@@ -322,5 +322,5 @@ async function testWebFingerFlow(handle) {
 ## Related Tools
 
 - **[Actor Inspector](/docs/tools/actor-inspector)** - Inspect fetched actors
-- **[Signature Tester](/docs/tools/signature-tester)** - Test HTTP signatures
+- **[HTTP signatures in 2026](/docs/specs/http-signatures/overview)** - Signing, verifying and debugging 401s
 - **[Debugging Tips](/docs/tools/debugging-tips)** - General debugging
