@@ -1,0 +1,5 @@
+# Names that scripts/check-references.mjs should not try to resolve.
+# One per line: <kind>:<name>, where kind is npm, pypi, crates, gem,
+# packagist, go, github, codeberg, or * for any. "*" in a name is a wildcard.
+# Use this only for intentional placeholders or deliberately-bad examples,
+# and say why in a comment.

@@ -1,0 +1,100 @@
+name: Content checks
+
+# References: every package/crate/gem/module/repo named in docs must exist.
+# Links: external links in changed files must resolve (PRs block); a weekly
+# full sweep opens or updates an issue instead of blocking anything.
+
+on:
+  pull_request:
+    branches:
+      - gh-pages
+    paths:
+      - 'docs/**'
+      - 'blog/**'
+      - 'scripts/check-references.mjs'
+      - 'scripts/reference-allowlist.txt'
+      - 'lychee.toml'
+      - '.github/workflows/checks.yml'
+  schedule:
+    - cron: '17 6 * * 1'  # Mondays 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  references:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: Restore reference cache
+        uses: actions/cache@v6
+        with:
+          path: .cache/check-references.json
+          key: refs-${{ github.run_id }}
+          restore-keys: refs-
+
+      - name: Check named packages and repositories exist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/check-references.mjs
+
+  links-pr:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: List changed Markdown files
+        id: changed
+        run: |
+          files=$(git diff --name-only --diff-filter=AM "origin/${{ github.base_ref }}...HEAD" -- 'docs/**/*.md' 'docs/**/*.mdx' 'blog/**/*.md' 'blog/**/*.mdx' | tr '\n' ' ')
+          echo "files=$files" >> "$GITHUB_OUTPUT"
+
+      - name: Check external links in changed files
+        if: steps.changed.outputs.files != ''
+        uses: lycheeverse/lychee-action@v2.9.0
+        with:
+          args: --config lychee.toml --no-progress ${{ steps.changed.outputs.files }}
+          fail: true
+
+  links-weekly:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check all external links
+        id: lychee
+        uses: lycheeverse/lychee-action@v2.9.0
+        with:
+          args: --config lychee.toml --no-progress 'docs/**/*.md' 'docs/**/*.mdx' 'blog/**/*.md' 'blog/**/*.mdx'
+          fail: false
+
+      - name: Open or update the link-check issue
+        if: steps.lychee.outputs.exit_code != 0
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          title="Broken external links (weekly check)"
+          body="$(printf 'Weekly link check found problems (run: %s/%s/actions/runs/%s).\n\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"; cat lychee/out.md)"
+          existing=$(gh issue list --state open --search "in:title \"$title\"" --json number --jq '.[0].number')
+          if [ -n "$existing" ]; then
+            gh issue edit "$existing" --body "$body"
+          else
+            gh issue create --title "$title" --body "$body"
+          fi
