@@ -8,212 +8,144 @@ description: ActivityPub libraries for Python
 
 Python libraries for implementing ActivityPub.
 
-## bovine
+Status and versions below were taken from PyPI, Codeberg and GitHub on **2026-10-15**. *Active* = a release or commit in the last 12 months; *Dormant* = 12–36 months; *Archived* = the repository is archived.
 
-Modern ActivityPub library for Python.
+| Library | Latest release | Status |
+|---------|----------------|--------|
+| [federation](#federation) | 0.27.0 (2026-03-28) | Active |
+| [PyLD](#pyld) | 3.3.0 (2026-09-02) | Active |
+| [http-message-signatures](#http-message-signatures) | 2.0.1 (2026-01-19) | Active |
+| [bovine](#bovine) | 0.5.19 (2025-09-24) | Dormant |
+| [apkit](#archived-projects) | 0.3.8 (2026-02-17) | Archived (Sep 2026) |
+| [little-boxes](#archived-projects) | 0.1.0 (2018-06-12) | Archived |
+| [httpsig](#archived-projects) | 1.3.0 (2018-11-28) | Archived |
 
-| Property | Value |
-|----------|-------|
-| Repository | [codeberg.org/bovine/bovine](https://codeberg.org/bovine/bovine) |
-| Documentation | [bovine.readthedocs.io](https://bovine.readthedocs.io/) |
-| License | MIT |
-| Status | Maintenance (low activity since late 2025) |
+## federation
 
-### Features
-
-- Async/await support
-- ActivityPub client and server
-- HTTP Signatures
-- WebFinger
-
-### Example
-
-```python
-from bovine import BovineClient
-from bovine.activitystreams import build_actor
-
-# Create an actor
-actor = build_actor(
-    actor_id="https://example.com/users/alice",
-    name="Alice",
-    preferred_username="alice"
-)
-
-# Send an activity
-client = BovineClient(private_key, key_id)
-await client.post(
-    inbox_url="https://remote.example/inbox",
-    activity=activity
-)
-```
-
-## Federation
-
-Django library for federation protocols.
+Python library that abstracts several social-web protocols — ActivityPub and Diaspora are stable; Matrix support is early — behind one entity API. Used by Socialhome, with optional Django integration.
 
 | Property | Value |
 |----------|-------|
-| Repository | [github.com/jaywink/federation](https://github.com/jaywink/federation) |
+| Repository | [codeberg.org/socialhome/federation](https://codeberg.org/socialhome/federation) (mirror: [github.com/jaywink/federation](https://github.com/jaywink/federation)) |
 | Documentation | [federation.readthedocs.io](https://federation.readthedocs.io/) |
-| License | BSD-3 |
-| Status | Active |
+| pip | `federation` |
+| License | BSD-3-Clause |
 
-### Features
-
-- Django integration
-- Multiple protocols (ActivityPub, Diaspora)
-- Inbound/outbound handling
-
-### Example
-
-```python
-from federation.entities import Post
-from federation.outbound import handle_send
-
-post = Post(
-    id="https://example.com/posts/123",
-    actor_id="https://example.com/users/alice",
-    raw_content="Hello, Fediverse!",
-)
-
-handle_send(post, recipients)
-```
-
-## little-boxes
-
-ActivityPub toolkit.
-
-| Property | Value |
-|----------|-------|
-| Repository | [github.com/tsileo/little-boxes](https://github.com/tsileo/little-boxes) |
-| License | ISC |
-| Status | Maintenance |
-
-### Example
-
-```python
-from little_boxes import activitypub as ap
-
-class MyBackend(ap.Backend):
-    def fetch_iri(self, iri):
-        # Fetch remote object
-        pass
-
-    def inbox_new(self, as_actor, activity):
-        # Handle incoming activity
-        pass
-
-backend = MyBackend()
-ap.use_backend(backend)
-
-# Create an activity
-note = ap.Note(
-    content="Hello!",
-    to=[ap.AS_PUBLIC],
-    attributedTo="https://example.com/users/alice"
-)
-```
-
-## httpsig
-
-HTTP Signature library.
-
-| Property | Value |
-|----------|-------|
-| Repository | [github.com/ahknight/httpsig](https://github.com/ahknight/httpsig) |
-| pip | `httpsig` |
-| Status | Stable |
-
-### Signing
-
-```python
-from httpsig import HTTPSignatureAuth
-import requests
-
-auth = HTTPSignatureAuth(
-    key_id='https://example.com/users/alice#main-key',
-    secret=private_key,
-    algorithm='rsa-sha256',
-    headers=['(request-target)', 'host', 'date', 'digest']
-)
-
-response = requests.post(
-    'https://remote.example/inbox',
-    json=activity,
-    auth=auth
-)
-```
+Sending goes through `federation.outbound.handle_send(entity, author_user, recipients, ...)`, where the author must carry `private_key` and `fid`, and each recipient is a dict with `endpoint`, `fid`, `public` and `protocol`. See the [usage documentation](https://federation.readthedocs.io/) for full examples.
 
 ## PyLD
 
-JSON-LD processor.
+The reference JSON-LD processor for Python.
 
 | Property | Value |
 |----------|-------|
 | Repository | [github.com/digitalbazaar/pyld](https://github.com/digitalbazaar/pyld) |
 | pip | `PyLD` |
-| Status | Active |
-
-### Example
 
 ```python
 from pyld import jsonld
 
-# Expand
 expanded = jsonld.expand(document)
-
-# Compact
-compacted = jsonld.compact(expanded, {
-    "@context": "https://www.w3.org/ns/activitystreams"
-})
+compacted = jsonld.compact(expanded, "https://www.w3.org/ns/activitystreams")
 ```
 
-## Comparison
+## http-message-signatures
 
-| Library | Framework | Protocols | Complexity |
-|---------|-----------|-----------|------------|
-| bovine | Any/async | ActivityPub | Medium |
-| federation | Django | Multiple | High |
-| little-boxes | Any | ActivityPub | Medium |
-| httpsig | Any | - | Low |
+An implementation of [RFC 9421 HTTP Message Signatures](https://www.rfc-editor.org/rfc/rfc9421). Note that it does not check the body digest for you, and that it follows the "see what is signed" rule: only trust data returned by `verify()`. Its sister project [requests-http-signature](https://github.com/pyauth/requests-http-signature) adds body-digest handling for `requests`.
 
-## Quick Start
+| Property | Value |
+|----------|-------|
+| Repository | [github.com/pyauth/http-message-signatures](https://github.com/pyauth/http-message-signatures) |
+| pip | `http-message-signatures` |
 
-**For Django projects**: Use Federation.
+Most of the fediverse still sends draft-cavage signatures, so a server receiving from Mastodon and others needs to handle both formats. See the [README](https://github.com/pyauth/http-message-signatures#readme) for signer and verifier examples.
 
-**For async projects**: Use bovine.
+## bovine
 
-**For Flask/other**: Use little-boxes or build custom.
+Async ActivityPub client and server building blocks (actor objects, signed requests, WebFinger), by Helge.
 
-## Example: Minimal Server
+| Property | Value |
+|----------|-------|
+| Repository | [codeberg.org/bovine/bovine](https://codeberg.org/bovine/bovine) |
+| Documentation | [bovine.readthedocs.io](https://bovine.readthedocs.io/) |
+| pip | `bovine` |
+| License | MIT |
 
 ```python
-from flask import Flask, request, jsonify
-from httpsig import HTTPSignatureAuth
+from bovine import BovineActor
+from bovine.activitystreams import Actor
+
+# Build an actor document
+actor_doc = Actor(
+    id="https://example.com/users/alice",
+    preferred_username="alice",
+    name="Alice",
+    inbox="https://example.com/users/alice/inbox",
+    outbox="https://example.com/users/alice/outbox",
+).build()
+
+# Send a signed POST to a remote inbox
+async with BovineActor(
+    actor_id="https://example.com/users/alice",
+    public_key_url="https://example.com/users/alice#main-key",
+    secret=private_key_pem,
+) as actor:
+    await actor.post("https://remote.example/inbox", activity)
+```
+
+`BovineActor` can also send an RFC 9530 `Content-Digest` instead of the legacy `Digest` header (`digest_method` parameter).
+
+## Archived Projects
+
+These still appear in older tutorials. Don't start new work on them.
+
+| Project | Notes |
+|---------|-------|
+| [apkit](https://github.com/fedi-libs/apkit) | ActivityPub toolkit; the whole `fedi-libs` organisation was archived in September 2026 |
+| [little-boxes](https://github.com/tsileo/little-boxes) | Archived; last release 2018 |
+| [httpsig](https://github.com/ahknight/httpsig) | draft-cavage only; archived, last release 2018 — use `http-message-signatures` or bovine's signing instead |
+
+## Choosing
+
+- **Multi-protocol or Django project**: federation.
+- **Async, building your own server**: bovine is the most complete toolkit, but check its activity before depending on it.
+- **Only need signatures**: http-message-signatures (RFC 9421) — and handle draft-cavage too for compatibility.
+
+## Example: Serving an Actor with Flask
+
+```python
 import json
+from flask import Flask, Response
 
 app = Flask(__name__)
+AP = "application/activity+json"
 
-@app.route('/users/<username>', methods=['GET'])
+@app.get("/users/<username>")
 def actor(username):
-    return jsonify({
-        "@context": "https://www.w3.org/ns/activitystreams",
+    base = f"https://example.com/users/{username}"
+    doc = {
+        "@context": [
+            "https://www.w3.org/ns/activitystreams",
+            "https://w3id.org/security/v1",
+        ],
         "type": "Person",
-        "id": f"https://example.com/users/{username}",
+        "id": base,
         "preferredUsername": username,
-        "inbox": f"https://example.com/users/{username}/inbox",
-        "outbox": f"https://example.com/users/{username}/outbox"
-    })
-
-@app.route('/users/<username>/inbox', methods=['POST'])
-def inbox(username):
-    activity = request.json
-    # Process activity
-    return '', 202
+        "inbox": f"{base}/inbox",
+        "outbox": f"{base}/outbox",
+        "publicKey": {
+            "id": f"{base}#main-key",
+            "owner": base,
+            "publicKeyPem": PUBLIC_KEY_PEM,
+        },
+    }
+    # Flask's jsonify() sends application/json, which Mastodon ignores.
+    return Response(json.dumps(doc), content_type=AP)
 ```
+
+An inbox endpoint must verify the request signature, the body digest and that the signing key belongs to the activity's `actor` before acting on anything — see [issue #37](https://github.com/socialdocs/socialdocs.org/issues/37).
 
 ## See Also
 
 - **[Libraries Overview](/docs/ecosystem/libraries-overview)**
 - **[Building an Actor](/docs/guides/building-an-actor)**
-

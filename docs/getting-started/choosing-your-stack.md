@@ -36,13 +36,15 @@ Consider these factors when choosing your stack:
 
 **Best for:** Quick prototypes, web-focused teams, full-stack development
 
-**Popular libraries:**
-- [@fedify/fedify](https://fedify.dev/) - Modern TypeScript framework
-- [activitypub-express](https://github.com/immers-space/activitypub-express) - Express middleware (unmaintained)
+**Popular libraries** (status as of October 2026 — see [JavaScript Libraries](/docs/ecosystem/javascript-libraries)):
+- [Fedify](https://fedify.dev/) - TypeScript framework (active)
+- [BotKit](https://botkit.fedify.dev/) - Bot framework built on Fedify (active)
+- [activitypub-express](https://github.com/immers-space/activitypub-express) - Express middleware (dormant since 2024; avoid for new projects)
 
 ```typescript
-// Example with Fedify
-import { createFederation, MemoryKvStore, Person } from "@fedify/fedify";
+// Example with Fedify 2.x
+import { createFederation, MemoryKvStore } from "@fedify/fedify";
+import { Person } from "@fedify/vocab";
 
 const federation = createFederation({ kv: new MemoryKvStore() });
 
@@ -68,32 +70,28 @@ federation.setActorDispatcher("/users/{identifier}", (ctx, identifier) => {
 
 **Best for:** Backend services, data-heavy applications, ML integration
 
-**Popular libraries:**
-- [bovine](https://codeberg.org/bovine/bovine) - ActivityPub library
-- [little-boxes](https://github.com/tsileo/little-boxes) - Toolkit
-- [Federation](https://federation.readthedocs.io/) - Full protocol support
+**Popular libraries** (see [Python Libraries](/docs/ecosystem/python-libraries)):
+- [federation](https://federation.readthedocs.io/) - Multi-protocol library (active)
+- [bovine](https://codeberg.org/bovine/bovine) - Async ActivityPub toolkit (no release since September 2025)
+- [http-message-signatures](https://github.com/pyauth/http-message-signatures) - RFC 9421 signatures (active)
 
 ```python
 # Example with Flask
-from flask import Flask, request, jsonify
 import json
+from flask import Flask, Response
 
 app = Flask(__name__)
 
-@app.route('/users/<username>/inbox', methods=['POST'])
-def inbox(username):
-    activity = request.get_json()
-    # Process activity
-    return '', 202
-
-@app.route('/users/<username>', methods=['GET'])
+@app.get('/users/<username>')
 def actor(username):
-    return jsonify({
+    doc = {
         '@context': 'https://www.w3.org/ns/activitystreams',
         'type': 'Person',
         'id': f'https://example.com/users/{username}',
-        # ... more properties
-    })
+        # ... more properties, including publicKey
+    }
+    # jsonify() would send application/json, which Mastodon ignores
+    return Response(json.dumps(doc), content_type='application/activity+json')
 ```
 
 ### Go
@@ -111,30 +109,21 @@ def actor(username):
 
 **Best for:** High-performance servers, microservices, scale
 
-**Popular libraries:**
-- [go-fed/activity](https://github.com/go-fed/activity) - Complete implementation
-- [go-ap](https://github.com/go-ap) - ActivityPub packages
-- [gotosocial internals](https://codeberg.org/superseriousbusiness/gotosocial) - Reference implementation
+**Popular libraries** (see [Go Libraries](/docs/ecosystem/go-libraries)):
+- [go-ap](https://github.com/go-ap) - Modular ActivityPub packages (active)
+- [GoToSocial's activity and httpsig forks](https://codeberg.org/superseriousbusiness/activity) - Maintained forks of go-fed (active)
+- [GoToSocial](https://codeberg.org/superseriousbusiness/gotosocial) - Reference implementation
+- go-fed/activity - the original, unmaintained since 2022; use the GoToSocial fork instead
 
 ```go
-// Example with go-fed
-package main
+// Example with go-ap
+import vocab "github.com/go-ap/activitypub"
 
-import (
-    "github.com/go-fed/activity/pub"
-    "github.com/go-fed/activity/streams"
-)
-
-func main() {
-    actor := streams.NewActivityStreamsPerson()
-    // Configure actor...
-
-    handler := pub.NewSocialActor(
-        db,
-        clock,
-        NewSocialProtocol(),
-    )
-    // Set up HTTP handlers...
+person := vocab.Person{
+    ID:                vocab.IRI("https://example.com/users/alice"),
+    Type:              vocab.PersonType,
+    PreferredUsername: vocab.NaturalLanguageValues{vocab.English: vocab.Content("alice")},
+    Inbox:             vocab.IRI("https://example.com/users/alice/inbox"),
 }
 ```
 
@@ -153,8 +142,8 @@ func main() {
 
 **Best for:** Performance-critical applications, infrastructure
 
-**Popular libraries:**
-- [activitypub-federation](https://github.com/LemmyNet/activitypub-federation-rust) - Lemmy's library
+**Popular libraries** (see [Rust Libraries](/docs/ecosystem/rust-libraries)):
+- [activitypub_federation](https://github.com/LemmyNet/activitypub-federation-rust) - Lemmy's federation framework (active)
 
 ```rust
 // Example with activitypub-federation
@@ -169,11 +158,12 @@ struct MyActor {
     // ...
 }
 
+// MyActor must also implement the `Object` trait.
 impl Actor for MyActor {
     fn id(&self) -> Url {
         self.id.clone()
     }
-    // ... implement other methods
+    // ... public_key_pem, private_key_pem, inbox
 }
 ```
 
@@ -190,9 +180,10 @@ impl Actor for MyActor {
 
 **Best for:** Rails teams, Mastodon forks
 
-**Popular libraries:**
+**Popular libraries** (see [Ruby Libraries](/docs/ecosystem/ruby-libraries)):
+- [Fedipub](https://gitlab.com/fedipub/fedipub) (formerly Federails) - Rails engine (active)
+- [linzer](https://github.com/nomadium/linzer) - RFC 9421 HTTP Message Signatures (active)
 - [Mastodon's implementation](https://github.com/mastodon/mastodon) - Reference
-- No standalone gems widely adopted
 
 ```ruby
 # Example with Rails
@@ -218,8 +209,9 @@ end
 
 **Best for:** WordPress integration, shared hosting
 
-**Popular libraries:**
-- [ActivityPub for WordPress](https://github.com/pfefferle/wordpress-activitypub)
+**Popular libraries** (see [PHP Libraries](/docs/ecosystem/php-libraries)):
+- [ActivityPub for WordPress](https://github.com/Automattic/wordpress-activitypub) (active)
+- [ActivityPhp](https://github.com/landrok/activitypub) (active)
 - [Pixelfed's implementation](https://github.com/pixelfed/pixelfed)
 
 ## Framework Recommendations
@@ -253,16 +245,17 @@ These frameworks provide most ActivityPub functionality out of the box:
 Modern, type-safe ActivityPub framework:
 
 ```typescript
-import { createFederation } from "@fedify/fedify";
+import { createFederation, MemoryKvStore } from "@fedify/fedify";
+import { Person } from "@fedify/vocab";
 
-const federation = createFederation<Context>({
+const federation = createFederation<void>({
   kv: new MemoryKvStore(),
 });
 
-federation.setActorDispatcher("/users/{handle}", async (ctx, handle) => {
+federation.setActorDispatcher("/users/{identifier}", async (ctx, identifier) => {
   return new Person({
-    id: ctx.getActorUri(handle),
-    name: handle,
+    id: ctx.getActorUri(identifier),
+    preferredUsername: identifier,
     // ...
   });
 });
@@ -270,19 +263,11 @@ federation.setActorDispatcher("/users/{handle}", async (ctx, handle) => {
 
 **Best for:** TypeScript projects, modern development
 
-### go-fed/activity (Go)
+### go-ap (Go)
 
-Complete ActivityPub implementation:
+Modular packages for vocabulary, client, processing and storage, with [FedBOX](https://github.com/go-ap/fedbox) as a reference server.
 
-```go
-handler := pub.NewSocialActor(
-    database,
-    clock,
-    protocol,
-)
-```
-
-**Best for:** Go projects needing full spec compliance
+**Best for:** Go projects that want a maintained framework (go-fed/activity is unmaintained)
 
 ### activitypub-federation (Rust)
 
@@ -290,8 +275,10 @@ Battle-tested library from Lemmy:
 
 ```rust
 let config = FederationConfig::builder()
+    .domain("example.com")
     .app_data(data)
-    .build()?;
+    .build()
+    .await?;
 ```
 
 **Best for:** Rust projects, high-performance needs
@@ -329,8 +316,9 @@ let config = FederationConfig::builder()
 
 **Options:**
 - Fedify (TypeScript)
-- go-fed (Go)
-- activitypub-federation (Rust)
+- go-ap (Go)
+- activitypub_federation (Rust)
+- Fedipub (Ruby on Rails)
 
 ## Database Considerations
 
@@ -382,7 +370,7 @@ Document-oriented, matches ActivityPub's JSON structure.
 **Good for:** Variable traffic, cost optimization
 
 :::caution
-Serverless can be tricky for ActivityPub due to long-running inbox processing and WebSocket needs.
+Serverless can be tricky for ActivityPub because inbox processing and delivery need background queues with retries.
 :::
 
 ## Making Your Decision

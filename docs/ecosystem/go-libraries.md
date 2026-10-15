@@ -8,205 +8,177 @@ description: ActivityPub libraries for Go
 
 Go libraries for implementing ActivityPub.
 
-## go-fed/activity
+Status and versions below were taken from the Go module proxy, GitHub and Codeberg on **2026-10-15**. *Active* = a release or commit in the last 12 months; *Dormant* = 12–36 months; *Unmaintained* = no activity for over 3 years.
 
-Comprehensive ActivityPub/ActivityStreams implementation.
+| Library | Latest version | Status |
+|---------|----------------|--------|
+| [go-ap](#go-ap) | rolling pseudo-versions (commits 2026-10-15) | Active |
+| [code.superseriousbusiness.org/activity](#gotosocials-forks) | v1.19.0 (2026-01-29) | Active |
+| [code.superseriousbusiness.org/httpsig](#gotosocials-forks) | v1.5.0 (2025-10-14; commits 2026-06) | Active |
+| [go-fed/httpsig](#gotosocials-forks) | v1.1.0 (2020-07-11; last commit 2024-01) | Dormant |
+| [go-fed/activity](#go-fedactivity) | v1.0.0 (2020-07-09; last commit 2022-12) | Unmaintained |
+| [webfinger.net/go/webfinger](#webfinger) | v0.1.0 (2019-06-09; last commit 2022-12) | Unmaintained |
+
+## go-ap
+
+A family of modular packages by Marius Orcsik: core vocabulary types, a client, request processing, authorization, filters, and several storage backends. Its reference server is [FedBOX](https://github.com/go-ap/fedbox) (not to be confused with the Node.js [Fedbox](/docs/ecosystem/fedbox)).
 
 | Property | Value |
 |----------|-------|
-| Repository | [github.com/go-fed/activity](https://github.com/go-fed/activity) |
-| Documentation | [go-fed.org](https://go-fed.org/) |
-| License | BSD-3 |
-| Status | Unmaintained (no activity since 2022) |
+| Organisation | [github.com/go-ap](https://github.com/go-ap) |
+| Core module | `github.com/go-ap/activitypub` |
+| License | MIT |
 
-:::caution Unmaintained
-go-fed/activity has had no development since 2022. It remains widely used and feature-complete, but expect no fixes or updates. For new Go projects, consider [go-ap](https://github.com/go-ap) or studying [GoToSocial's codebase](https://codeberg.org/superseriousbusiness/gotosocial).
-:::
+### Packages
 
-### Features
-
-- Complete ActivityStreams vocabulary
-- ActivityPub C2S and S2S
-- HTTP Signatures
-- Extensible type system
+- `go-ap/activitypub` — vocabulary types and JSON(-LD) (un)marshalling
+- `go-ap/client` — HTTP client for fetching and posting
+- `go-ap/processing` — C2S and S2S activity processing
+- `go-ap/auth`, `go-ap/authorize` — authentication and authorization
+- `go-ap/storage-*` — storage backends (SQLite, PostgreSQL, BoltDB, Badger, filesystem)
 
 ### Example
 
 ```go
-package main
-
 import (
-    "github.com/go-fed/activity/streams"
-    "github.com/go-fed/activity/streams/vocab"
+    "encoding/json"
+
+    vocab "github.com/go-ap/activitypub"
 )
 
-func createNote() vocab.ActivityStreamsNote {
+note := vocab.Note{ // Note is an alias for Object
+    Type:    vocab.NoteType,
+    Content: vocab.NaturalLanguageValues{vocab.English: vocab.Content("Hello!")},
+}
+
+data, err := json.Marshal(note)
+```
+
+`NaturalLanguageValues` is a map keyed by language tag in current versions; older tutorials that use a slice literal no longer compile.
+
+## GoToSocial's Forks
+
+When go-fed went quiet, the GoToSocial team forked its two core libraries and maintains them on Codeberg. **For new Go code, use these forks rather than the go-fed originals.**
+
+| Module | Fork of | Repository |
+|--------|---------|------------|
+| `code.superseriousbusiness.org/activity` | go-fed/activity | [codeberg.org/superseriousbusiness/activity](https://codeberg.org/superseriousbusiness/activity) |
+| `code.superseriousbusiness.org/httpsig` | go-fed/httpsig | [codeberg.org/superseriousbusiness/httpsig](https://codeberg.org/superseriousbusiness/httpsig) |
+
+Both forks keep the original APIs, so go-fed examples translate by changing the import path. The httpsig fork implements **draft-cavage only**, not RFC 9421.
+
+### Signing a request (httpsig fork)
+
+```go
+import "code.superseriousbusiness.org/httpsig"
+
+signer, _, err := httpsig.NewSigner(
+    []httpsig.Algorithm{httpsig.RSA_SHA256},
+    httpsig.DigestSha256,
+    []string{httpsig.RequestTarget, "host", "date", "digest"},
+    httpsig.Signature,
+    120, // expires in (seconds)
+)
+if err != nil {
+    return err
+}
+
+// Adds Digest and Signature headers; body must be the exact bytes you send.
+err = signer.SignRequest(privateKey, keyID, req, body)
+```
+
+### Verifying a request
+
+```go
+verifier, err := httpsig.NewVerifier(req)
+if err != nil {
+    return err
+}
+keyID := verifier.KeyId()
+
+// Fetch the key for keyID (with an SSRF-safe client), then:
+err = verifier.Verify(publicKey, httpsig.RSA_SHA256)
+```
+
+`Verify` only checks the cryptography. You must also require the right signed headers, check the `Digest` against the raw body, and confirm the key's owner is the activity's `actor` — see [issue #37](https://github.com/socialdocs/socialdocs.org/issues/37).
+
+## go-fed/activity
+
+The original code-generated ActivityStreams vocabulary and ActivityPub middleware for Go.
+
+:::caution Unmaintained
+No commits since December 2022 and the project website (go-fed.org) is offline. Use [GoToSocial's maintained fork](#gotosocials-forks), which keeps the same API.
+:::
+
+| Property | Value |
+|----------|-------|
+| Repository | [github.com/go-fed/activity](https://github.com/go-fed/activity) |
+| License | BSD-3-Clause |
+
+```go
+import (
+    "code.superseriousbusiness.org/activity/streams"     // or github.com/go-fed/activity/streams
+    "code.superseriousbusiness.org/activity/streams/vocab"
+)
+
+func createNote(actorIRI *url.URL) vocab.ActivityStreamsNote {
     note := streams.NewActivityStreamsNote()
 
-    // Set content
-    contentProp := streams.NewActivityStreamsContentProperty()
-    contentProp.AppendXMLSchemaString("Hello from Go!")
-    note.SetActivityStreamsContent(contentProp)
+    content := streams.NewActivityStreamsContentProperty()
+    content.AppendXMLSchemaString("Hello from Go!")
+    note.SetActivityStreamsContent(content)
 
-    // Set attributedTo
-    attrProp := streams.NewActivityStreamsAttributedToProperty()
-    attrProp.AppendIRI(actorIRI)
-    note.SetActivityStreamsAttributedTo(attrProp)
+    attributedTo := streams.NewActivityStreamsAttributedToProperty()
+    attributedTo.AppendIRI(actorIRI)
+    note.SetActivityStreamsAttributedTo(attributedTo)
 
     return note
 }
 ```
 
-### S2S Federation
+## WebFinger
 
-```go
-import "github.com/go-fed/activity/pub"
-
-// Implement required interfaces
-type myActor struct{}
-
-func (a *myActor) PostInbox(c context.Context, w http.ResponseWriter, r *http.Request) (bool, error) {
-    // Handle incoming activities
-}
-
-func (a *myActor) GetOutbox(c context.Context, w http.ResponseWriter, r *http.Request) (bool, error) {
-    // Return outbox collection
-}
-```
-
-## go-ap
-
-Collection of ActivityPub packages.
-
-| Property | Value |
-|----------|-------|
-| Repository | [github.com/go-ap](https://github.com/go-ap) |
-| License | MIT |
-| Status | Active |
-
-### Packages
-
-- `go-ap/activitypub` - Core types
-- `go-ap/client` - HTTP client
-- `go-ap/handlers` - HTTP handlers
-- `go-ap/storage` - Storage interface
-
-### Example
-
-```go
-import (
-    "github.com/go-ap/activitypub"
-)
-
-note := activitypub.Note{
-    Type:    activitypub.NoteType,
-    Content: activitypub.NaturalLanguageValues{{Value: "Hello!"}},
-}
-
-// Marshal to JSON
-data, _ := json.Marshal(note)
-```
-
-## httpsig
-
-HTTP Signature library.
-
-| Property | Value |
-|----------|-------|
-| Repository | [github.com/go-fed/httpsig](https://github.com/go-fed/httpsig) |
-| License | BSD-3 |
-| Status | Stable (low activity; widely used) |
-
-### Signing
-
-```go
-import "github.com/go-fed/httpsig"
-
-signer, _ := httpsig.NewSigner(
-    []httpsig.Algorithm{httpsig.RSA_SHA256},
-    httpsig.DigestSha256,
-    []string{httpsig.RequestTarget, "host", "date", "digest"},
-    httpsig.Signature,
-    0,
-)
-
-err := signer.SignRequest(privateKey, keyId, req, body)
-```
-
-### Verification
-
-```go
-verifier, _ := httpsig.NewVerifier(req)
-pubKeyId := verifier.KeyId()
-
-// Fetch public key using pubKeyId
-err := verifier.Verify(publicKey, httpsig.RSA_SHA256)
-```
-
-## webfinger
-
-WebFinger client library.
+`webfinger.net/go/webfinger` is a small WebFinger client. It has not changed since 2022, but the protocol hasn't either.
 
 | Property | Value |
 |----------|-------|
 | Repository | [github.com/webfinger/go-webfinger](https://github.com/webfinger/go-webfinger) |
+| Module | `webfinger.net/go/webfinger` |
 | License | MIT |
-| Status | Unmaintained (last commit December 2022), but small and functional |
-
-### Example
 
 ```go
 import "webfinger.net/go/webfinger"
 
 client := webfinger.NewClient(nil)
 
-resource, err := client.Lookup("alice@example.com", nil)
+jrd, err := client.Lookup("alice@example.com", nil)
 if err != nil {
     log.Fatal(err)
 }
 
-// Get ActivityPub actor URL
-for _, link := range resource.Links {
-    if link.Rel == "self" &&
-       link.Type == "application/activity+json" {
+for _, link := range jrd.Links {
+    if link.Rel == "self" && link.Type == "application/activity+json" {
         fmt.Println(link.Href)
     }
 }
 ```
 
-## GoToSocial Source
+## Reference: GoToSocial
 
-Study the GoToSocial codebase for production patterns.
+GoToSocial is the most complete maintained ActivityPub server in Go, and a good codebase to study.
 
 | Property | Value |
 |----------|-------|
 | Repository | [codeberg.org/superseriousbusiness/gotosocial](https://codeberg.org/superseriousbusiness/gotosocial) |
-| Key Paths | `internal/ap/`, `internal/federation/` |
+| Key paths | `internal/ap/`, `internal/federation/` |
 
-### Notable Patterns
+## Choosing
 
-- Clean separation of concerns
-- Comprehensive test coverage
-- Good documentation
-
-## Comparison
-
-| Library | Scope | Complexity | Use Case |
-|---------|-------|------------|----------|
-| go-fed/activity | Full | High | Production servers |
-| go-ap | Modular | Medium | Custom implementations |
-| httpsig | Signing only | Low | Any project |
-
-## Quick Start
-
-**For full servers**: Use go-fed/activity.
-
-**For learning**: Study GoToSocial source.
-
-**For custom needs**: Use go-ap packages.
+- **Full server, want a framework**: go-ap.
+- **Need the go-fed APIs**: GoToSocial's forks, not go-fed itself.
+- **Learning**: read the GoToSocial source.
 
 ## See Also
 
 - **[GoToSocial](/docs/ecosystem/gotosocial)**
 - **[Libraries Overview](/docs/ecosystem/libraries-overview)**
-
