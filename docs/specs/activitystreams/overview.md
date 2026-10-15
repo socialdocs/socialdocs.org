@@ -2,6 +2,8 @@
 sidebar_position: 1
 title: ActivityStreams 2.0 Overview
 description: The JSON vocabulary for representing social data in ActivityPub
+last_verified: 2026-10-15
+verified_against: "AS2 Core & Vocabulary (W3C REC 2017), the published AS2 JSON-LD context, ActivityPub REC, Mastodon v4.7.3 source (context_helper.rb, account.rb, json_ld_helper.rb)"
 ---
 
 # ActivityStreams 2.0 Overview
@@ -92,34 +94,35 @@ A group of items:
 
 ## Type Hierarchy
 
+AS2 has **two** base types, `Object` and `Link`; a Link is not an Object ([AS2 Core §4.2](https://www.w3.org/TR/activitystreams-core/#link)). Extension relationships below are from the [Activity Vocabulary](https://www.w3.org/TR/activitystreams-vocabulary/).
+
 ```
 Object
 ├── Activity
-│   ├── Create
-│   ├── Delete
-│   ├── Update
-│   ├── Follow
-│   ├── Accept
-│   ├── Reject
-│   ├── Like
-│   ├── Announce
-│   └── ... (more)
-├── Actor types (no shared superclass — each extends Object directly)
-│   ├── Person
-│   ├── Organization
-│   ├── Application
-│   ├── Service
-│   └── Group
-├── Object Types
-│   ├── Note
-│   ├── Article
+│   ├── Create, Update, Delete, Follow, Like, Announce, Undo, Add, Remove, ...
+│   ├── Accept ── TentativeAccept
+│   ├── Reject ── TentativeReject
+│   ├── Ignore ── Block
+│   ├── Offer ── Invite
+│   └── IntransitiveActivity
+│       ├── Arrive
+│       ├── Travel
+│       └── Question
+├── Person, Organization, Application, Service, Group
+│     (actor types — there is no "Actor" class; each extends Object directly)
+├── Note, Article, Event, Place, Profile, Relationship, Tombstone
+├── Document
+│   ├── Audio
 │   ├── Image
 │   ├── Video
-│   ├── Audio
-│   └── ... (more)
-├── Collection
-│   └── OrderedCollection
-└── Link
+│   └── Page
+└── Collection
+    ├── OrderedCollection
+    └── CollectionPage
+        └── OrderedCollectionPage   (also extends OrderedCollection)
+
+Link
+└── Mention
 ```
 
 ## Common Properties
@@ -129,24 +132,24 @@ Object
 | Property | Type | Description |
 |----------|------|-------------|
 | `id` | URL | Unique identifier |
-| `type` | String | Object type |
+| `type` | String or array | Object type(s) |
 | `name` | String | Display name |
-| `summary` | String | Short description |
+| `summary` | String | Short description (may contain HTML) |
 
 ### Authorship
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `attributedTo` | Actor | Creator |
-| `actor` | Actor | Activity performer |
+| `attributedTo` | Object or Link (usually an actor) | Creator |
+| `actor` | Object or Link (usually an actor) | Activity performer |
 
 ### Content
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `content` | String | Main content (HTML) |
+| `content` | String | Main content (HTML unless `mediaType` says otherwise) |
 | `contentMap` | Object | Localized content |
-| `mediaType` | String | MIME type |
+| `mediaType` | String | MIME type of `content` (Object) or of the target (Link) |
 
 ### Timestamps
 
@@ -161,16 +164,18 @@ Object
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `to` | Array | Primary recipients |
-| `cc` | Array | Secondary recipients |
-| `bto` | Array | Private primary |
-| `bcc` | Array | Private secondary |
+| `to` | Object/Link, one or many | Primary recipients |
+| `cc` | Object/Link, one or many | Secondary recipients |
+| `bto` | Object/Link, one or many | Private primary (strip before delivery) |
+| `bcc` | Object/Link, one or many | Private secondary (strip before delivery) |
+
+None of these properties is functional, so a single value and a one-element array mean the same thing; consumers must accept both.
 
 ## Extending ActivityStreams
 
 ### Custom Properties
 
-Add properties via the context:
+Extensions are added through the `@context`; the normative AS2 context itself must not be overridden ([AS2 Core §5](https://www.w3.org/TR/activitystreams-core/#extensibility)). `sensitive` below is **not** part of AS2 — it is a widely used extension that Mastodon declares as `as:sensitive` ([context_helper.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/helpers/context_helper.rb)):
 
 ```json
 {
@@ -190,7 +195,7 @@ Add properties via the context:
 
 ### Custom Types
 
-Define new types:
+Define new types the same way. `Emoji` is Mastodon's extension type (`toot:Emoji`), not AS2:
 
 ```json
 {
@@ -201,9 +206,11 @@ Define new types:
     }
   ],
   "type": "Emoji",
+  "id": "https://example.com/emojis/awesome",
   "name": ":awesome:",
   "icon": {
     "type": "Image",
+    "mediaType": "image/png",
     "url": "https://example.com/emoji/awesome.png"
   }
 }
@@ -237,20 +244,26 @@ function parseActivityStreams(json) {
 
 ### Type Checking
 
+`type` may be a string or an array, so check every value. The lists below are the AS2 Vocabulary's activity and actor types; extensions add more (e.g. Mastodon's `QuoteRequest`), so treat unknown types as "ignore", not "error" ([AS2 Core §5](https://www.w3.org/TR/activitystreams-core/#extensibility)).
+
 ```javascript
+const ACTIVITY_TYPES = new Set([
+  'Activity', 'IntransitiveActivity', 'Accept', 'Add', 'Announce', 'Arrive',
+  'Block', 'Create', 'Delete', 'Dislike', 'Flag', 'Follow', 'Ignore', 'Invite',
+  'Join', 'Leave', 'Like', 'Listen', 'Move', 'Offer', 'Question', 'Reject',
+  'Read', 'Remove', 'TentativeReject', 'TentativeAccept', 'Travel', 'Undo',
+  'Update', 'View'
+]);
+const ACTOR_TYPES = new Set(['Application', 'Group', 'Organization', 'Person', 'Service']);
+
+const typesOf = (obj) => [].concat(obj?.type ?? []);
+
 function isActivity(obj) {
-  const activityTypes = [
-    'Create', 'Update', 'Delete', 'Follow',
-    'Accept', 'Reject', 'Like', 'Announce', 'Undo'
-  ];
-  return activityTypes.includes(obj.type);
+  return typesOf(obj).some((t) => ACTIVITY_TYPES.has(t));
 }
 
 function isActor(obj) {
-  const actorTypes = [
-    'Person', 'Organization', 'Application', 'Service', 'Group'
-  ];
-  return actorTypes.includes(obj.type);
+  return typesOf(obj).some((t) => ACTOR_TYPES.has(t));
 }
 ```
 

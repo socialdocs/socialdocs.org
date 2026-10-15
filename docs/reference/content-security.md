@@ -2,6 +2,8 @@
 sidebar_position: 14
 title: Content Security
 description: Security considerations for handling ActivityPub content
+last_verified: 2026-10-15
+verified_against: "Mastodon v4.7.3 sanitize_config.rb, DOMPurify 3.4.17, request-filtering-agent 3.2.1, express-rate-limit 8.7.1"
 ---
 
 # Content Security
@@ -41,7 +43,7 @@ const ALLOWED_ATTRS = {
 
 // Don't let remote content use arbitrary classes — it would pick up your
 // site's CSS and could spoof UI. Keep only the classes fediverse markup
-// needs, as Mastodon does (sanitize_config.rb):
+// needs, exactly as Mastodon does (sanitize_config.rb, lines 31-34):
 function allowedClass(c) {
   return /^(h|p|u|dt|e)-/.test(c)            // microformats
       || /^(mention|hashtag)$/.test(c)       // semantic
@@ -67,12 +69,19 @@ DOMPurify.addHook('uponSanitizeAttribute', (node, data) => {
   else data.keepAttr = false;
 });
 
+// Every surviving link opens safely and can't reach a non-http(s) scheme
+DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+  if (node.tagName !== 'A') return;
+  const href = node.getAttribute('href');
+  if (!href || !/^https?:\/\//i.test(href)) node.removeAttribute('href');
+  node.setAttribute('rel', 'nofollow noopener noreferrer');
+});
+
 function sanitizeContent(html) {
   return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: ['p', 'br', 'a', 'strong', 'em', 'code', 'pre'],
+    ALLOWED_TAGS,                         // the allowlist above
     ALLOWED_ATTR: ['href', 'rel', 'class'],
     ALLOW_DATA_ATTR: false,
-    ADD_ATTR: ['target'],
     FORCE_BODY: true
   });
 }
@@ -163,7 +172,7 @@ app.get('/media/proxy/:id', async (req, res) => {
   let response, body;
   try {
     response = await fetch(media.remoteUrl, {
-      agent: useAgent(media.remoteUrl),
+      agent: (parsed) => useAgent(parsed.href), // checked agent per redirect hop
       timeout: 10000,
       size: 10 * 1024 * 1024, // 10MB limit
       follow: 3
@@ -221,24 +230,34 @@ function validateActorId(id) {
 ### Activity Validation
 
 ```javascript
-function validateActivity(activity) {
+const idOf = (v) => (typeof v === 'string' ? v : v?.id);
+
+// signerId: the actor that owns the key that signed this request
+// (from your signature verification — see Verifying Requests)
+function validateActivity(activity, signerId) {
   // Required fields
   if (!activity.type || !activity.actor) {
     throw new Error('Missing required fields');
   }
 
-  // Actor matches authenticated sender
-  if (activity.actor !== authenticatedActor) {
+  // Actor matches the authenticated sender
+  if (idOf(activity.actor) !== signerId) {
     throw new Error('Actor mismatch');
   }
 
-  // Object attribution matches actor, and the object lives on the
-  // actor's origin (for Create/Update) — the CVE-2024-23832 bug class
+  // Object attribution includes the actor, and the object lives on the
+  // actor's origin (for Create/Update) — the CVE-2024-23832 bug class.
+  // attributedTo may be an array: PeerTube lists both the person and the channel.
   if (activity.type === 'Create' || activity.type === 'Update') {
-    if (activity.object?.attributedTo !== activity.actor) {
+    const object = activity.object;
+    if (typeof object !== 'object' || typeof object.id !== 'string') {
+      throw new Error('Create/Update must embed the object');
+    }
+    const authors = [].concat(object.attributedTo ?? []).map(idOf);
+    if (!authors.includes(signerId)) {
       throw new Error('Attribution mismatch');
     }
-    if (new URL(activity.object.id).origin !== new URL(activity.actor).origin) {
+    if (new URL(object.id).origin !== new URL(signerId).origin) {
       throw new Error('Object is not on the actor\'s origin');
     }
   }
@@ -254,14 +273,13 @@ Prevent abuse from federated servers:
 ```javascript
 const rateLimit = require('express-rate-limit');
 
+// express-rate-limit 8: the default key is the client IP, grouped by /56
+// for IPv6 so a client can't dodge the limit by rotating addresses.
+// Don't key on req.body.actor: it is unauthenticated until the signature
+// is verified. Add per-domain limits after verification.
 const inboxLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 100,
-  // req.body.actor is unauthenticated until the signature is verified —
-  // keying on it lets attackers dodge the limit (and new URL(undefined)
-  // throws). Key on the client IP here; add per-domain limits after
-  // verification.
-  keyGenerator: (req) => req.ip
+  limit: 100
 });
 
 app.post('/inbox', inboxLimiter, handleInbox);

@@ -2,6 +2,8 @@
 sidebar_position: 15
 title: JSON-LD Security
 description: Security considerations for JSON-LD processing
+last_verified: 2026-10-15
+verified_against: "AS2 Core, jsonld 9.0.0, request-filtering-agent 3.2.1, Mastodon GHSA-vgm8-frgh-rh2v and json_ld_helper.rb (v4.7.3)"
 ---
 
 # JSON-LD Security
@@ -29,7 +31,7 @@ Malicious contexts can redefine terms:
 
 ### Prevention
 
-Don't overwrite the sender's `@context` with your own. For a JSON-LD processor that silently changes the meaning of every extension term (`publicKey`, `sensitive`, `Hashtag`, `toot:*`…); for a plain-JSON processor it does nothing at all.
+Don't overwrite the sender's `@context` with your own. For a JSON-LD processor that silently changes the meaning of every extension term (`publicKey`, `sensitive`, `Hashtag`, `toot:*`…); for a plain-JSON processor it does nothing at all. (AS2 itself forbids documents from overriding the normative context — [AS2 Core §2.1](https://www.w3.org/TR/activitystreams-core/#jsonld) — but a receiver can't rely on senders obeying that.)
 
 Pick one of two sound approaches:
 
@@ -41,7 +43,7 @@ const jsonld = require('jsonld');
 
 const expanded = await jsonld.expand(activity, {
   documentLoader: safeDocumentLoader, // allowlist only, see below
-  safe: true                          // fail on lossy/undefined terms
+  safe: true                          // jsonld.js "safe mode": throw on lossy/undefined terms
 });
 const compacted = await jsonld.compact(expanded, MY_TRUSTED_CONTEXT, {
   documentLoader: safeDocumentLoader
@@ -100,11 +102,11 @@ const { useAgent } = require('request-filtering-agent');
 async function safeFetch(url) {
   if (new URL(url).protocol !== 'https:') throw new Error('HTTPS only');
 
-  // The agent validates the IP actually connected to (blocking loopback,
-  // private, link-local, CGNAT, 0.0.0.0/8, IPv4-mapped IPv6, ...),
-  // including on every redirect.
+  // The agent checks the address DNS actually returned before connecting
+  // (blocking private and reserved ranges), which also defeats DNS rebinding.
+  // Passing a function gives every redirect hop its own checked agent.
   return fetch(url, {
-    agent: useAgent(url),
+    agent: (parsed) => useAgent(parsed.href),
     timeout: 5000,
     size: 1_000_000,       // cap response bytes
     follow: 3              // cap redirects
@@ -112,13 +114,13 @@ async function safeFetch(url) {
 }
 ```
 
-If you write your own, block at least: `0.0.0.0/8`, `10.0.0.0/8`, `100.64.0.0/10`, `127.0.0.0/8`, `169.254.0.0/16`, `172.16.0.0/12`, `192.168.0.0/16`, `::1`, `::ffff:0:0/96` (IPv4-mapped), `fc00::/7` and `fe80::/10` — and check **every** address DNS returns, on the socket you actually use.
+If you write your own, block at least: `0.0.0.0/8`, `10.0.0.0/8`, `100.64.0.0/10`, `127.0.0.0/8`, `169.254.0.0/16`, `172.16.0.0/12`, `192.0.0.0/24`, `192.168.0.0/16`, `198.18.0.0/15`, `224.0.0.0/4` and above, `::`, `::1`, `::ffff:0:0/96` (IPv4-mapped), `64:ff9b::/96` (NAT64), `fc00::/7` and `fe80::/10` — and check **every** address DNS returns, on the socket you actually use. The tested [`safe-fetch` module](https://github.com/socialdocs/socialdocs.org/tree/gh-pages/examples/verify-requests) on this site does this.
 
 ## Recursive Expansion
 
 ### The Risk
 
-Deeply nested or pathological JSON-LD can exhaust CPU or stack. This is not theoretical: Mastodon 4.7.1 fixed a denial of service in exactly this area ([GHSA-vgm8-frgh-rh2v](https://github.com/mastodon/mastodon/security/advisories/GHSA-vgm8-frgh-rh2v)). Example:
+Deeply nested or pathological JSON-LD can exhaust CPU or stack. This is not theoretical: Mastodon fixed a "denial of service in JSON-LD processing of pathologic activities" in 4.7.1 (and 4.6.7, 4.5.17, 4.4.24), published 2026-09-10 ([GHSA-vgm8-frgh-rh2v](https://github.com/mastodon/mastodon/security/advisories/GHSA-vgm8-frgh-rh2v)). Example:
 
 ```json
 {
@@ -163,23 +165,22 @@ Type can be an array:
 ### Prevention
 
 ```javascript
-function getType(object) {
-  const type = object.type;
-
-  if (Array.isArray(type)) {
-    // Use first recognized type
-    return type.find(t => KNOWN_TYPES.includes(t));
-  }
-
-  return type;
+// Always work with the full list; never assume a string
+function getTypes(object) {
+  const type = object?.type;
+  if (Array.isArray(type)) return type.filter((t) => typeof t === 'string');
+  return typeof type === 'string' ? [type] : [];
 }
+
+// e.g. treat it as an actor if any of its types is an actor type
+const isActor = getTypes(doc).some((t) => ACTOR_TYPES.has(t));
 ```
 
 ## Property Overloading
 
 ### The Risk
 
-Properties can be objects instead of strings:
+A value you expect to be a string can arrive as an object or array:
 
 ```json
 {
@@ -192,74 +193,44 @@ Properties can be objects instead of strings:
 
 ### Prevention
 
+In compacted AS2 an object's own `id` is always a string. Reject anything else rather than unwrapping it — unwrapping `@id` lets a sender smuggle in a value your other checks never saw. For *references* (`actor`, `object`, `inReplyTo`…), accept a string or an embedded object with a string `id`, as Mastodon does ([`value_or_id`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/helpers/json_ld_helper.rb#L83-L85)).
+
 ```javascript
-function getId(object) {
-  const id = object.id || object['@id'];
+function getOwnId(object) {
+  if (typeof object?.id !== 'string') throw new Error('Object id must be a string');
+  return new URL(object.id).href; // also rejects non-URLs
+}
 
-  if (typeof id === 'object') {
-    return id['@id'] || id.id;
-  }
-
-  return id;
+function refId(value) {
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object' && typeof value.id === 'string') return value.id;
+  return null; // a Link, an array, or garbage: not a usable reference
 }
 ```
 
 ## Safe Processing Pattern
 
+For plain-JSON processing (the common case), combine the pieces above: cap the raw body size before parsing, bound nesting depth, then read compact names with strict helpers. `@context` is left untouched.
+
 ```javascript
-class SafeJsonLdProcessor {
-  constructor() {
-    this.contextCache = new Map();
-    this.maxDepth = 10;
-    this.timeout = 5000;
+function parseActivity(rawBody) {
+  if (rawBody.length > 1_000_000) throw new Error('Document too large');
+  const doc = JSON.parse(rawBody);
+  if (typeof doc !== 'object' || doc === null || Array.isArray(doc)) {
+    throw new Error('Invalid document');
   }
+  checkDepth(doc);
 
-  async process(document) {
-    // 1. Validate structure
-    this.validateStructure(document);
-
-    // 2. Normalize context
-    const normalized = this.normalizeContext(document);
-
-    // 3. Extract values safely
-    return {
-      id: this.extractId(normalized),
-      type: this.extractType(normalized),
-      actor: this.extractId(normalized.actor),
-      object: this.extractObject(normalized.object)
-    };
-  }
-
-  validateStructure(doc) {
-    if (typeof doc !== 'object' || doc === null) {
-      throw new Error('Invalid document');
-    }
-
-    if (JSON.stringify(doc).length > 1000000) {
-      throw new Error('Document too large');
-    }
-  }
-
-  normalizeContext(doc) {
-    // Plain-JSON processing: read compact property names and leave
-    // @context alone. Overwriting @context would change the meaning of
-    // extension terms for any JSON-LD consumer downstream.
-    return doc;
-  }
-
-  extractId(value) {
-    if (!value) return null;
-    if (typeof value === 'string') return value;
-    return value.id || value['@id'];
-  }
-
-  extractType(doc) {
-    const type = doc.type || doc['@type'];
-    if (Array.isArray(type)) return type[0];
-    return type;
-  }
+  return {
+    id: getOwnId(doc),
+    types: getTypes(doc),
+    actor: refId(doc.actor),
+    object: refId(doc.object) // embedded objects: re-check their origin before trusting
+  };
 }
 ```
+
+Then verify the request's signature and origin as described in [Verifying Requests](/docs/security/verifying-requests) and [Origin Model](/docs/security/origin-model).
 
 ## Security Checklist
 

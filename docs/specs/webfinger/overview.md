@@ -2,6 +2,8 @@
 sidebar_position: 1
 title: WebFinger
 description: User discovery protocol for the Fediverse
+last_verified: 2026-10-15
+verified_against: "RFC 7033, mastodon.social WebFinger response (fetched 2026-10-15), FEP-3b86, express-rate-limit 8.7.1"
 ---
 
 # WebFinger
@@ -70,8 +72,10 @@ GET /.well-known/webfinger?resource={resource}
 
 | Parameter | Required | Description |
 |-----------|----------|-------------|
-| `resource` | Yes | The resource identifier |
-| `rel` | No | Filter links by relation |
+| `resource` | Yes | The resource identifier (URL-encoded) |
+| `rel` | No | Filter links by relation; may be repeated ([RFC 7033 §4.3](https://www.rfc-editor.org/rfc/rfc7033.html#section-4.3)) |
+
+Missing or malformed `resource` → `400 Bad Request`; nothing known about it → `404 Not Found` ([§4.2](https://www.rfc-editor.org/rfc/rfc7033.html#section-4.2)). Clients MUST query over HTTPS only.
 
 ### Resource Format
 
@@ -85,7 +89,11 @@ Examples:
 - `acct:alice@example.com`
 - `acct:bob@mastodon.social`
 
+Mastodon also answers for an actor's `https://` URL as the resource, and matches usernames case-insensitively — it returns the canonical spelling in `subject` (querying `acct:gargron@mastodon.social` yields `"subject": "acct:Gargron@mastodon.social"`). Use the returned `subject`, not what you typed, as the handle.
+
 ## Response Format
+
+This mirrors what Mastodon 4.7 returns (fetched from mastodon.social, October 2026):
 
 ```json
 {
@@ -108,6 +116,15 @@ Examples:
     {
       "rel": "http://ostatus.org/schema/1.0/subscribe",
       "template": "https://example.com/authorize_interaction?uri={uri}"
+    },
+    {
+      "rel": "https://w3id.org/fep/3b86/Object",
+      "template": "https://example.com/authorize_interaction?uri={object}"
+    },
+    {
+      "rel": "http://webfinger.net/rel/avatar",
+      "type": "image/png",
+      "href": "https://example.com/avatars/alice.png"
     }
   ]
 }
@@ -117,17 +134,22 @@ Examples:
 
 | Property | Description |
 |----------|-------------|
-| `subject` | The queried resource |
-| `aliases` | Alternative identifiers |
-| `links` | Related resources |
+| `subject` | The canonical identifier for the resource (may differ from the query) |
+| `aliases` | Other URIs for the same entity |
+| `properties` | Optional name/value pairs |
+| `links` | Related resources; each has `rel` and usually `type`/`href` ([§4.4](https://www.rfc-editor.org/rfc/rfc7033.html#section-4.4)) |
+
+`template` is **not** an RFC 7033 link member — it is a fediverse convention (from OStatus) for URL templates, used by the subscribe and FEP-3b86 links.
 
 ### Link Relations
 
 | Relation | Purpose |
 |----------|---------|
-| `self` | The canonical representation |
+| `self` | The ActivityPub actor (with type `application/activity+json`, or `application/ld+json; profile="https://www.w3.org/ns/activitystreams"`) |
 | `http://webfinger.net/rel/profile-page` | Human-readable profile |
-| `http://ostatus.org/schema/1.0/subscribe` | Remote follow URL |
+| `http://ostatus.org/schema/1.0/subscribe` | Remote-follow / interact URL template |
+| `https://w3id.org/fep/3b86/…` | [FEP-3b86](https://codeberg.org/fediverse/fep/src/branch/main/fep/3b86/fep-3b86.md) Activity Intents (Mastodon 4.6+) |
+| `http://webfinger.net/rel/avatar` | Avatar image |
 
 ## Implementation
 
@@ -147,22 +169,23 @@ app.get('/.well-known/webfinger', async (req, res) => {
     return res.status(400).json({ error: 'Invalid resource format' });
   }
 
-  const [, username, domain] = match;
+  const [, requested, domain] = match;
 
-  // Verify domain matches our server
-  if (domain !== 'example.com') {
-    return res.status(404).json({ error: 'User not found' });
+  // Only answer for our own domain
+  if (domain.toLowerCase() !== 'example.com') {
+    return res.status(404).end();
   }
 
-  // Find user
-  const user = await db.users.findOne({ username });
+  // Case-insensitive lookup; respond with the stored, canonical username
+  const user = await db.users.findByUsernameCaseInsensitive(requested);
   if (!user) {
-    return res.status(404).json({ error: 'User not found' });
+    return res.status(404).end();
   }
+  const username = user.username;
 
-  res.set('Content-Type', 'application/jrd+json');
-  res.json({
-    subject: resource,
+  res.set('Access-Control-Allow-Origin', '*');
+  res.type('application/jrd+json').send(JSON.stringify({
+    subject: `acct:${username}@example.com`,
     aliases: [
       `https://example.com/@${username}`,
       `https://example.com/users/${username}`
@@ -183,7 +206,7 @@ app.get('/.well-known/webfinger', async (req, res) => {
         template: 'https://example.com/authorize_interaction?uri={uri}'
       }
     ]
-  });
+  }));
 });
 ```
 
@@ -203,8 +226,11 @@ async function lookupUser(handle) {
   // Query WebFinger
   const url = `https://${domain}/.well-known/webfinger?resource=${encodeURIComponent(resource)}`;
 
+  // `domain` comes from user input: on a server, use an SSRF-safe fetch
+  // (public addresses only, size and time limits) — see /docs/security/verifying-requests
   const response = await fetch(url, {
-    headers: { 'Accept': 'application/jrd+json' }
+    headers: { 'Accept': 'application/jrd+json' },
+    redirect: 'follow'
   });
 
   if (!response.ok) {
@@ -213,9 +239,13 @@ async function lookupUser(handle) {
 
   const data = await response.json();
 
-  // Find ActivityPub actor
-  const actorLink = data.links.find(
-    link => link.rel === 'self' && link.type === 'application/activity+json'
+  // Find the ActivityPub actor; servers use either media type
+  const AP_TYPES = [
+    'application/activity+json',
+    'application/ld+json; profile="https://www.w3.org/ns/activitystreams"'
+  ];
+  const actorLink = (data.links ?? []).find(
+    (link) => link.rel === 'self' && AP_TYPES.includes(link.type)
   );
 
   if (!actorLink) {
@@ -261,35 +291,21 @@ app.use('/.well-known/webfinger', (req, res, next) => {
 
 ## Error Handling
 
-### 400 Bad Request
-
-```json
-{
-  "error": "invalid_request",
-  "error_description": "Missing or invalid resource parameter"
-}
-```
-
-### 404 Not Found
-
-```json
-{
-  "error": "not_found",
-  "error_description": "Resource not found"
-}
-```
+RFC 7033 defines only the status codes — `400` for a missing or malformed `resource`, `404` when the server has no information — and no error body format ([§4.2](https://www.rfc-editor.org/rfc/rfc7033.html#section-4.2)). Clients should rely on the status code, not on a body.
 
 ## Caching
 
-WebFinger responses can be cached:
+WebFinger responses can be cached. mastodon.social sends `Cache-Control: max-age=259200, public` (3 days):
 
 ```javascript
-res.set('Cache-Control', 'max-age=86400'); // 24 hours
+res.set('Cache-Control', 'max-age=259200, public');
 ```
+
+If your handles live on a different domain from your server (Mastodon's `LOCAL_DOMAIN` vs `WEB_DOMAIN`), see [split domains](/docs/security/keys-and-identity#split-domains) in Keys and Identity.
 
 ## Security
 
-1. **HTTPS required** - Always use HTTPS for WebFinger
+1. **HTTPS required** - RFC 7033 requires HTTPS; clients MUST NOT fall back to HTTP ([§4.2](https://www.rfc-editor.org/rfc/rfc7033.html#section-4.2), [§9.1](https://www.rfc-editor.org/rfc/rfc7033.html#section-9.1))
 2. **Validate domains** - Only respond for your domain
 3. **Rate limiting** - Prevent enumeration attacks
 
@@ -298,7 +314,7 @@ const rateLimit = require('express-rate-limit');
 
 app.use('/.well-known/webfinger', rateLimit({
   windowMs: 60 * 1000,
-  max: 100
+  limit: 100 // express-rate-limit 8 (`max` is the old name)
 }));
 ```
 

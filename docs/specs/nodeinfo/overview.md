@@ -2,6 +2,8 @@
 sidebar_position: 1
 title: NodeInfo
 description: Server metadata protocol for Fediverse instances
+last_verified: 2026-10-15
+verified_against: "NodeInfo PROTOCOL.md and 2.0/2.1 JSON schemas (jhass/nodeinfo), FEP-0151 (FINAL), mastodon.social and misskey.io NodeInfo (fetched 2026-10-15)"
 ---
 
 # NodeInfo
@@ -11,7 +13,8 @@ NodeInfo is a protocol for exposing metadata about a server. It provides informa
 ## Specification
 
 - **Repository**: [https://nodeinfo.diaspora.software/](https://nodeinfo.diaspora.software/)
-- **Schema**: [https://nodeinfo.diaspora.software/schema.html](https://nodeinfo.diaspora.software/schema.html)
+- **Schema**: [https://nodeinfo.diaspora.software/schema.html](https://nodeinfo.diaspora.software/schema.html) (JSON Schemas in [jhass/nodeinfo](https://github.com/jhass/nodeinfo/tree/main/schemas))
+- **Fediverse guidance**: [FEP-0151](https://codeberg.org/fediverse/fep/src/branch/main/fep/0151/fep-0151.md) (FINAL)
 
 ## How It Works
 
@@ -53,14 +56,16 @@ Accept: application/json
 
 ### Schema 2.1 (Current)
 
+All of `version`, `software` (with `name` and `version`), `protocols` (at least one), `services`, `openRegistrations`, `usage` (with `users`) and `metadata` are **required** by both the 2.0 and 2.1 schemas; `software.name` must match `^[a-z0-9-]+$`.
+
 ```json
 {
   "version": "2.1",
   "software": {
-    "name": "mastodon",
-    "version": "4.7.3",
-    "repository": "https://github.com/mastodon/mastodon",
-    "homepage": "https://joinmastodon.org/"
+    "name": "myserver",
+    "version": "1.0.0",
+    "repository": "https://github.com/example/myserver",
+    "homepage": "https://example.com/"
   },
   "protocols": ["activitypub"],
   "usage": {
@@ -77,24 +82,27 @@ Accept: application/json
     "outbound": ["atom1.0", "rss2.0"]
   },
   "metadata": {
-    "nodeName": "Example Mastodon",
-    "nodeDescription": "A friendly Mastodon instance"
+    "nodeName": "Example Server",
+    "nodeDescription": "A friendly ActivityPub server"
   }
 }
 ```
+
+Mastodon (4.7) publishes **only NodeInfo 2.0**: mastodon.social's `/.well-known/nodeinfo` links just `/nodeinfo/2.0`, with `nodeName`, `nodeDescription`, `optInServerDirectory` and `optInServerRecommendation` in `metadata`. Don't assume a 2.1 document exists — follow whatever the discovery document links.
 
 ### Properties
 
 | Property | Description |
 |----------|-------------|
 | `version` | NodeInfo schema version |
-| `software.name` | Software name (lowercase) |
+| `software.name` | Software name (`^[a-z0-9-]+$`) |
 | `software.version` | Software version |
 | `protocols` | Supported protocols |
 | `usage.users` | User statistics |
 | `usage.localPosts` | Number of local posts |
+| `usage.localComments` | Number of local comments (optional) |
 | `openRegistrations` | Whether signups are open |
-| `services` | Connected services |
+| `services` | Third-party services the server can receive from (`inbound`) or publish to (`outbound`), e.g. `rss2.0` |
 | `metadata` | Additional custom data |
 
 ## Implementation
@@ -102,16 +110,15 @@ Accept: application/json
 ### Discovery Endpoint
 
 ```javascript
+// Use your configured domain, not req.hostname (the Host header is client-controlled)
+const DOMAIN = 'example.com';
+
 app.get('/.well-known/nodeinfo', (req, res) => {
   res.json({
     links: [
       {
         rel: 'http://nodeinfo.diaspora.software/ns/schema/2.1',
-        href: `https://${req.hostname}/nodeinfo/2.1`
-      },
-      {
-        rel: 'http://nodeinfo.diaspora.software/ns/schema/2.0',
-        href: `https://${req.hostname}/nodeinfo/2.0`
+        href: `https://${DOMAIN}/nodeinfo/2.1`
       }
     ]
   });
@@ -124,7 +131,9 @@ app.get('/.well-known/nodeinfo', (req, res) => {
 app.get('/nodeinfo/2.1', async (req, res) => {
   const stats = await getStats();
 
-  res.json({
+  // The protocol asks for this media type, with the schema as profile
+  res.type('application/json; profile="http://nodeinfo.diaspora.software/ns/schema/2.1#"');
+  res.send(JSON.stringify({
     version: '2.1',
     software: {
       name: 'myserver',
@@ -150,7 +159,7 @@ app.get('/nodeinfo/2.1', async (req, res) => {
       nodeName: 'My ActivityPub Server',
       nodeDescription: 'A custom ActivityPub implementation'
     }
-  });
+  }));
 });
 
 async function getStats() {
@@ -175,7 +184,7 @@ Version 2.1 adds:
 - `software.repository` - Source code URL
 - `software.homepage` - Project homepage
 
-Both are widely supported. Implement 2.1 and optionally 2.0 for compatibility.
+FEP-0151 says servers SHOULD implement 2.1. Clients follow the highest version linked from the discovery document, so publishing only 2.1 is fine; publish 2.0 too only if you need very old consumers.
 
 ### FEP-0151 (2025 edition)
 
@@ -210,30 +219,25 @@ Both are widely supported. Implement 2.1 and optionally 2.0 for compatibility.
 
 NodeInfo is used by:
 
-- [FediDB](https://fedidb.org/) - Statistics
+- [FediDB](https://fedidb.com/) - Statistics
 - Instance pickers and directories
 
 ## Metadata Extensions
 
-The `metadata` object can contain custom properties:
+`metadata` is free-form. FEP-0151 lists the widely used keys: `nodeName`, `nodeDescription`, `staffAccounts` (actor IDs) and `federation.enabled`:
 
 ```json
 {
   "metadata": {
-    "nodeName": "Cool Server",
-    "nodeDescription": "A very cool server",
-    "maintainer": {
-      "name": "Admin",
-      "email": "admin@example.com"
-    },
-    "langs": ["en", "de"],
-    "tosUrl": "https://example.com/tos",
-    "privacyUrl": "https://example.com/privacy",
-    "repositoryUrl": "https://github.com/example/myserver",
-    "feedbackUrl": "https://github.com/example/myserver/issues"
+    "nodeName": "My server",
+    "nodeDescription": "My server",
+    "staffAccounts": ["https://social.example/actors/1"],
+    "federation": { "enabled": true }
   }
 }
 ```
+
+Other keys vary by software. Misskey, for example, publishes `maintainer`, `langs`, `tosUrl`, `privacyPolicyUrl`, `repositoryUrl`, `feedbackUrl` and more (from misskey.io's `/nodeinfo/2.1`). Treat anything outside FEP-0151's list as software-specific.
 
 ## Caching
 

@@ -2,6 +2,8 @@
 sidebar_position: 5
 title: Actor Types
 description: Actor types in ActivityStreams 2.0 and ActivityPub
+last_verified: 2026-10-15
+verified_against: "AS2 Core & Vocabulary (W3C REC 2017), the published AS2 JSON-LD context, ActivityPub REC, Mastodon v4.7.3 source (context_helper.rb, account.rb, json_ld_helper.rb), mastodon.social /actor (fetched 2026-10-15)"
 ---
 
 # Actor Types
@@ -157,7 +159,7 @@ Represents a company, institution, or organization.
 
 ## Application
 
-Represents a software application. AS2 doesn't say what it's for; in practice it is used for bots and instance actors. Mastodon treats both `Application` and `Service` actors as bots ([Mastodon docs](https://docs.joinmastodon.org/spec/activitypub/)).
+Represents a software application. AS2 doesn't say what it's for; in practice it is used for bots and instance actors. Mastodon treats both `Application` and `Service` actors as bots (`AUTOMATED_ACTOR_TYPES` in [account.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/models/account.rb#L90)).
 
 ```json
 {
@@ -211,7 +213,7 @@ Represents a service or daemon process.
 
 ## Required Actor Properties
 
-All actors must have these properties for ActivityPub:
+ActivityPub requires `id` and `type` on every object ([AP §3.1](https://www.w3.org/TR/activitypub/#obj-id)) and `inbox` and `outbox` on every actor ([AP §4.1](https://www.w3.org/TR/activitypub/#actor-objects)):
 
 | Property | Description |
 |----------|-------------|
@@ -219,6 +221,8 @@ All actors must have these properties for ActivityPub:
 | `type` | One of the actor types |
 | `inbox` | URL to receive activities |
 | `outbox` | URL listing published activities |
+
+`followers` and `following` are SHOULDs in the spec. Mastodon additionally rejects actors without `preferredUsername` (see [Troubleshooting](/docs/guides/troubleshooting)).
 
 ## Recommended Actor Properties
 
@@ -230,7 +234,7 @@ All actors must have these properties for ActivityPub:
 | `url` | Profile page URL |
 | `icon` | Avatar image |
 | `image` | Header/banner image |
-| `publicKey` | RSA public key for signatures |
+| `publicKey` | RSA key for HTTP Signatures (Ed25519 and other keys go in `assertionMethod` — see [Keys and Identity](/docs/security/keys-and-identity)) |
 | `endpoints.sharedInbox` | Shared inbox URL |
 | `followers` | Followers collection URL |
 | `following` | Following collection URL |
@@ -268,7 +272,11 @@ All actors must have these properties for ActivityPub:
 | `memorial` | Account has been memorialized |
 | `attributionDomains` | Domains allowed to credit this account as author of linked articles |
 
-All of these are in the `toot:` namespace (`http://joinmastodon.org/ns#`), per Mastodon's [context_helper.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/helpers/context_helper.rb).
+These are extensions, not AS2 core, and they come from different namespaces. Per Mastodon's [context_helper.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/helpers/context_helper.rb):
+
+- `as:` (proposed AS2 extensions): `manuallyApprovesFollowers`, `movedTo`. (`alsoKnownAs` is also defined in the published AS2 context.)
+- `toot:` (`http://joinmastodon.org/ns#`): `discoverable`, `indexable`, `memorial`, `featured`, `featuredTags`, `attributionDomains`, `suspended`
+- `schema:` (`http://schema.org#`): `PropertyValue` and its `value`, used in `attachment` for profile fields
 
 ## Profile Fields
 
@@ -314,7 +322,7 @@ Required for HTTP Signatures:
 
 | Property | Description |
 |----------|-------------|
-| `id` | Key identifier (actor URL + fragment) |
+| `id` | Key identifier — usually the actor URL plus `#main-key`, but it may be a separate URL (GoToSocial uses `…/main-key`) |
 | `owner` | The actor who owns this key |
 | `publicKeyPem` | PEM-encoded RSA public key |
 
@@ -331,10 +339,11 @@ Servers often have a special instance-level actor:
   "type": "Application",
   "id": "https://example.com/actor",
   "preferredUsername": "example.com",
-  "name": "Example Server",
-  "summary": "<p>A Mastodon instance</p>",
-  "inbox": "https://example.com/inbox",
-  "outbox": "https://example.com/outbox",
+  "inbox": "https://example.com/actor/inbox",
+  "outbox": "https://example.com/actor/outbox",
+  "endpoints": {
+    "sharedInbox": "https://example.com/inbox"
+  },
   "publicKey": {
     "id": "https://example.com/actor#main-key",
     "owner": "https://example.com/actor",
@@ -343,10 +352,12 @@ Servers often have a special instance-level actor:
 }
 ```
 
+This mirrors what mastodon.social serves at `/actor` (an `Application` whose `preferredUsername` is the domain).
+
 **Used for:**
 - Sending Flag (report) activities
-- Instance-level announcements
-- Relay connections
+- Following relays
+- Signing fetches when authorized fetch is on — see [Authorized Fetch](/docs/security/authorized-fetch)
 
 ## Actor Type Comparison
 

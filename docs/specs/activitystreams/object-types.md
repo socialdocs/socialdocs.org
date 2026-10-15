@@ -2,6 +2,8 @@
 sidebar_position: 4
 title: Object Types
 description: Content object types in ActivityStreams 2.0
+last_verified: 2026-10-15
+verified_against: "AS2 Core & Vocabulary (W3C REC 2017), the published AS2 JSON-LD context, ActivityPub REC, Mastodon v4.7.3 source (context_helper.rb, account.rb, json_ld_helper.rb), Lemmy 0.19.20 page.rs, Mastodon status_parser.rb, WordPress ActivityPub FEDERATION.md, Mobilizon/Gancio/Funkwhale sources and docs"
 ---
 
 # Object Types
@@ -45,11 +47,11 @@ Long-form content like blog posts.
 }
 ```
 
-**Used by:** WriteFreely, Plume, WordPress (with plugin)
+**Used by:** WriteFreely, Ghost, the WordPress ActivityPub plugin (Article for standard posts, Note otherwise — [FEDERATION.md](https://github.com/Automattic/wordpress-activitypub/blob/trunk/FEDERATION.md)). Mastodon shows Articles as title, summary and link rather than full content — see [Big Platforms](/docs/ecosystem/big-platforms).
 
 ### Page
 
-A document or web page, often with a title and external URL.
+A web page or document (it extends `Document` in the AS2 Vocabulary).
 
 ```json
 {
@@ -57,13 +59,16 @@ A document or web page, often with a title and external URL.
   "type": "Page",
   "id": "https://lemmy.example/post/12345",
   "name": "Interesting Article About Programming",
-  "url": "https://external-site.com/article",
+  "attachment": [
+    { "type": "Link", "href": "https://external-site.com/article" }
+  ],
   "content": "<p>Discussion about the article...</p>",
-  "attributedTo": "https://lemmy.example/u/alice"
+  "attributedTo": "https://lemmy.example/u/alice",
+  "audience": "https://lemmy.example/c/programming"
 }
 ```
 
-**Used by:** Lemmy (for posts with titles/links)
+**Used by:** Lemmy, for community posts. Lemmy puts a link post's external URL in `attachment` as a `Link`, not in `url` (its 0.19 `Page` struct has no `url` field — [page.rs](https://github.com/LemmyNet/lemmy/blob/0.19.20/crates/apub/src/protocol/objects/page.rs)). See [Lemmy Compatibility](/docs/guides/lemmy-compatibility).
 
 ### Event
 
@@ -170,7 +175,7 @@ A generic document attachment.
 }
 ```
 
-**Used by:** Mastodon (for attachments)
+**Used by:** Mastodon, which sends media attachments as `Document`. `blurhash` is a Mastodon extension (`toot:blurhash`), not AS2, and needs its context mapping.
 
 ## Location Types
 
@@ -195,10 +200,10 @@ A physical location.
 | `name` | String | Place name |
 | `latitude` | Number | Latitude coordinate |
 | `longitude` | Number | Longitude coordinate |
-| `altitude` | Number | Altitude in meters |
+| `altitude` | Number | Altitude, in `units` (default metres) |
 | `accuracy` | Number | Accuracy as a percentage, 0–100 (e.g. `94.0` = 94% accurate) |
-| `radius` | Number | Radius in meters |
-| `units` | String | Unit of measurement |
+| `radius` | Number | Radius around the point, in `units` (default metres) |
+| `units` | String | `cm`, `feet`, `inches`, `km`, `m`, `miles`, or a URI |
 
 ## Special Types
 
@@ -369,7 +374,7 @@ Most implementations expect HTML in the `content` property:
 
 ### Plain Text
 
-For plain text, use `mediaType`:
+AS2 lets you mark plain text with `mediaType` (the default is `text/html`). Mastodon ignores `mediaType` here and treats `content` as HTML, sanitising it ([status_parser.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/parser/status_parser.rb#L40-L46)), so line breaks in plain text are lost — send HTML if Mastodon users are your audience:
 
 ```json
 {
@@ -381,7 +386,7 @@ For plain text, use `mediaType`:
 
 ### Source
 
-Preserve the original source format:
+Preserve the original source format with ActivityPub's `source` property ([AP §3.3](https://www.w3.org/TR/activitypub/#source-property)), which clients use to re-edit content:
 
 ```json
 {
