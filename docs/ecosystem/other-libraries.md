@@ -6,171 +6,56 @@ description: ActivityPub libraries for other programming languages
 
 # Other Libraries
 
-ActivityPub libraries for additional programming languages.
+ActivityPub options for languages without a dedicated page. Status checked on **2026-10-15**.
 
 ## Elixir
 
-### ActivityPub (Pleroma/Akkoma)
+### activity_pub (Bonfire)
 
-The ActivityPub library used by Pleroma and Akkoma.
+A general-purpose ActivityPub library for Elixir, extracted from and used by [Bonfire](https://bonfirenetworks.org/). You plug it into your app by writing an adapter module. Its README describes it as work in progress, with federation testing underway.
 
 | Property | Value |
 |----------|-------|
-| Repository | [git.pleroma.social/pleroma/pleroma](https://git.pleroma.social/pleroma/pleroma) |
-| Key Path | `lib/pleroma/web/activity_pub/` |
+| Repository | [github.com/bonfire-networks/activity_pub](https://github.com/bonfire-networks/activity_pub) |
+| Install | git dependency (`branch: "stable"`), not on Hex |
+| License | AGPL-3.0 |
+| Status | Active (commits October 2026) |
 
-### Notable Patterns
+### Pleroma / Akkoma source
 
-```elixir
-defmodule Pleroma.Web.ActivityPub.ObjectValidator do
-  def validate(object, meta) do
-    with {:ok, object} <- validate_type(object),
-         {:ok, object} <- validate_actor(object),
-         {:ok, object} <- validate_content(object) do
-      {:ok, object, meta}
-    end
-  end
-end
-```
+Pleroma and its fork Akkoma are mature Elixir servers whose federation code is a useful reference, though not packaged as a library.
 
-### HTTPSignatures
+| Property | Value |
+|----------|-------|
+| Akkoma | [akkoma.dev/AkkomaGang/akkoma](https://akkoma.dev/AkkomaGang/akkoma) — see [`lib/pleroma/web/activity_pub/`](https://akkoma.dev/AkkomaGang/akkoma/src/branch/develop/lib/pleroma/web/activity_pub) |
+| Pleroma | [git.pleroma.social/pleroma/pleroma](https://git.pleroma.social/pleroma/pleroma) |
 
-```elixir
-defmodule Pleroma.Signature do
-  def sign(actor, headers) do
-    # Build signing string
-    # Sign with actor's private key
-  end
+## C# / .NET
 
-  def validate(headers, public_key) do
-    # Verify HTTP Signature
-  end
-end
-```
+**[Letterbook](https://github.com/Letterbook/Letterbook)** (AGPL-3.0, active) is a federated social server written in C#; its source is the most current .NET ActivityPub reference. Its separate type library, [Letterbook.ActivityPub](https://github.com/Letterbook/Letterbook.ActivityPub), has not been updated since June 2024.
 
-## C# / .NET, Java / Kotlin, Swift
+## Java / Kotlin, Swift, Dart, Haskell
 
-There is no widely used, maintained general-purpose ActivityPub library for these languages that we can recommend. Start from the patterns in [Building Your Own](#building-your-own) below and test against real servers.
-
-### Example Pattern (Swift)
-
-```swift
-struct Note: Codable {
-    let context = "https://www.w3.org/ns/activitystreams"
-    let type = "Note"
-    let id: URL
-    let content: String
-    let attributedTo: URL
-
-    enum CodingKeys: String, CodingKey {
-        case context = "@context"
-        case type, id, content, attributedTo
-    }
-}
-```
-
-## Haskell
-
-No mature libraries, but reference implementations exist in various projects.
-
-### Pattern
-
-```haskell
-data Activity = Activity
-    { activityContext :: Text
-    , activityType :: Text
-    , activityActor :: URI
-    , activityObject :: Object
-    }
-
-instance ToJSON Activity where
-    toJSON (Activity ctx typ actor obj) = object
-        [ "@context" .= ctx
-        , "type" .= typ
-        , "actor" .= actor
-        , "object" .= obj
-        ]
-```
-
-## Dart / Flutter
-
-No maintained ActivityPub library is known. A minimal actor model:
-
-### Pattern
-
-```dart
-class Actor {
-  final String id;
-  final String type;
-  final String preferredUsername;
-  final String inbox;
-  final String outbox;
-
-  Actor({
-    required this.id,
-    required this.type,
-    required this.preferredUsername,
-    required this.inbox,
-    required this.outbox,
-  });
-
-  factory Actor.fromJson(Map<String, dynamic> json) {
-    return Actor(
-      id: json['id'],
-      type: json['type'],
-      preferredUsername: json['preferredUsername'],
-      inbox: json['inbox'],
-      outbox: json['outbox'],
-    );
-  }
-}
-```
+We don't know of a maintained, general-purpose ActivityPub library for these languages. If you know one, please [open an issue](https://github.com/socialdocs/socialdocs.org/issues). Until then, build on a JSON library and an HTTP-signature implementation for your platform, and test against real servers.
 
 ## Building Your Own
 
-If no library exists for your language:
+If no library exists for your language, the minimum to federate with Mastodon is:
 
-### 1. Start with Types
+1. **Types** — actors (`Person`, `Group`, `Service`), objects (`Note`, `Article`, `Image`), activities (`Create`, `Follow`, `Accept`, `Undo`, `Like`, `Announce`, `Delete`), and `OrderedCollection`.
+2. **WebFinger** — `GET /.well-known/webfinger?resource=acct:{user}@{domain}` returning a `self` link of type `application/activity+json`.
+3. **Actor endpoint** — served as `application/activity+json`, with a `publicKey`.
+4. **HTTP Signatures** — sign outgoing POSTs (draft-cavage `rsa-sha256` with `(request-target) host date digest` is what most servers accept today; [RFC 9421](https://www.rfc-editor.org/rfc/rfc9421) is the future), and **verify** incoming ones, including the body digest and that the key belongs to the activity's `actor` — see [issue #37](https://github.com/socialdocs/socialdocs.org/issues/37).
+5. **Inbox and outbox** — accept activities with `202`, and publish your own.
 
-```
-Define structures for:
-- Actor (Person, Group, Service)
-- Object (Note, Article, Image)
-- Activity (Create, Follow, Like)
-- Collection (OrderedCollection)
-```
-
-### 2. Implement HTTP Signatures
-
-```
-1. Build signing string from headers
-2. Sign with RSA-SHA256
-3. Format as Signature header
-```
-
-### 3. WebFinger
-
-```
-GET /.well-known/webfinger?resource=acct:{user}@{domain}
-Return links to actor
-```
-
-### 4. Basic Endpoints
-
-```
-GET /users/{username}        → Actor
-POST /users/{username}/inbox → Receive activities
-GET /users/{username}/outbox → Published activities
-```
+See [Building an Actor](/docs/guides/building-an-actor) for the details.
 
 ## Community Resources
 
-- **[SocialHub](https://socialhub.activitypub.rocks/)** - Developer forum
-- **[FEP Repository](https://codeberg.org/fediverse/fep)** - Enhancement proposals
-- **[ActivityPub Dev Matrix](https://matrix.to/#/#activitypub-dev:matrix.org)** - Real-time chat
+- **[SocialHub](https://socialhub.activitypub.rocks/)** — Developer forum
+- **[FEP Repository](https://codeberg.org/fediverse/fep)** — Fediverse Enhancement Proposals
 
 ## See Also
 
 - **[Libraries Overview](/docs/ecosystem/libraries-overview)**
 - **[Building an Actor](/docs/guides/building-an-actor)**
-

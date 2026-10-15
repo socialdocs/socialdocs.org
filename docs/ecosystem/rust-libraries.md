@@ -8,194 +8,99 @@ description: ActivityPub libraries for Rust
 
 Rust libraries for implementing ActivityPub.
 
-## activitypub-federation
+Status and versions below were taken from crates.io and GitHub on **2026-10-15**. *Active* = a release or commit in the last 12 months; *Dormant* = 12–36 months; *Unmaintained* = no release for over 3 years.
 
-Battle-tested library from Lemmy.
+| Crate | Latest release | Status |
+|-------|----------------|--------|
+| [activitypub_federation](#activitypub_federation) | 0.6.6 (2026-10-01) | Active |
+| [http-signature-normalization](#http-signature-normalization) | 0.7.1 (2026-06-17) | Active |
+| [webfinger](#webfinger) | 0.5.1 (2022-06-12) | Dormant |
+| [activitystreams](#activitystreams) | 0.6.2 stable (2020); 0.7.0-alpha.25 (2023-07-06) | Unmaintained |
+| Kitsune (server) | — | Archived (August 2025) |
+
+## activitypub_federation
+
+The federation framework extracted from Lemmy: object and actor traits, fetching with caching, signed delivery with a retrying queue, inbox handling, and WebFinger helpers. Integrations for actix-web and axum.
 
 | Property | Value |
 |----------|-------|
 | Repository | [github.com/LemmyNet/activitypub-federation-rust](https://github.com/LemmyNet/activitypub-federation-rust) |
-| crates.io | `activitypub-federation` |
+| Crate | `activitypub_federation` |
+| Docs | [docs.rs/activitypub_federation](https://docs.rs/activitypub_federation) — includes a step-by-step guide |
 | License | AGPL-3.0 |
-| Status | Active, Production Ready |
 
-### Features
-
-- Complete S2S federation
-- HTTP Signatures
-- WebFinger
-- Activity queue
-- Async/await
-
-### Example
-
-```rust
-use activitypub_federation::{
-    config::FederationConfig,
-    traits::Actor,
-};
-
-#[derive(Clone)]
-struct MyActor {
-    id: Url,
-    inbox: Url,
-    public_key: String,
-}
-
-impl Actor for MyActor {
-    fn id(&self) -> Url {
-        self.id.clone()
-    }
-
-    fn public_key_pem(&self) -> &str {
-        &self.public_key
-    }
-
-    fn inbox(&self) -> Url {
-        self.inbox.clone()
-    }
-}
-```
+Your types implement the `Object` trait (load/verify/convert) and, for actors, the `Actor` trait (`id`, `public_key_pem`, `private_key_pem`, `inbox`, …). Activities implement `ActivityHandler`. The [docs.rs guide](https://docs.rs/activitypub_federation) walks through each trait.
 
 ### Sending Activities
 
 ```rust
-use activitypub_federation::activity_sending::SendActivityTask;
+use activitypub_federation::activity_queue::queue_activity;
 
-let activity = Create {
-    actor: actor.id(),
-    object: note,
-};
-
-SendActivityTask::prepare(&activity, &actor, vec![inbox_url])
-    .await?
-    .send(&data)
-    .await?;
+// `activity` implements ActivityHandler + Serialize,
+// `actor` implements Actor, `data` is the request's Data<T>.
+let inboxes = vec![remote_actor.shared_inbox_or_inbox()];
+queue_activity(&activity, &local_actor, inboxes, &data).await?;
 ```
 
-## activitystreams
-
-Type-safe ActivityStreams vocabulary.
-
-| Property | Value |
-|----------|-------|
-| Repository | [crates.io/crates/activitystreams](https://crates.io/crates/activitystreams) |
-| License | GPL-3.0 |
-| Status | Active |
-
-### Example
-
-```rust
-use activitystreams::{
-    activity::Create,
-    object::Note,
-    prelude::*,
-};
-
-let note = Note::new()
-    .set_content("Hello from Rust!")
-    .set_attributed_to("https://example.com/users/alice".parse()?);
-
-let create = Create::new(
-    "https://example.com/users/alice".parse()?,
-    note.into_any_base()?,
-);
-```
+`queue_activity` signs and delivers with automatic retries. To run your own queue, use `activity_sending::SendActivityTask::prepare(&activity, &actor, inboxes, &data)` and call `sign_and_send(&data)` on each task.
 
 ## http-signature-normalization
 
-HTTP Signature handling.
+Minimal-dependency draft-cavage HTTP Signatures where you supply the crypto. Companion crates add actix-web and reqwest integration. By asonix.
 
 | Property | Value |
 |----------|-------|
-| Repository | [crates.io/crates/http-signature-normalization](https://crates.io/crates/http-signature-normalization) |
+| Crate | [crates.io/crates/http-signature-normalization](https://crates.io/crates/http-signature-normalization) |
+| Companion crates | `http-signature-normalization-actix`, `http-signature-normalization-reqwest` |
 | License | AGPL-3.0 |
-| Status | Active |
 
-### Signing
-
-```rust
-use http_signature_normalization_actix::prelude::*;
-
-let config = Config::default()
-    .set_expiration(Duration::seconds(30));
-
-let signed = config
-    .begin_sign("POST", "/inbox", headers)?
-    .sign(key_id, |signing_string| {
-        // Sign with private key
-        sign_with_rsa(signing_string, private_key)
-    })?;
-```
-
-### Verification
-
-```rust
-let unverified = config.begin_verify(
-    request.method(),
-    request.uri().path_and_query(),
-    request.headers(),
-)?;
-
-let key_id = unverified.key_id();
-// Fetch public key
-let verified = unverified.verify(|signing_string, signature| {
-    verify_rsa(signing_string, signature, public_key)
-})?;
-```
+The `Config` builder has fediverse-relevant switches: `mastodon_compat()`, `require_digest()` and `require_header(...)`. Signing is `config.begin_sign(method, path_and_query, headers)?.sign(key_id, |signing_string| …)?`; verification is `config.begin_verify(method, path_and_query, headers)?` then `.verify(|signature, signing_string| …)` after you look up `key_id()`. See [docs.rs](https://docs.rs/http-signature-normalization) for full examples. It does not implement RFC 9421.
 
 ## webfinger
 
-WebFinger client.
+A WebFinger client and server-side resolver, from the Plume project.
 
 | Property | Value |
 |----------|-------|
-| Repository | [crates.io/crates/webfinger](https://crates.io/crates/webfinger) |
-| License | MIT |
-| Status | Stable |
-
-### Example
+| Crate | [crates.io/crates/webfinger](https://crates.io/crates/webfinger) |
+| License | GPL-3.0 |
 
 ```rust
-use webfinger::WebFinger;
-
-let wf = WebFinger::fetch("alice@example.com").await?;
+// with_https = true
+let wf = webfinger::resolve("acct:alice@example.com", true).await?;
 
 for link in wf.links {
     if link.rel == "self" {
-        println!("Actor URL: {}", link.href);
+        if let Some(href) = link.href {
+            println!("Actor URL: {href}");
+        }
     }
 }
 ```
 
-## Comparison
+## activitystreams
 
-| Library | Scope | Complexity | Use Case |
-|---------|-------|------------|----------|
-| activitypub-federation | Full federation | High | Production servers |
-| activitystreams | Types only | Medium | Type safety |
-| http-signature-normalization | Signing | Low | HTTP Signatures |
+Type-safe ActivityStreams vocabulary by asonix.
 
-## Production Examples
+:::caution Unmaintained
+The last stable release (0.6.2) is from 2020 and the 0.7 line never left alpha (last alpha July 2023). `activitypub_federation` defines its own types and doesn't need it.
+:::
 
-### Lemmy
+| Property | Value |
+|----------|-------|
+| Crate | [crates.io/crates/activitystreams](https://crates.io/crates/activitystreams) |
+| License | GPL-3.0 |
 
-```
-lemmy/crates/apub/
-├── src/
-│   ├── activities/     # Activity handlers
-│   ├── objects/        # AP objects
-│   └── protocol/       # Type definitions
-```
+## Reference: Lemmy
 
-### Quick Start
+Lemmy's federation code lives in [`crates/apub/`](https://github.com/LemmyNet/lemmy/tree/main/crates/apub) (`activities/`, `objects/`, `send/`) and is the largest real-world user of `activitypub_federation`.
 
-**For new projects**: Use activitypub-federation.
+## Choosing
 
-**For custom implementations**: Combine activitystreams + http-signature-normalization.
+- **New server**: activitypub_federation.
+- **Own stack, only need signatures**: http-signature-normalization (draft-cavage), and plan for RFC 9421 separately.
 
 ## See Also
 
 - **[Lemmy](/docs/ecosystem/lemmy)**
 - **[Libraries Overview](/docs/ecosystem/libraries-overview)**
-

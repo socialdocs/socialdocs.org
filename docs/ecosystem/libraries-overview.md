@@ -6,152 +6,147 @@ description: ActivityPub libraries and SDKs for various programming languages
 
 # Libraries & SDKs Overview
 
-This page provides an overview of ActivityPub libraries available for different programming languages.
+ActivityPub libraries by language, with their maintenance status.
+
+:::info How status is measured
+Versions and status were taken from package registries (npm, PyPI, crates.io, RubyGems, Packagist, the Go module proxy) and GitHub/Codeberg/GitLab on **2026-10-15**.
+
+- **Active** — a release or commit in the last 12 months
+- **Dormant** — last activity 12–36 months ago
+- **Unmaintained / Archived** — no activity for over 3 years, or the repository is archived
+
+Libraries change fast; check the repository before you depend on one.
+:::
 
 ## By Language
 
-### JavaScript/TypeScript
+### JavaScript / TypeScript
 
-| Library | Description | Status |
-|---------|-------------|--------|
-| [Fedify](https://fedify.dev/) | Modern TypeScript framework | Active |
-| [activitypub-express](https://github.com/immers-space/activitypub-express) | Express.js middleware | Unmaintained |
+| Library | What it is | Latest | Status |
+|---------|-----------|--------|--------|
+| [Fedify](/docs/ecosystem/fedify) | Full ActivityPub framework | 2.4.4 (2026-10) | Active |
+| [BotKit](https://botkit.fedify.dev/) | Bot framework on Fedify | 0.5.7 (2026-10) | Active |
+| [activitystrea.ms](https://github.com/social-web-foundation/activitystrea.ms) | AS2 builder/parser | 4.0.2 (2026-10) | Active |
+| [microfed](/docs/ecosystem/javascript-libraries#microfed) | Minimal primitives (by the SocialDocs maintainer) | 0.0.14 (2025-12) | Experimental |
+| [activitypub-express](https://github.com/immers-space/activitypub-express) | Express middleware | 4.4.2 (2024-02) | Dormant |
 
 [More JavaScript libraries →](/docs/ecosystem/javascript-libraries)
 
 ### Python
 
-| Library | Description | Status |
-|---------|-------------|--------|
-| [bovine](https://codeberg.org/bovine/bovine) | ActivityPub library | Maintenance |
-| [little-boxes](https://github.com/tsileo/little-boxes) | ActivityPub toolkit | Maintenance |
-| [Federation](https://federation.readthedocs.io/) | Protocol support | Active |
+| Library | What it is | Latest | Status |
+|---------|-----------|--------|--------|
+| [federation](https://codeberg.org/socialhome/federation) | Multi-protocol (ActivityPub, Diaspora) | 0.27.0 (2026-03) | Active |
+| [http-message-signatures](https://github.com/pyauth/http-message-signatures) | RFC 9421 signatures | 2.0.1 (2026-01) | Active |
+| [bovine](https://codeberg.org/bovine/bovine) | Async ActivityPub toolkit | 0.5.19 (2025-09) | Dormant |
+| [apkit](https://github.com/fedi-libs/apkit) | ActivityPub toolkit | 0.3.8 (2026-02) | Archived |
+| [little-boxes](https://github.com/tsileo/little-boxes) | ActivityPub toolkit | 0.1.0 (2018) | Archived |
 
 [More Python libraries →](/docs/ecosystem/python-libraries)
 
 ### Go
 
-| Library | Description | Status |
-|---------|-------------|--------|
-| [go-fed/activity](https://github.com/go-fed/activity) | Complete implementation | Active |
-| [go-ap](https://github.com/go-ap) | ActivityPub packages | Active |
+| Library | What it is | Latest | Status |
+|---------|-----------|--------|--------|
+| [go-ap](https://github.com/go-ap) | Modular packages + FedBOX server | commits 2026-10 | Active |
+| [GoToSocial's activity fork](https://codeberg.org/superseriousbusiness/activity) | Maintained fork of go-fed/activity | v1.19.0 (2026-01) | Active |
+| [GoToSocial's httpsig fork](https://codeberg.org/superseriousbusiness/httpsig) | Maintained fork of go-fed/httpsig | v1.5.0 (2025-10) | Active |
+| [go-fed/activity](https://github.com/go-fed/activity) | Original vocabulary + middleware | v1.0.0 (2020) | Unmaintained |
 
 [More Go libraries →](/docs/ecosystem/go-libraries)
 
 ### Rust
 
-| Library | Description | Status |
-|---------|-------------|--------|
-| [activitypub-federation](https://github.com/LemmyNet/activitypub-federation-rust) | Lemmy's library | Active |
-| [activitystreams](https://crates.io/crates/activitystreams) | Types library | Active |
+| Library | What it is | Latest | Status |
+|---------|-----------|--------|--------|
+| [activitypub_federation](https://github.com/LemmyNet/activitypub-federation-rust) | Lemmy's federation framework | 0.6.6 (2026-10) | Active |
+| [http-signature-normalization](https://crates.io/crates/http-signature-normalization) | draft-cavage signatures | 0.7.1 (2026-06) | Active |
+| [activitystreams](https://crates.io/crates/activitystreams) | AS2 types | 0.6.2 (2020); 0.7 alpha (2023) | Unmaintained |
 
 [More Rust libraries →](/docs/ecosystem/rust-libraries)
 
 ### Ruby
 
-| Library | Description | Status |
-|---------|-------------|--------|
-| Mastodon source | Reference implementation | Active |
+| Library | What it is | Latest | Status |
+|---------|-----------|--------|--------|
+| [Fedipub](https://gitlab.com/fedipub/fedipub) (formerly Federails) | Rails engine | 0.10.0 (2026-09) | Active |
+| [linzer](https://github.com/nomadium/linzer) | RFC 9421 signatures | 0.8.1 (2026-08) | Active |
+| [Mastodon](https://github.com/mastodon/mastodon) | Reference server (not a library) | — | Active |
 
 [More Ruby libraries →](/docs/ecosystem/ruby-libraries)
 
 ### PHP
 
-| Library | Description | Status |
-|---------|-------------|--------|
-| [ActivityPub for WordPress](https://github.com/pfefferle/wordpress-activitypub) | WordPress plugin | Active |
-| Pixelfed source | Reference for PHP | Active |
+| Library | What it is | Latest | Status |
+|---------|-----------|--------|--------|
+| [ActivityPub for WordPress](https://github.com/Automattic/wordpress-activitypub) | WordPress plugin | 9.3.1 (2026-09) | Active |
+| [ActivityPhp](https://github.com/landrok/activitypub) | Types + server toolkit | 0.8.1 (2025-10) | Active |
+| [Pixelfed](https://github.com/pixelfed/pixelfed) | Reference server (Laravel) | — | Active |
 
 [More PHP libraries →](/docs/ecosystem/php-libraries)
 
+### Elixir, C# and others
+
+| Library | What it is | Status |
+|---------|-----------|--------|
+| [activity_pub](https://github.com/bonfire-networks/activity_pub) (Bonfire) | Elixir library | Active (work in progress) |
+| [Letterbook](https://github.com/Letterbook/Letterbook) | C# server (reference) | Active |
+
+[More languages →](/docs/ecosystem/other-libraries)
+
 ## Choosing a Library
-
-### For Quick Prototypes
-
-- **JavaScript**: Fedify (well-documented, active)
-- **Python**: bovine or little-boxes
-- **Go**: go-ap, or go-fed/activity (complete but unmaintained since 2022)
 
 ### For Production
 
-- **TypeScript**: Fedify (modern, maintained)
-- **Rust**: activitypub-federation (battle-tested)
-- **Go**: go-fed/activity or GoToSocial's code
+- **TypeScript**: Fedify
+- **Rust**: activitypub_federation
+- **Go**: go-ap, or GoToSocial's forks of the go-fed libraries
+- **Ruby on Rails**: Fedipub
+- **WordPress**: the ActivityPub plugin
+
+### For Prototypes and Bots
+
+- **Bots**: BotKit
+- **Python**: federation, or bovine if you accept its slower pace
 
 ### For Learning
 
-- Study existing implementations:
-  - GoToSocial (Go) - Clean, well-documented
-  - Mastodon (Ruby) - Reference implementation
-  - Lemmy (Rust) - Modern architecture
+Read a maintained server:
+- **GoToSocial** (Go)
+- **Mastodon** (Ruby) — the de facto interop target
+- **Lemmy** (Rust)
+- **Hollo** (TypeScript, built on Fedify)
 
 ## What Libraries Provide
 
 ### Core Features
 
-- JSON-LD context handling
 - ActivityStreams type definitions
-- Activity serialization/deserialization
+- JSON(-LD) serialization and parsing
+- WebFinger client/server
 
 ### Federation Features
 
-- HTTP Signature signing/verification
-- WebFinger client/server
-- Inbox/Outbox handling
-- Activity delivery
+- HTTP signing and **verification** (draft-cavage; increasingly also RFC 9421)
+- Inbox handling and delivery queues with retries
+- Fetching and caching remote objects
 
-### Optional Features
-
-- Database integration
-- Queue management
-- Caching
-- Rate limiting
-
-## Library Maturity Levels
-
-### Production Ready
-
-- activitypub-federation (Rust)
-- Fedify (TypeScript)
-
-### Stable
-
-- bovine (Python)
-
-### Experimental
-
-- Various new projects
-
-### Unmaintained
-
-- activitypub-express (JavaScript) — no activity since early 2024
-- go-fed/activity (Go) — no activity since 2022; feature-complete and still widely used
+The security-critical parts are request verification and origin checks. A good library does these for you; if you build them yourself, read [issue #37](https://github.com/socialdocs/socialdocs.org/issues/37) first.
 
 ## Building Without a Library
 
 If no library fits your needs, you can implement from scratch:
 
 1. **Start simple**: WebFinger + Actor endpoint
-2. **Add inbox**: Receive activities
+2. **Add inbox**: Receive and verify activities
 3. **Add signing**: HTTP Signatures
-4. **Add delivery**: Send to other servers
+4. **Add delivery**: Queue and retry sends to other servers
 
-See our [implementation guides](/docs/guides/building-an-actor) for step-by-step instructions.
-
-## Contributing to Libraries
-
-Most libraries welcome contributions:
-
-- Bug fixes and tests
-- Documentation improvements
-- Feature additions
-- Compatibility fixes
-
-Check each library's contribution guidelines.
+See the [implementation guides](/docs/guides/building-an-actor) and [Other Libraries](/docs/ecosystem/other-libraries#building-your-own).
 
 ## See Also
 
-- **[JavaScript Libraries](/docs/ecosystem/javascript-libraries)** - Detailed JS options
-- **[Python Libraries](/docs/ecosystem/python-libraries)** - Python options
-- **[Go Libraries](/docs/ecosystem/go-libraries)** - Go options
-- **[Choosing Your Stack](/docs/getting-started/choosing-your-stack)** - Stack selection
+- **[JavaScript Libraries](/docs/ecosystem/javascript-libraries)**
+- **[Python Libraries](/docs/ecosystem/python-libraries)**
+- **[Go Libraries](/docs/ecosystem/go-libraries)**
+- **[Choosing Your Stack](/docs/getting-started/choosing-your-stack)**

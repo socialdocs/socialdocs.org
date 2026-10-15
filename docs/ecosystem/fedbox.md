@@ -8,6 +8,18 @@ description: ActivityPub implementation details for Fedbox
 
 Fedbox is a minimal, single-user ActivityPub server with Solid-compatible WebID support.
 
+:::note Disclosure
+Fedbox and the [microfed](/docs/ecosystem/javascript-libraries#microfed) library it is built on are written by the maintainer of SocialDocs.
+:::
+
+:::danger Experimental — not for production
+Fedbox is an early experiment (npm 0.0.10, December 2025). As of that release its inbox **logs a failed or missing HTTP signature but still processes the activity**, so anyone can forge activities to it. It signs with draft-cavage only. Use it to explore identity ideas (WebID, `did:nostr`), not to run a public account.
+:::
+
+:::info Not FedBOX (go-ap)
+This page is about the Node.js **Fedbox** (`npm install fedbox`, [micro-fed/fedbox](https://github.com/micro-fed/fedbox)). It is unrelated to **[FedBOX](https://github.com/go-ap/fedbox)**, the Go reference server of the [go-ap](/docs/ecosystem/go-libraries#go-ap) project by Marius Orcsik.
+:::
+
 ## Overview
 
 | Property | Value |
@@ -17,6 +29,8 @@ Fedbox is a minimal, single-user ActivityPub server with Solid-compatible WebID 
 | License | MIT |
 | Repository | [github.com/micro-fed/fedbox](https://github.com/micro-fed/fedbox) |
 | npm | [npmjs.com/package/fedbox](https://www.npmjs.com/package/fedbox) |
+| Latest release | 0.0.10 (2025-12-26) |
+| Status | Experimental |
 
 ## Key Features
 
@@ -108,7 +122,7 @@ Note the Solid-compatible URI structure:
 | Undo | ✅ | Unfollow |
 | Like | ⚠️ | Receive only |
 | Announce | ⚠️ | Receive only |
-| Delete | ❌ | Planned |
+| Delete | ❌ | Not handled |
 
 ## Separated Architecture
 
@@ -262,21 +276,11 @@ Fedbox uses [microfed](https://github.com/micro-fed/microfed.org) for ActivityPu
 - WebFinger resolution
 - Activity creation and delivery
 
-## Resource Usage
-
-| Users | RAM | Storage |
-|-------|-----|---------|
-| 1 | ~50MB | SQLite |
-
 ## Interoperability
 
 ### With Mastodon
 
-- ✅ WebFinger discovery
-- ✅ Follow/Accept
-- ✅ Post delivery
-- ✅ Replies
-- ✅ Profile display
+Fedbox implements WebFinger, Follow/Accept and post delivery, but its interoperability has not been independently tested. Remember that its inbox does not reject unsigned requests.
 
 ### With Solid
 
