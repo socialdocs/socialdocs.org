@@ -101,7 +101,7 @@ Consider:
 | Polls | ✅ | ✅ | ✅ | ✅ |
 | Custom Emoji | ✅ | ✅ | ✅ | ✅ |
 | Reactions | ❌ | ✅ | ✅ | ❌ |
-| Quote Posts | ✅ (4.5+) | ✅ | ✅ | ⚠️ partial |
+| Quote Posts | ✅ (4.5+) | ✅ | ✅ | ❌ (publishes self-only `canQuote`) |
 | Markdown | ❌ | ✅ | ✅ | ✅ |
 | Local-only Posts | ❌ | ✅ | ✅ | ✅ |
 

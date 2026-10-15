@@ -104,7 +104,7 @@ These are still DRAFT status but already shape real-world interop (as of October
 
 | FEP | Title | Who implements it |
 |-----|-------|-------------------|
-| [FEP-044f](https://codeberg.org/fediverse/fep/src/branch/main/fep/044f/fep-044f.md) | Consent-respecting quote posts (`QuoteRequest`/`QuoteAuthorization`, `canQuote`) | Mastodon 4.5+ (full), GoToSocial 0.21 (partial) |
+| [FEP-044f](https://codeberg.org/fediverse/fep/src/branch/main/fep/044f/fep-044f.md) | Consent-respecting quote posts (`QuoteRequest`/`QuoteAuthorization`, `canQuote`) | Mastodon 4.5+. GoToSocial (0.22.2) publishes a self-only `canQuote` but does not support quotes |
 | [FEP-dd4b](https://codeberg.org/fediverse/fep/src/branch/main/fep/dd4b/fep-dd4b.md) | Quote Posts — alternative `Announce`-based approach | Proposal stage |
 | [FEP-8b32](https://codeberg.org/fediverse/fep/src/branch/main/fep/8b32/fep-8b32.md) | Object Integrity Proofs — self-authenticating activities | Mitra, Streams, Mastodon 4.7+ (verification) |
 | [FEP-7888](https://codeberg.org/fediverse/fep/src/branch/main/fep/7888/fep-7888.md) | Demystifying the `context` property — conversation grouping | NodeBB, Streams, Mitra |
