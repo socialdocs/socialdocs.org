@@ -75,16 +75,24 @@ Modifies existing content:
   "type": "Update",
   "id": "https://example.com/activities/update-1",
   "actor": "https://example.com/users/alice",
+  "to": ["https://www.w3.org/ns/activitystreams#Public"],
   "object": {
     "type": "Note",
     "id": "https://example.com/notes/1",
+    "attributedTo": "https://example.com/users/alice",
+    "to": ["https://www.w3.org/ns/activitystreams#Public"],
     "content": "Hello, world! (edited)",
+    "published": "2024-01-15T10:00:00Z",
     "updated": "2024-01-15T11:00:00Z"
   }
 }
 ```
 
 Only the original author (or server) should be able to Update objects.
+
+:::warning Server-to-server Update is a full replacement
+Between servers, an `Update` carries the **complete** new object, not a patch: receivers replace their copy wholesale ([AP §7.3](https://www.w3.org/TR/activitypub/#update-activity-inbox)). Partial updates only exist in the client-to-server API ([AP §6.3](https://www.w3.org/TR/activitypub/#update-activity-outbox)).
+:::
 
 ### Delete
 
@@ -102,9 +110,10 @@ Removes content:
 ```
 
 When receiving Delete:
-1. Verify the actor owns the object
-2. Remove or mark as deleted
-3. Return 410 Gone for future fetches
+1. Verify the actor owns the object (same origin as the object's `id`, and the object's `attributedTo`)
+2. Remove your copy, or replace it with a `Tombstone`
+
+The *origin* server (the one that hosts the object) then answers future fetches with `410 Gone` if it serves a `Tombstone`, or `404 Not Found` otherwise ([AP §6.4](https://www.w3.org/TR/activitypub/#delete-activity-outbox)). Receivers don't serve the object, so they have nothing to return.
 
 ## Social Activities
 
@@ -214,7 +223,7 @@ Block an actor:
 ```
 
 :::note
-Blocks are typically not federated — they stay on your server. Only send Block if you want the blocked actor's server to know.
+The spec says servers SHOULD NOT deliver `Block` to its object ([AP §6.9](https://www.w3.org/TR/activitypub/#block-activity-outbox)), but **Mastodon does send it** to the blocked user's server, which uses it to hide the blocker's posts and disallow mentions ([Mastodon docs](https://docs.joinmastodon.org/spec/activitypub/#Block)). Expect to receive Blocks, and don't treat delivery as guaranteed enforcement.
 :::
 
 ### Flag (Report)
@@ -226,7 +235,7 @@ Report content or actors:
   "@context": "https://www.w3.org/ns/activitystreams",
   "type": "Flag",
   "id": "https://example.com/activities/flag-1",
-  "actor": "https://example.com/users/alice",
+  "actor": "https://example.com/actor",
   "object": [
     "https://other.example/users/abuser",
     "https://other.example/notes/offensive"
@@ -235,7 +244,7 @@ Report content or actors:
 }
 ```
 
-Send to the remote server's inbox (actor or shared inbox).
+Send to the remote server's inbox (actor or shared inbox). Mastodon sends `Flag` from its **instance actor** rather than the reporting user, so the reporter stays anonymous to the remote server ([Mastodon docs](https://docs.joinmastodon.org/spec/activitypub/)); do the same.
 
 ## Undo
 
@@ -326,7 +335,7 @@ Remove an object from a collection:
 
 ## Move
 
-For account migration:
+For account migration. Before sending, the **new** account must list the old one in its `alsoKnownAs`; receivers (including Mastodon) reject the Move otherwise. [FEP-7628](https://codeberg.org/fediverse/fep/src/branch/main/fep/7628/fep-7628.md) (FINAL) describes the full flow:
 
 ```json
 {

@@ -157,12 +157,12 @@ Lists of items are represented as Collections:
 
 ## Content Negotiation
 
-ActivityPub uses content negotiation. Clients should:
+The spec says the client **MUST** send an `Accept` header with the `application/ld+json; profile="https://www.w3.org/ns/activitystreams"` media type, and servers **MUST** respond to it with an ActivityStreams representation; servers **SHOULD** also respond to `application/activity+json` ([AP §3.2](https://www.w3.org/TR/activitypub/#retrieving-objects)). Sending both is the safe choice in practice:
 
 **Request:**
 ```http
 GET /users/alice HTTP/1.1
-Accept: application/activity+json
+Accept: application/ld+json; profile="https://www.w3.org/ns/activitystreams", application/activity+json
 ```
 
 **Response:**
@@ -174,8 +174,10 @@ Content-Type: application/activity+json
 ```
 
 Accepted media types:
-- `application/activity+json`
-- `application/ld+json; profile="https://www.w3.org/ns/activitystreams"`
+- `application/ld+json; profile="https://www.w3.org/ns/activitystreams"` (MUST be supported by servers)
+- `application/activity+json` (SHOULD be supported; what most servers send)
+
+If the same URL also serves HTML, send `Vary: Accept` so caches don't mix the representations up.
 
 ## Addressing
 
@@ -190,15 +192,15 @@ Activities specify recipients using:
 | `audience` | Additional context |
 
 Special addresses:
-- `https://www.w3.org/ns/activitystreams#Public` - Public visibility
+- `https://www.w3.org/ns/activitystreams#Public` - Public visibility. The compact forms `as:Public` and `Public` mean the same thing and implementations should accept all three. It is not a real inbox: servers MUST NOT deliver to it ([AP §5.6](https://www.w3.org/TR/activitypub/#public-addressing)).
 
 ## Security
 
-ActivityPub relies on:
+The ActivityPub spec itself does not mandate an authentication mechanism ([AP §B.1](https://www.w3.org/TR/activitypub/#authorization)). In practice the fediverse relies on:
 
-1. **HTTPS** - All URLs must use HTTPS
-2. **HTTP Signatures** - Verify request authenticity
-3. **Linked Data Signatures** - (Optional) Sign objects themselves
+1. **HTTPS** - Required in practice by every major implementation
+2. **HTTP Signatures** - De facto requirement for server-to-server delivery (draft-cavage, and increasingly [RFC 9421](https://www.rfc-editor.org/rfc/rfc9421.html), which Mastodon verifies since 4.5)
+3. **Object Integrity Proofs** - (Optional) sign objects themselves with [FEP-8b32](https://codeberg.org/fediverse/fep/src/branch/main/fep/8b32/fep-8b32.md), which Mastodon 4.7 verifies. The older *Linked Data Signatures* are deprecated: Mastodon's docs advise against implementing them, and a JSON-LD named-graph bypass hit both [Mastodon (CVE-2026-46349)](https://github.com/mastodon/mastodon/security/advisories/GHSA-chgx-jx3p-rf73) and [Fedify (CVE-2026-42462)](https://github.com/fedify-dev/fedify/security/advisories/GHSA-9rfg-v8g9-9367) in 2026
 
 [Learn more about Security →](/docs/getting-started/authentication-and-security)
 
@@ -241,10 +243,9 @@ The Fediverse has developed de facto extensions:
 
 | Extension | Purpose | Used By |
 |-----------|---------|---------|
-| `sensitive` | Content warnings | Mastodon |
+| `sensitive` | Marks media/content as sensitive (the CW text itself goes in `summary`) | Mastodon |
 | `Emoji` | Custom emoji | Mastodon, Misskey |
 | `PropertyValue` | Profile fields | Mastodon |
-| `IdentityProof` | Identity verification | Keyoxide |
 | `Hashtag` | Hashtag type | Most platforms |
 
 ## Implementation Status

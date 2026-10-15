@@ -26,8 +26,7 @@ Short-form text content (the most common type):
   "cc": ["https://example.com/users/alice/followers"],
   "sensitive": false,
   "tag": [],
-  "attachment": [],
-  "inReplyTo": null
+  "attachment": []
 }
 ```
 
@@ -69,18 +68,22 @@ Photo/image content:
 {
   "@context": "https://www.w3.org/ns/activitystreams",
   "type": "Image",
-  "id": "https://pixelfed.example/p/1",
-  "attributedTo": "https://pixelfed.example/users/photographer",
+  "id": "https://example.com/photos/1",
+  "attributedTo": "https://example.com/users/photographer",
   "name": "Sunset at the beach",
   "url": {
     "type": "Link",
-    "href": "https://pixelfed.example/storage/1.jpg",
+    "href": "https://example.com/media/1.jpg",
     "mediaType": "image/jpeg",
     "width": 1920,
     "height": 1080
   }
 }
 ```
+
+:::note Photo posts in practice
+Most fediverse software — including Pixelfed — federates a photo post as a **`Note` with `Image` attachments**, not as a top-level `Image` ([Pixelfed ActivityPub docs](https://docs.pixelfed.org/spec/ActivityPub.html)). A bare `Image` object is valid AS2, but many servers won't display it.
+:::
 
 ### Video
 

@@ -128,7 +128,7 @@ Every actor MUST have:
 
 ## Public Key
 
-Actors MUST include a public key for HTTP Signature verification:
+ActivityPub itself doesn't require keys, but in practice actors must publish a public key so other servers can verify their HTTP Signatures (Mastodon and most servers won't accept unsigned deliveries):
 
 ```json
 {
@@ -144,7 +144,9 @@ Actors MUST include a public key for HTTP Signature verification:
 |----------|-------------|
 | `id` | URL of the key (usually `{actor}#main-key`) |
 | `owner` | URL of the actor owning this key |
-| `publicKeyPem` | PEM-encoded RSA public key |
+| `publicKeyPem` | PEM-encoded public key (RSA is what everyone supports) |
+
+RSA via `publicKey` remains the baseline for interoperability, but it is no longer the only option. [FEP-521a](https://codeberg.org/fediverse/fep/src/branch/main/fep/521a/fep-521a.md) (FINAL) lets an actor publish **multiple keys**, including Ed25519, as `Multikey` entries in `assertionMethod`; Mastodon 4.6 accepts multiple keys per remote actor and 4.7 also verifies Ed25519 ([Mastodon 4.7 release](https://github.com/mastodon/mastodon/releases/tag/v4.7.0)). Multiple keys are also what makes **key rotation** workable: publish the new key alongside the old one, send an `Update` of the actor to followers, and remove the old key later. Servers that fail to verify a signature refetch the actor's keys once, so stale caches recover.
 
 ## Complete Actor Example
 
@@ -157,6 +159,7 @@ Actors MUST include a public key for HTTP Signature verification:
       "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
       "toot": "http://joinmastodon.org/ns#",
       "discoverable": "toot:discoverable",
+      "schema": "http://schema.org#",
       "PropertyValue": "schema:PropertyValue",
       "value": "schema:value"
     }
@@ -294,9 +297,11 @@ For communities (like Lemmy):
   "inbox": "https://lemmy.example/c/technology/inbox",
   "outbox": "https://lemmy.example/c/technology/outbox",
   "followers": "https://lemmy.example/c/technology/followers",
-  "attributedTo": "https://lemmy.example/u/admin"
+  "attributedTo": "https://lemmy.example/c/technology/moderators"
 }
 ```
+
+In Lemmy, `attributedTo` on a community points to its **moderators collection**, `name` is the display title and `preferredUsername` the slug ([Lemmy group.json](https://github.com/LemmyNet/lemmy/blob/main/crates/apub/assets/lemmy/objects/group.json)). Group federation in general is described by [FEP-1b12](https://codeberg.org/fediverse/fep/src/branch/main/fep/1b12/fep-1b12.md) (FINAL).
 
 ## Actor Verification
 

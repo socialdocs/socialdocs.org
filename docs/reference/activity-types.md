@@ -44,13 +44,16 @@ Modifies existing content:
   "object": {
     "type": "Note",
     "id": "https://example.com/notes/1",
+    "attributedTo": "https://example.com/users/alice",
+    "to": ["https://www.w3.org/ns/activitystreams#Public"],
     "content": "Hello, world! (edited)",
+    "published": "2024-01-15T10:00:00Z",
     "updated": "2024-01-15T11:00:00Z"
   }
 }
 ```
 
-**Processing**: Verify actor owns object, update stored content.
+**Processing**: Verify actor owns object, then **replace** the stored object. Server-to-server Update carries the complete object, not a patch ([AP §7.3](https://www.w3.org/TR/activitypub/#update-activity-inbox)).
 
 ### Delete
 
@@ -181,7 +184,7 @@ Block an actor:
 }
 ```
 
-**Note**: Usually kept local, only federated if you want the blocked party to know.
+**Note**: The spec says servers SHOULD NOT deliver Block to its object, but Mastodon does send it, and the receiving server uses it to hide the blocker's content ([Mastodon docs](https://docs.joinmastodon.org/spec/activitypub/#Block)). Be ready to receive it.
 
 ### Flag
 
@@ -192,7 +195,7 @@ Report content/actors:
   "@context": "https://www.w3.org/ns/activitystreams",
   "type": "Flag",
   "id": "https://example.com/activities/10",
-  "actor": "https://example.com/users/alice",
+  "actor": "https://example.com/actor",
   "object": [
     "https://other.example/users/abuser",
     "https://other.example/notes/offensive"
@@ -200,6 +203,8 @@ Report content/actors:
   "content": "This user is posting abusive content"
 }
 ```
+
+Mastodon sends `Flag` from its **instance actor**, not the reporting user, so reporters stay anonymous to the remote server ([Mastodon docs](https://docs.joinmastodon.org/spec/activitypub/)).
 
 **Processing**: Create moderation report for admins.
 

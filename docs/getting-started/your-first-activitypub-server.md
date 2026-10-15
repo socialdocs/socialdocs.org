@@ -129,7 +129,7 @@ app.get('/users/:username', (req, res) => {
 
 ## Step 4: Generate Keys
 
-ActivityPub requires RSA keys for HTTP Signatures. Generate them:
+ActivityPub itself doesn't mandate a key type, but RSA is the one every server supports for HTTP Signatures, so start with it (Mastodon 4.7 also verifies Ed25519). Generate a key pair:
 
 ```bash
 openssl genrsa -out private.pem 2048
@@ -307,17 +307,37 @@ async function fetchActor(actorUrl) {
   return new Promise((resolve, reject) => {
     const urlObj = new URL(actorUrl);
 
-    https.get({
+    // Note: servers in Mastodon's "secure mode" require this GET to be
+    // signed too, and in production you need an SSRF-safe fetch
+    const req = https.get({
       hostname: urlObj.hostname,
-      path: urlObj.pathname,
+      path: urlObj.pathname + urlObj.search,
+      timeout: 10000,
       headers: {
-        'Accept': 'application/activity+json'
+        'Accept': 'application/ld+json; profile="https://www.w3.org/ns/activitystreams", application/activity+json'
       }
     }, (res) => {
+      if (res.statusCode !== 200) {
+        res.resume();
+        return reject(new Error(`Fetch failed: ${res.statusCode}`));
+      }
       let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => resolve(JSON.parse(data)));
-    }).on('error', reject);
+      res.on('data', chunk => {
+        data += chunk;
+        if (data.length > 1_000_000) req.destroy(new Error('Response too large'));
+      });
+      res.on('end', () => {
+        // A throw inside this callback would crash the process —
+        // turn bad JSON into a rejected promise instead
+        try {
+          resolve(JSON.parse(data));
+        } catch (err) {
+          reject(err);
+        }
+      });
+    });
+    req.on('timeout', () => req.destroy(new Error('Timeout')));
+    req.on('error', reject);
   });
 }
 ```

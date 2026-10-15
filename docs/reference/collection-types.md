@@ -11,13 +11,14 @@ Collections group multiple objects together.
 ## Type Hierarchy
 
 ```
-┌─────────────────────────────────────────┐
-│              Collection                 │
-├───────────────────┬─────────────────────┤
-│  OrderedCollection │  CollectionPage    │
-│                   │  OrderedCollectionPage│
-└───────────────────┴─────────────────────┘
+Collection
+├── OrderedCollection
+│   └── OrderedCollectionPage   (also extends CollectionPage)
+└── CollectionPage
+    └── OrderedCollectionPage
 ```
+
+`OrderedCollectionPage` inherits from both `OrderedCollection` and `CollectionPage` ([AS2 Vocab](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-orderedcollectionpage)).
 
 ## Collection
 
@@ -136,7 +137,7 @@ A page with ordered items.
 
 ```javascript
 app.get('/users/:user/outbox', async (req, res) => {
-  const page = req.query.page;
+  const page = req.query.page ? parseInt(req.query.page, 10) : null;
   const user = req.params.user;
 
   if (!page) {
@@ -147,7 +148,7 @@ app.get('/users/:user/outbox', async (req, res) => {
       "type": "OrderedCollection",
       "id": `https://example.com/users/${user}/outbox`,
       "totalItems": count,
-      "first": `https://example.com/users/${user}/outbox?page=true`
+      "first": `https://example.com/users/${user}/outbox?page=1`
     });
   }
 
@@ -156,9 +157,13 @@ app.get('/users/:user/outbox', async (req, res) => {
   res.type('application/activity+json').json({
     "@context": "https://www.w3.org/ns/activitystreams",
     "type": "OrderedCollectionPage",
+    "id": `https://example.com/users/${user}/outbox?page=${page}`,
     "partOf": `https://example.com/users/${user}/outbox`,
     "orderedItems": activities,
-    "next": `https://example.com/users/${user}/outbox?page=${page + 1}`
+    // Only link a next page if there is one, or clients loop forever
+    ...(activities.length > 0 && {
+      "next": `https://example.com/users/${user}/outbox?page=${page + 1}`
+    })
   });
 });
 ```

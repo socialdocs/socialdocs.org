@@ -169,13 +169,18 @@ Identity proofs with `rel=me`:
 
 ## Also Known As (Migration)
 
-For account migration:
+For account migration. These go on **different** accounts: the new account lists the old one in `alsoKnownAs` (proving the move is wanted), and after the `Move` the old account points at the new one with `movedTo`.
 
 ```json
+// New account: https://new.example/users/alice
 {
   "alsoKnownAs": [
     "https://old.example/users/alice"
-  ],
+  ]
+}
+
+// Old account: https://old.example/users/alice (after the Move)
+{
   "movedTo": "https://new.example/users/alice"
 }
 ```

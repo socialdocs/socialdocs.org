@@ -22,7 +22,7 @@ The Client-to-Server protocol defines how client applications interact with Acti
 
 ## Authentication
 
-C2S requires authentication. The spec suggests OAuth 2.0:
+C2S requires authentication, but the spec leaves the mechanism unspecified: it only lists optional OAuth endpoints (`oauthAuthorizationEndpoint`, `oauthTokenEndpoint`) on the actor's `endpoints` ([AP §B.1](https://www.w3.org/TR/activitypub/#authorization)). Current work on a common profile is [FEP-d8c2](https://codeberg.org/fediverse/fep/src/branch/main/fep/d8c2/fep-d8c2.md) (OAuth 2.0 profile for the ActivityPub API, DRAFT). A bearer token is typical:
 
 ```http
 POST /users/alice/outbox HTTP/1.1
@@ -231,7 +231,7 @@ Server wraps in a Create activity automatically.
 
 ### Upload Endpoint
 
-Some servers provide a media upload endpoint:
+ActivityPub defines an optional `uploadMedia` endpoint on the actor's `endpoints` but leaves its protocol to a separate document ([AP §6.12](https://www.w3.org/TR/activitypub/#uploading-media)). In practice each server has its own upload API; the example below is illustrative (`/api/v1/media` is Mastodon's *client API*, not ActivityPub):
 
 ```http
 POST /api/v1/media HTTP/1.1
@@ -302,9 +302,10 @@ app.post('/users/:username/outbox',
     activity.published = new Date().toISOString();
 
     if (activity.object && typeof activity.object === 'object') {
-      if (!activity.object.id) {
-        activity.object.id = `https://example.com/objects/${uuid()}`;
-      }
+      // The spec says servers MUST ignore a client-supplied activity id
+      // (AP §6); do the same for the object so clients can't claim
+      // arbitrary ids
+      activity.object.id = `https://example.com/objects/${uuid()}`;
       activity.object.attributedTo = actor;
     }
 
@@ -346,8 +347,8 @@ app.post('/users/:username/outbox',
 
 | Platform | C2S Support |
 |----------|-------------|
-| Pleroma | Full |
-| Mastodon | Partial (read-only) |
+| Pleroma / Akkoma | Partial |
+| Mastodon | No (uses its own client API) |
 | Pixelfed | No |
 | Lemmy | No |
 

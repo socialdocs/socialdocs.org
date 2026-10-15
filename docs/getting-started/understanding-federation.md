@@ -95,7 +95,7 @@ With the actor URL from WebFinger, your server fetches the full actor profile:
 ```http
 GET /users/bob HTTP/1.1
 Host: server-b.com
-Accept: application/activity+json
+Accept: application/ld+json; profile="https://www.w3.org/ns/activitystreams", application/activity+json
 ```
 
 ### Actor Response
@@ -145,7 +145,7 @@ When Alice wants to follow Bob, her server sends a Follow activity to Bob's inbo
 
 ### HTTP Signature
 
-All inbox deliveries must be signed. The signature proves the request came from Server A.
+The ActivityPub spec doesn't define an authentication mechanism, but in practice every major server requires inbox deliveries to be signed with HTTP Signatures. The signature proves the request came from Server A.
 
 ```http
 POST /users/bob/inbox HTTP/1.1
@@ -175,15 +175,20 @@ When Server B receives the activity, it must verify the signature:
 
 2. Fetch the public key
    GET https://server-a.com/users/alice
-   → Extract publicKeyPem from response
+   → Find the key whose id equals keyId and read its owner
+     (the owner must be the activity's actor)
 
-3. Reconstruct the signing string
+3. Check the Signature's headers list covers (request-target),
+   host, date and digest, that the Digest matches the raw body,
+   and that Date is recent
+
+4. Reconstruct the signing string
    (request-target): post /users/bob/inbox
    host: server-b.com
    date: Sun, 15 Jan 2024 10:30:00 GMT
    digest: SHA-256=X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=
 
-4. Verify the signature using the public key
+5. Verify the signature using the public key
    → If valid, process the activity
    → If invalid, reject with 401/403
 ```
@@ -326,7 +331,7 @@ Server A can fetch the parent:
 ```http
 GET /notes/unknown HTTP/1.1
 Host: server-c.com
-Accept: application/activity+json
+Accept: application/ld+json; profile="https://www.w3.org/ns/activitystreams", application/activity+json
 ```
 
 This allows servers to reconstruct conversation threads.

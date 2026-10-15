@@ -27,7 +27,7 @@ Every ActivityStreams document includes a context:
 ```
 
 The context maps short property names to full URIs:
-- `type` → `https://www.w3.org/ns/activitystreams#type`
+- `type` → `@type` (and `id` → `@id`), JSON-LD keywords rather than vocabulary terms
 - `content` → `https://www.w3.org/ns/activitystreams#content`
 
 ## Core Types

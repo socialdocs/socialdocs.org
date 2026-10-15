@@ -119,8 +119,9 @@ Properties that appear across multiple ActivityStreams types.
 
 | Address | Meaning |
 |---------|---------|
-| `https://www.w3.org/ns/activitystreams#Public` | Public post |
-| `{actor}/followers` | All followers |
+| `https://www.w3.org/ns/activitystreams#Public` (also `as:Public`, `Public`) | Public post — never delivered to directly |
+
+The Public collection is the only special address. A followers collection is just whatever IRI the actor's `followers` property holds — don't assume it's `{actor}/followers`.
 
 ## Media Attachments
 
@@ -179,7 +180,8 @@ Properties that appear across multiple ActivityStreams types.
 | `latitude` | Float | Latitude |
 | `longitude` | Float | Longitude |
 | `altitude` | Float | Altitude |
-| `radius` | Float | Accuracy radius |
+| `accuracy` | Float | Accuracy as a percentage (0–100) |
+| `radius` | Float | Radius around the point, in `units` (metres by default) |
 
 ```json
 {

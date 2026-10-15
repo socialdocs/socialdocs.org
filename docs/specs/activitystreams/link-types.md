@@ -6,7 +6,7 @@ description: Link types in ActivityStreams 2.0
 
 # Link Types
 
-Links in ActivityStreams represent references to other resources. Unlike Objects, Links don't have an `id` property—they point to resources via `href`.
+Links in ActivityStreams represent references to other resources. A Link points to a resource via `href`. Links *may* have an `id` (its domain is Object | Link), but they usually don't — a Link describes a reference, not a resource with an identity of its own ([AS2 Vocab](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-id)).
 
 ## Link
 
@@ -237,6 +237,11 @@ The `tag` property can contain various link types:
 
 References a topic tag.
 
+:::note Not part of core AS2
+`Hashtag` and `Emoji` are fediverse **extensions**, not ActivityStreams 2.0 types (AS2 only defines `Mention` as a Link subtype). Include their context mappings, e.g. `"Hashtag": "as:Hashtag"` and Mastodon's `"Emoji": "toot:Emoji"`.
+:::
+
+
 ```json
 {
   "type": "Hashtag",
@@ -317,7 +322,7 @@ Provide previews for linked content:
 |------|---------|----------------|
 | Link | Generic reference | href, mediaType |
 | Mention | @mention | href, name |
-| Hashtag | Topic tag | href, name |
+| Hashtag (extension) | Topic tag | href, name |
 
 ## Best Practices
 

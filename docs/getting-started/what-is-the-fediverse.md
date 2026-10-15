@@ -79,7 +79,7 @@ Different software platforms can interact because they all speak the same protoc
 
 ## The Protocol Stack
 
-The Fediverse relies on several W3C standards:
+The Fediverse relies on a handful of open standards — ActivityPub and Activity Streams from the W3C, WebFinger (IETF RFC 7033), and HTTP Signatures (an IETF draft, now [RFC 9421](https://www.rfc-editor.org/rfc/rfc9421.html)):
 
 | Protocol | Purpose |
 |----------|---------|

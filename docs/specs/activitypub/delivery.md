@@ -77,6 +77,10 @@ function getRecipients(activity) {
     list.forEach(r => recipients.add(r));
   }
 
+  // The spec says servers MUST exclude the activity's own actor
+  // from the recipient list (AP §7.1)
+  recipients.delete(activity.actor);
+
   return recipients;
 }
 ```
@@ -90,16 +94,32 @@ Don't assume URL patterns like `/followers`. IRIs are opaque — always derefere
 :::
 
 ```javascript
-async function expandRecipients(recipients) {
+const PUBLIC = [
+  'https://www.w3.org/ns/activitystreams#Public',
+  'as:Public',
+  'Public'
+];
+
+async function expandRecipients(recipients, sender) {
   const inboxes = new Set();
 
   for (const recipient of recipients) {
-    // Skip public address (not a real recipient)
-    if (recipient === 'https://www.w3.org/ns/activitystreams#Public') {
+    // Skip the Public collection in all its spellings (never deliver to it)
+    if (PUBLIC.includes(recipient)) {
       continue;
     }
 
-    // Dereference the recipient to determine what it is
+    // Your own followers collection: read members from your database,
+    // don't fetch it over HTTP
+    if (recipient === sender.followers) {
+      for (const inbox of await db.getFollowerInboxes(sender.id)) {
+        inboxes.add(inbox);
+      }
+      continue;
+    }
+
+    // Anything else: dereference it to determine what it is
+    // (use a signed, SSRF-safe fetch in production)
     const data = await fetchActivityPubObject(recipient);
     if (!data) continue;
 
@@ -258,7 +278,9 @@ async function deliverToInbox(inbox, activity, privateKey, keyId) {
   });
 
   if (!response.ok) {
-    throw new Error(`Delivery failed: ${response.status}`);
+    const error = new Error(`Delivery failed: ${response.status}`);
+    error.status = response.status;
+    throw error;
   }
 
   return response;
@@ -270,10 +292,12 @@ async function deliverToInbox(inbox, activity, privateKey, keyId) {
 ```javascript
 async function deliverActivity(activity, actor) {
   const recipients = getRecipients(activity);
-  const inboxes = await expandRecipients(recipients);
+  const inboxes = await expandRecipients(recipients, actor);
   const uniqueInboxes = deduplicateInboxes(inboxes);
   const prepared = prepareActivityForDelivery(activity);
 
+  // For large audiences, cap concurrency (e.g. with p-limit) instead of
+  // firing every request at once.
   const results = await Promise.allSettled(
     uniqueInboxes.map(inbox =>
       deliverToInbox(inbox, prepared, actor.privateKey, actor.keyId)
@@ -285,8 +309,15 @@ async function deliverActivity(activity, actor) {
     .map((result, i) => ({ result, inbox: uniqueInboxes[i] }))
     .filter(({ result }) => result.status === 'rejected');
 
-  if (failures.length > 0) {
-    await queueRetries(failures, activity, actor);
+  for (const { result, inbox } of failures) {
+    // 4xx (other than 429) won't succeed on retry; 410 Gone means the
+    // inbox is gone for good
+    const status = result.reason?.status;
+    if (status && status >= 400 && status < 500 && status !== 429) {
+      if (status === 410) await markServerDead(inbox);
+      continue;
+    }
+    await queueRetry(inbox, activity, actor, 0);
   }
 }
 ```
@@ -332,8 +363,8 @@ async function processRetryQueue() {
   });
 
   for (const job of due) {
+    const actor = await db.actors.findOne({ id: job.actorId });
     try {
-      const actor = await db.actors.findOne({ id: job.actorId });
       await deliverToInbox(job.inbox, job.activity, actor.privateKey, actor.keyId);
 
       // Success - remove from queue
@@ -359,11 +390,11 @@ setInterval(processRetryQueue, 60 * 1000);
 async function markServerDead(inbox) {
   const domain = new URL(inbox).hostname;
 
-  await db.deadServers.upsert({
-    domain,
-    deadSince: new Date(),
-    failureCount: { $inc: 1 }
-  });
+  await db.deadServers.updateOne(
+    { domain },
+    { $set: { deadSince: new Date() }, $inc: { failureCount: 1 } },
+    { upsert: true }
+  );
 }
 
 async function isServerDead(inbox) {
@@ -393,11 +424,12 @@ Don't block user requests on delivery:
 // In request handler
 app.post('/api/posts', async (req, res) => {
   const post = await createPost(req.body);
+  const activity = await createActivityFor(post); // the Create wrapping the post
 
   // Queue delivery, don't await
   deliveryQueue.add({ activityId: activity.id });
 
-  res.json(post);
+  res.status(201).json(post);
 });
 
 // Background worker
@@ -415,10 +447,14 @@ Group activities going to the same server:
 // Bad: One request per activity
 activities.forEach(a => deliverToInbox(inbox, a));
 
-// Better: Consider batching or at least queuing
+// Better: queue them and let workers deliver one activity per request
 const queue = activities.map(a => ({ inbox, activity: a }));
 await processDeliveryQueue(queue);
 ```
+
+:::note
+Don't POST a `Collection` of activities to an inbox. Mastodon 4.7 removed support for processing collections of activities in the inbox ([v4.7.0 release notes](https://github.com/mastodon/mastodon/releases/tag/v4.7.0)). Batched delivery is being explored in [FEP-49eb](https://codeberg.org/fediverse/fep/src/branch/main/fep/49eb/fep-49eb.md) (DRAFT), but nothing widely deployed supports it.
+:::
 
 ### 3. Respect Rate Limits
 
@@ -429,9 +465,17 @@ async function deliverToInbox(inbox, activity, privateKey, keyId) {
   const response = await fetch(inbox, { ... });
 
   if (response.status === 429) {
-    const retryAfter = response.headers.get('Retry-After') || 60;
-    await sleep(retryAfter * 1000);
-    return deliverToInbox(inbox, activity, privateKey, keyId);
+    // Retry-After is either seconds or an HTTP date. Don't retry inline
+    // (that can recurse forever) — hand it back to the retry queue.
+    const header = response.headers.get('Retry-After');
+    const seconds = Number(header);
+    const delayMs = Number.isFinite(seconds)
+      ? seconds * 1000
+      : Math.max(0, Date.parse(header) - Date.now()) || 60_000;
+    const error = new Error('Rate limited');
+    error.status = 429;
+    error.retryAfterMs = delayMs;
+    throw error;
   }
 
   // ...

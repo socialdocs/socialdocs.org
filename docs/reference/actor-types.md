@@ -86,7 +86,7 @@ Represents an automated service or bot.
 }
 ```
 
-**Use Cases:** Bots, automated accounts, bridges
+**Use Cases:** Bots, automated accounts, bridges. Mastodon displays both `Service` and `Application` actors as bots.
 
 ## Application
 

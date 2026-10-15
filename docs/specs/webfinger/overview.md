@@ -248,7 +248,7 @@ Access-Control-Allow-Origin: *
 
 ## CORS
 
-WebFinger endpoints SHOULD support CORS for browser-based clients:
+WebFinger servers **MUST** include the `Access-Control-Allow-Origin` header, and SHOULD set it to `*` ([RFC 7033 §5](https://www.rfc-editor.org/rfc/rfc7033.html#section-5)), so browser-based clients can query them:
 
 ```javascript
 app.use('/.well-known/webfinger', (req, res, next) => {

@@ -58,7 +58,7 @@ Accept: application/json
   "version": "2.1",
   "software": {
     "name": "mastodon",
-    "version": "4.2.0",
+    "version": "4.7.3",
     "repository": "https://github.com/mastodon/mastodon",
     "homepage": "https://joinmastodon.org/"
   },
@@ -176,6 +176,14 @@ Version 2.1 adds:
 - `software.homepage` - Project homepage
 
 Both are widely supported. Implement 2.1 and optionally 2.0 for compatibility.
+
+### FEP-0151 (2025 edition)
+
+[FEP-0151](https://codeberg.org/fediverse/fep/src/branch/main/fep/0151/fep-0151.md) (FINAL, March 2026) is the current guidance on NodeInfo in fediverse software — a revised version of the 2020 FEP-f1d5. Key rules:
+
+- Treat `software.name` and `software.version` as **opaque strings**: you MUST NOT infer capabilities from them (version info MAY be used to block software with known vulnerabilities).
+- Servers that want to hide usage statistics SHOULD publish an empty `usage.users` object rather than skewed numbers.
+- For capability discovery, prefer protocol-level mechanisms such as [FEP-844e](https://codeberg.org/fediverse/fep/src/branch/main/fep/844e/fep-844e.md) over NodeInfo.
 
 ## Common Software Names
 
