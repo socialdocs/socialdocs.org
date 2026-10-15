@@ -180,7 +180,7 @@ Study the GoToSocial codebase for production patterns.
 
 | Property | Value |
 |----------|-------|
-| Repository | [github.com/superseriousbusiness/gotosocial](https://github.com/superseriousbusiness/gotosocial) |
+| Repository | [codeberg.org/superseriousbusiness/gotosocial](https://codeberg.org/superseriousbusiness/gotosocial) |
 | Key Paths | `internal/ap/`, `internal/federation/` |
 
 ### Notable Patterns
