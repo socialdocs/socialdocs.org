@@ -117,6 +117,10 @@ Communities federate when users from other instances:
 | `language` | String | Content language |
 | `sensitive` | Boolean | NSFW content |
 
+## Release Status
+
+As of October 2026 the latest stable release is the 0.19.x series; **Lemmy 1.0** is in beta (1.0.0-beta.2, September 2026) with no release date announced. 1.0 introduces [API v4](https://join-lemmy.org/news/2025-02-03_-_Breaking_Changes_in_Lemmy_1.0) (with a v3 compatibility layer for existing clients) and renames the `actor_id` database column to `ap_id`. No major federation behaviour changes have been announced; check the [releases page](https://github.com/LemmyNet/lemmy/releases) before relying on 1.0 behaviour.
+
 ## API Endpoints
 
 ### Actor Endpoints

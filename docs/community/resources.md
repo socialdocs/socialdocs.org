@@ -118,7 +118,6 @@ note.GetActivityStreamsContent().Set(/* ... */)
 |------|-------------|
 | [activitypub-testsuite](https://github.com/w3c/activitypub-testsuite) | W3C conformance tests |
 | [FediDB](https://fedidb.org/) | Fediverse network statistics |
-| [Fediverse Observer](https://fediverse.observer/) | Instance monitoring |
 
 ### Development Utilities
 

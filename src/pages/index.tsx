@@ -242,7 +242,7 @@ function CompatibilitySection() {
       <div className="container">
         <Heading as="h2" className={styles.sectionTitle}>Trusted Across the Fediverse</Heading>
         <p className={styles.sectionSubtitle}>
-          Build software compatible with 13+ million users across these platforms
+          Build software compatible with 13.8+ million users across these platforms
         </p>
         <div className={styles.platformGrid}>
           {platforms.map((platform) => (

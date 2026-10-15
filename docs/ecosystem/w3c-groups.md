@@ -142,9 +142,9 @@ All targeted for completion by Q3 2026:
 
 **LOLA (Live Online Account Portability)** — May be adopted as Recommendation-track specification depending on incubation progress and implementer interest. As of mid-2026 it remains a [CG draft](https://swicg.github.io/activitypub-data-portability/lola) under development in the WG, with the Data Transfer Initiative co-authoring and building an implementer testbed.
 
-### Status (June 2026)
+### Status (October 2026)
 
-Maintenance work is underway: accepted errata are being folded into the [ActivityPub Editor's Draft](https://w3c.github.io/activitypub/) (e.g. removal of the C2S `null` partial-update language, February 2026). The published 2018 Recommendation is unchanged so far — updated, backwards-compatible Recommendations are expected in Q3 2026.
+Maintenance work is underway: accepted errata are being folded into the [ActivityPub Editor's Draft](https://w3c.github.io/activitypub/) (e.g. removal of the C2S `null` partial-update language, February 2026; shared-inbox delivery wording clarified, October 2026). The published 2018 ActivityPub and 2017 Activity Streams Recommendations are unchanged so far — the charter's Q3 2026 target for updated, backwards-compatible Recommendations has slipped, and the WG is aiming to publish a draft around [TPAC 2026](https://www.w3.org/events/tpac/2026/). Follow progress in the [WG meeting notes](https://github.com/w3c/socialwg/tree/main/meetings/2026).
 
 ### Coordination
 

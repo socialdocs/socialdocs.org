@@ -9,7 +9,7 @@
 
 ## About
 
-SocialDocs provides documentation, guides, and tools for developers building with ActivityPub — the W3C standard powering the decentralized social web with 13+ million users across Mastodon, Lemmy, PeerTube, Pixelfed, and more.
+SocialDocs provides documentation, guides, and tools for developers building with ActivityPub — the W3C standard powering the decentralized social web with 13.8+ million users across Mastodon, Lemmy, PeerTube, Pixelfed, and more.
 
 **What you'll find:**
 - **Getting Started** — Beginner-friendly guides to federation concepts

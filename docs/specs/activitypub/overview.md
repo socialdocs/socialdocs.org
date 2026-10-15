@@ -10,7 +10,7 @@ ActivityPub is a W3C Recommendation that defines a protocol for decentralized so
 
 ## Specification
 
-- **Status**: W3C Recommendation (January 2018), under active maintenance by the rechartered [Social Web Working Group](/docs/ecosystem/w3c-groups) — a backwards-compatible update incorporating accepted errata is expected in late 2026
+- **Status**: W3C Recommendation (January 2018), under active maintenance by the rechartered [Social Web Working Group](/docs/ecosystem/w3c-groups) — a backwards-compatible update incorporating accepted errata is in progress; as of October 2026 no new draft has been published to /TR
 - **URL**: [https://www.w3.org/TR/activitypub/](https://www.w3.org/TR/activitypub/)
 - **Editor's Draft**: [w3c.github.io/activitypub](https://w3c.github.io/activitypub/) — incorporates accepted errata ahead of the updated Recommendation
 - **Editors**: Christopher Lemmer Webber, Jessica Tallon, Erin Shepherd
