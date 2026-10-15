@@ -1,10 +1,14 @@
 ---
 sidebar_position: 2
-title: Actor Inspector
+title: Inspecting Actors
 description: Tools for inspecting and validating ActivityPub actors
 ---
 
-# Actor Inspector
+# Inspecting Actors
+
+:::info
+This is a guide, not an interactive tool. For hands-on tools see [Testing & Debugging Tools](/docs/tools/overview).
+:::
 
 Inspecting ActivityPub actors helps debug federation issues and understand how different platforms represent users, groups, and services.
 

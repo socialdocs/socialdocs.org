@@ -1,270 +1,81 @@
 ---
 sidebar_position: 2
 title: Social Web Community Group
-description: W3C community group maintaining ActivityPub and ActivityStreams specifications
+description: The W3C SocialCG and Social Web Working Group — who maintains ActivityPub, how to participate, and current task forces
 ---
 
 # Social Web Community Group (SocialCG)
 
-The W3C Social Web Incubator Community Group (SocialCG) is the standards body responsible for maintaining ActivityPub, ActivityStreams 2.0, and related social web specifications.
+The W3C [Social Web Incubator Community Group](https://www.w3.org/groups/cg/socialcg/) (SocialCG, sometimes "SWICG") is where the ActivityPub community incubates extensions, writes reports, and coordinates implementers. Since January 2026 the formal maintenance of the ActivityPub and Activity Streams Recommendations has moved to the chartered [Social Web Working Group](/docs/ecosystem/w3c-groups); the CG keeps incubating work the WG can adopt.
 
-## Overview
+*Facts on this page were checked against w3.org and the group's GitHub repositories in October 2026.*
 
-```
-┌────────────────────────────────────────────────────────────┐
-│                 W3C SOCIAL WEB HISTORY                     │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│  2014-2018: Social Web Working Group                       │
-│  ├── Created ActivityPub specification                     │
-│  ├── Created ActivityStreams 2.0 specification            │
-│  └── Published as W3C Recommendations                      │
-│       │                                                    │
-│       ▼                                                    │
-│  2017-Present: Social Web Incubator Community Group       │
-│  ├── Maintains specifications                              │
-│  ├── Manages errata                                        │
-│  ├── Incubates new proposals                              │
-│  └── Coordinates with implementors                         │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
-```
+## Who does what
 
-## What is SocialCG?
+| Group | Role | Leadership |
+|-------|------|------------|
+| [Social Web Working Group](https://www.w3.org/groups/wg/social/) (chartered 2026-01-15 to 2028-01-31) | Maintains the seven Social Web Recommendations (ActivityPub, Activity Streams 2.0 Core and Vocabulary, Webmention, WebSub, Micropub, LDN) and publishes backwards-compatible updates | Chair: Darius Kazemi |
+| [Social Web Incubator CG](https://www.w3.org/groups/cg/socialcg/) | Incubates extensions, publishes CG reports, runs task forces | Chairs: Johannes Ernst and Dmitri Zagidulin. Zagidulin announced on [2 October 2026](https://github.com/w3c/socialwg/blob/main/meetings/2026/2026-10-02-CG-WG-joint.md) that he is stepping down and the group is looking for a second co-chair. |
+| [FEP process](/docs/community/feps) | Community-run Fediverse Enhancement Proposals on Codeberg, independent of W3C | FEP facilitators |
 
-The SocialCG is a W3C Community Group that:
+As of October 2026 the WG has not yet published an updated ActivityPub draft; its Q3 2026 target slipped, and at the 2 October joint meeting members discussed trying to publish a draft around [TPAC 2026](https://www.w3.org/events/tpac/2026/) (Dublin, 26–30 October). Work happens in the [ActivityPub Editor's Draft](https://w3c.github.io/activitypub/).
 
-- **Maintains** ActivityPub and ActivityStreams 2.0 specifications
-- **Manages** errata and clarifications
-- **Incubates** new proposals and extensions
-- **Coordinates** between implementors
-- **Reviews** Fediverse Enhancement Proposals (FEPs)
+## How to participate
 
-**Website**: [w3.org/community/socialcg](https://www.w3.org/community/socialcg/)
+1. **Join the CG** at [w3.org/groups/cg/socialcg](https://www.w3.org/groups/cg/socialcg/) — free; requires a W3C account and accepting the Community Contributor License Agreement.
+2. **Subscribe to the mailing list**: `public-swicg@w3.org` ([archive](https://lists.w3.org/Archives/Public/public-swicg/)).
+3. **Attend meetings**: dates are on the [SocialCG calendar](https://www.w3.org/groups/cg/socialcg/calendar/). In 2026 the CG and WG hold joint meetings, and the WG also runs ActivityPub spec read-through sessions.
+4. **Read the minutes**: 2026 joint CG/WG minutes are in [w3c/socialwg/meetings/2026](https://github.com/w3c/socialwg/tree/main/meetings/2026); earlier CG minutes are in [swicg/meetings](https://github.com/swicg/meetings).
+5. **File spec issues** on [w3c/activitypub](https://github.com/w3c/activitypub/issues) or [w3c/activitystreams](https://github.com/w3c/activitystreams/issues), and discuss on [SocialHub](https://socialhub.activitypub.rocks/).
 
-## Specifications Maintained
+## Task forces
 
-### W3C Recommendations
+From the CG's own [task force list](https://github.com/swicg/meetings/blob/main/DELIVERABLES-TASKFORCES.md) (October 2026):
 
-| Specification | Status | Description |
-|--------------|--------|-------------|
-| [ActivityPub](https://www.w3.org/TR/activitypub/) | W3C REC | Server-to-server and client-to-server protocol |
-| [ActivityStreams 2.0](https://www.w3.org/TR/activitystreams-core/) | W3C REC | Core data model and vocabulary |
-| [AS2 Vocabulary](https://www.w3.org/TR/activitystreams-vocabulary/) | W3C REC | Standard types and properties |
+| Task force | Focus | Main deliverable |
+|------------|-------|------------------|
+| [ActivityPub API](https://github.com/swicg/activitypub-api) | Client-to-server API improvements and an OAuth profile | [Basic Profile](https://swicg.github.io/activitypub-api/basicprofile) (unpublished draft) |
+| [Data Portability](https://github.com/swicg/activitypub-data-portability) | Live account portability | [LOLA](https://swicg.github.io/activitypub-data-portability/lola.html) |
+| [HTML Discovery](https://github.com/swicg/activitypub-html-discovery) | Finding ActivityPub objects from HTML pages | [ActivityPub Discovery](https://swicg.github.io/activitypub-html-discovery/) (unpublished draft) |
+| [E2EE](https://github.com/swicg/activitypub-e2ee) | End-to-end encrypted messaging | [MLS over ActivityPub](https://swicg.github.io/activitypub-e2ee/mls) (unpublished draft) |
+| [Forums](https://github.com/swicg/forums) | Threaded/forum ("threadiverse") interop at the context level | FEP and report planned |
+| [Geosocial](https://github.com/swicg/geosocial) | Location in social data | Two documents planned |
+| [Groups](https://swicg.github.io/groups/) | Group contexts and membership | [Groups in the ActivityPub Ecosystem](https://swicg.github.io/groups/) (in progress) |
+| [Handles](https://github.com/swicg/activitypub-handles) | Handle resolution, internationalization, verification | New in August 2026 |
+| [HTTP Signature](https://github.com/swicg/activitypub-http-signature) | Request signing | [ActivityPub and HTTP Signatures](https://www.w3.org/community/reports/socialcg/CG-FINAL-apsig-20240607/) (final report, 2024); 2026 revision planned |
+| [Remix](https://github.com/swicg/activitypub-remix) | Remixing and aggregating actors | Explainer and report planned |
+| [Trust and Safety](https://github.com/swicg/activitypub-trust-and-safety) | Trust, safety and integrity | [ActivityPub Trust and Safety](https://swicg.github.io/activitypub-trust-and-safety/) (living document) |
+| Website | SWICG websites and accounts | Ongoing |
 
-### Community Specifications
+The Test Suite task force is listed as inactive.
 
-| Specification | Status | Description |
-|--------------|--------|-------------|
-| [HTTP Signatures](https://docs.joinmastodon.org/spec/security/) | De facto | Request signing for authentication |
-| [WebFinger](https://webfinger.net/) | RFC 7033 | Actor discovery |
-| [NodeInfo](http://nodeinfo.diaspora.software/) | Community | Server metadata |
+## Published CG reports worth reading
 
-## How to Participate
+- [ActivityPub and HTTP Signatures](https://www.w3.org/community/reports/socialcg/CG-FINAL-apsig-20240607/) (2024)
+- [ActivityPub and WebFinger](https://www.w3.org/community/reports/socialcg/CG-FINAL-apwf-20240608/) (2024)
+- [ActivityPub Miscellaneous Terms](https://www.w3.org/community/reports/socialcg/CG-FINAL-apmisc-20260828/) (2026)
 
-### 1. Join the Group
+## Reporting issues
 
-Anyone can join the SocialCG:
-
-1. Visit [w3.org/community/socialcg](https://www.w3.org/community/socialcg/)
-2. Click "Join this group"
-3. Create a W3C account (free for individuals)
-4. Accept the Community Contributor License Agreement
-
-### 2. Attend Meetings
-
-The SocialCG holds regular meetings:
-
-- **Frequency**: Bi-weekly or monthly
-- **Format**: Video calls + IRC/Matrix
-- **Minutes**: Published publicly
-- **Participation**: Open to all members
-
-Find meeting times and agendas on the [SocialCG wiki](https://www.w3.org/wiki/SocialCG).
-
-### 3. Contribute to Discussions
-
-Participate in specification discussions:
-
-```
-┌────────────────────────────────────────────────────────────┐
-│                  CONTRIBUTION CHANNELS                     │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│  GitHub Issues                                             │
-│  ├── github.com/w3c/activitypub                           │
-│  └── github.com/w3c/activitystreams                       │
-│                                                            │
-│  SocialHub Forum                                           │
-│  └── socialhub.activitypub.rocks                          │
-│                                                            │
-│  Matrix/IRC                                                │
-│  └── #social:matrix.org / #social on W3C IRC              │
-│                                                            │
-│  Mailing List                                              │
-│  └── public-socialcg@w3.org                               │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
-```
-
-## Task Forces
-
-The SocialCG organizes work through task forces:
-
-### Web Task Force
-
-Maintains [activitypub.rocks](https://activitypub.rocks/) and related documentation:
-
-- Website maintenance
-- Developer resources
-- Implementation guides
-
-### Test Suite Task Force
-
-Develops conformance testing:
-
-- ActivityPub test suite
-- Interoperability testing
-- Implementation validation
-
-### Errata Task Force
-
-Manages specification corrections:
-
-- Reviews errata submissions
-- Maintains errata documents
-- Proposes clarifications
-
-## Current Initiatives
-
-### Social Web Working Group (Rechartered)
-
-In January 2026, the W3C rechartered the [Social Web Working Group](/docs/ecosystem/w3c-groups) (chaired by Darius Kazemi) to:
-
-- Maintain all seven Social Web Recommendations (ActivityPub, ActivityStreams 2.0, Activity Vocabulary, Webmention, WebSub, Micropub, LDN)
-- Publish backwards-compatible updates incorporating accepted errata (expected Q3 2026)
-- Potentially adopt incubated work like LOLA (account portability) onto the Recommendation track
-
-The SocialCG continues to incubate new proposals, which the Working Group can adopt — modifications to the Recommendations themselves now happen in the WG.
-
-### Focus Areas
-
-Current SocialCG focus areas include:
-
-1. **End-to-End Encryption** - Secure direct messaging
-2. **Portable Identity** - Account migration and portability
-3. **Trust & Safety** - Moderation and content policies
-4. **Interoperability** - Cross-platform compatibility
+- **Spec bugs and errata**: open an issue on [w3c/activitypub](https://github.com/w3c/activitypub/issues) or [w3c/activitystreams](https://github.com/w3c/activitystreams/issues), citing the section.
+- **New features or extensions**: discuss on [SocialHub](https://socialhub.activitypub.rocks/), then consider writing a [FEP](/docs/community/feps) or bringing it to a CG meeting.
 
 ## Social Web Foundation
 
-In 2024, Evan Prodromou (co-author of ActivityPub) launched the [Social Web Foundation](https://socialwebfoundation.org/) to:
-
-- Advocate for open social web standards
-- Fund development and research
-- Coordinate between organizations
-- Support the SocialCG's work
-
-The foundation works alongside the SocialCG to advance ActivityPub adoption.
-
-## Reporting Issues
-
-### Specification Issues
-
-For issues with the specifications themselves:
-
-```
-ActivityPub issues:
-https://github.com/w3c/activitypub/issues
-
-ActivityStreams issues:
-https://github.com/w3c/activitystreams/issues
-```
-
-### Errata
-
-For corrections to published specifications:
-
-1. Open an issue on the relevant repository
-2. Label it as "errata"
-3. Describe the error and proposed correction
-4. Reference relevant spec sections
-
-### Feature Requests
-
-For new features or extensions:
-
-1. Discuss on [SocialHub](https://socialhub.activitypub.rocks/)
-2. Consider writing a [FEP](/docs/community/feps)
-3. Present at SocialCG meetings
-
-## Meeting Schedule
-
-SocialCG meetings are scheduled on the group's calendar:
-
-```
-┌────────────────────────────────────────────────────────────┐
-│                  TYPICAL MEETING FORMAT                    │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│  1. Roll call and introductions           (5 min)         │
-│  2. Review of action items                (10 min)        │
-│  3. Issue triage                          (20 min)        │
-│  4. Discussion topics                     (20 min)        │
-│  5. New business                          (5 min)         │
-│                                                            │
-│  Duration: ~60 minutes                                     │
-│  Notes: Published to W3C wiki                              │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
-```
-
-## Resources
-
-### Official Resources
-
-- [SocialCG Home](https://www.w3.org/community/socialcg/)
-- [SocialCG Wiki](https://www.w3.org/wiki/SocialCG)
-- [SocialCG Tools](https://www.w3.org/groups/cg/socialcg/tools/)
-- [Meeting Minutes](https://www.w3.org/community/socialcg/2023/)
-
-### Specifications
-
-- [ActivityPub Spec](https://www.w3.org/TR/activitypub/)
-- [ActivityStreams Core](https://www.w3.org/TR/activitystreams-core/)
-- [ActivityStreams Vocabulary](https://www.w3.org/TR/activitystreams-vocabulary/)
-
-### Community
-
-- [ActivityPub Rocks](https://activitypub.rocks/)
-- [SocialHub Forum](https://socialhub.activitypub.rocks/)
-- [Social Web Foundation](https://socialwebfoundation.org/)
+The [Social Web Foundation](https://socialwebfoundation.org/), launched in 2024 with Evan Prodromou among its founders, is a non-profit that advocates for the ActivityPub-based social web and supports standards work. It is separate from the W3C groups.
 
 ## History
 
-### Social Web Working Group (2014-2018)
-
-The Social Web Working Group was a formal W3C Working Group that:
-
-- Developed ActivityPub from concept to specification
-- Standardized ActivityStreams 2.0
-- Published as W3C Recommendations (Activity Streams 2.0 in May 2017, ActivityPub in January 2018)
+The original Social Web Working Group (2014–2018) published Activity Streams 2.0 (May 2017) and ActivityPub (January 2018) as W3C Recommendations.
 
 Key participants included:
 - Christine Lemmer-Webber and Jessica Tallon (ActivityPub editors)
 - Erin Shepherd, Amy Guy and Evan Prodromou (ActivityPub co-authors)
 - James Snell and Evan Prodromou (Activity Streams 2.0 editors)
 
-### Transition to Community Group
+After that charter ended, the SocialCG carried on errata and incubation work until the Working Group was chartered again in January 2026.
 
-After the Working Group charter ended:
-
-1. SocialCG was established to continue maintenance
-2. Specifications became stable W3C Recommendations
-3. Community-driven extensions through FEPs
-4. Focus shifted to implementation support
-
-## Next Steps
+## Next steps
 
 - **[FEPs](/docs/community/feps)** - Enhancement proposals
 - **[Events](/docs/community/events)** - Community events

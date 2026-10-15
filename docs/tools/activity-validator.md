@@ -1,10 +1,14 @@
 ---
 sidebar_position: 1
-title: Activity Validator
+title: Validating Activities
 description: Validate your ActivityPub activities against the spec
 ---
 
-# Activity Validator
+# Validating Activities
+
+:::info
+This is a guide, not an interactive tool. For hands-on tools see [Testing & Debugging Tools](/docs/tools/overview).
+:::
 
 Use this tool to validate your ActivityStreams activities and objects against the specification.
 

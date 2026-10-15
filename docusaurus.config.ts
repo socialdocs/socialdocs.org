@@ -128,7 +128,7 @@ const config: Config = {
           type: 'docSidebar',
           sidebarId: 'toolsSidebar',
           position: 'right',
-          label: 'Tools',
+          label: 'Testing & Debugging',
         },
         {
           href: 'https://github.com/socialdocs/socialdocs.org',

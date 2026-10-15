@@ -6,7 +6,7 @@ description: Test suites and frameworks for validating ActivityPub implementatio
 
 # Test Suites
 
-Testing your ActivityPub implementation is crucial for ensuring interoperability with the broader Fediverse. These test suites help validate protocol compliance and catch issues before they affect federation.
+There is no official, maintained ActivityPub conformance suite. This page lists the test suites that exist, their status, and how to write your own interop tests.
 
 ## Why Test Your Implementation?
 
@@ -17,19 +17,14 @@ Testing your ActivityPub implementation is crucial for ensuring interoperability
 
 ## Available Test Suites
 
-### ActivityPub Test Suite
+### activitypub-testsuite (steve-bate)
 
-A robust suite offering comprehensive testing tools for validating ActivityPub implementations against protocol specifications.
+A server-independent ActivityPub integration test suite written in Python with [pytest](https://docs.pytest.org/).
 
-- **URL**: [github.com/activitypub-testsuite](https://github.com/steve-bate/activitypub-testsuite)
-- **Language**: Python
-- **Focus**: Protocol compliance testing
-
-**Features:**
-- Tests for inbox/outbox handling
-- Signature verification tests
-- Activity delivery validation
-- Collection pagination tests
+- **URL**: [github.com/steve-bate/activitypub-testsuite](https://github.com/steve-bate/activitypub-testsuite)
+- **Language**: Python (tests any server, whatever its language)
+- **Status**: Active (last updated March 2026)
+- **How it's used**: it is not a standalone tool. Per its README, you create a server-specific test project that implements the support code for your server, then reuse the shared tests. Follow the repository's README for setup.
 
 ### FediTest
 
@@ -39,26 +34,17 @@ A framework for running scripted interoperability tests between real Fediverse i
 - **Language**: Python
 - **Status**: Little activity since December 2024
 
-### go-fed Testsuite
+### go-fed testsuite
 
-A test suite repository specifically for federated software using the go-fed library.
+A test suite from the go-fed project.
 
 - **URL**: [github.com/go-fed/testsuite](https://github.com/go-fed/testsuite)
 - **Language**: Go
-- **Focus**: go-fed implementation testing
+- **Status**: Unmaintained (last updated September 2020)
 
-### Pubstrate
+### Hands-on alternatives
 
-A Scheme-scripted test suite providing structured tests for ActivityPub implementations with meticulous protocol adherence checks.
-
-- **URL**: [gitlab.com/dustyweb/pubstrate](https://gitlab.com/dustyweb/pubstrate)
-- **Language**: Scheme (Guile)
-- **Focus**: Protocol adherence
-
-**Features:**
-- Detailed protocol compliance checks
-- Scriptable test scenarios
-- Comprehensive coverage of ActivityPub spec
+For day-to-day interop testing, most developers use live tools rather than a conformance suite: [BrowserPub](https://browser.pub/), the [Fedify CLI](https://fedify.dev/cli) (`fedify lookup`, `fedify inbox`), and [ActivityPub Academy](https://activitypub.academy/). See [Testing & debugging tools](/docs/tools/overview).
 
 ## Running Tests Against Your Server
 
@@ -70,33 +56,21 @@ Most test suites require:
 2. **HTTP access** to your server's endpoints
 3. **Test configuration** pointing to your server
 
-```bash
-# Example: Running activitypub-testsuite
-git clone https://github.com/steve-bate/activitypub-testsuite
-cd activitypub-testsuite
-pip install -r requirements.txt
-
-# Configure your server URL
-export AP_TEST_SERVER=https://your-server.com
-export AP_TEST_ACTOR=https://your-server.com/users/testuser
-
-# Run tests
-pytest
-```
+For activitypub-testsuite, follow the setup in its [README](https://github.com/steve-bate/activitypub-testsuite); it needs a small server-specific support project rather than just a URL.
 
 ### Testing in Development
 
-For local development, use a tool like ngrok to expose your local server:
+For local development, expose your local server over public HTTPS so other servers can reach it — for example with [`fedify tunnel`](https://fedify.dev/cli) or ngrok:
 
 ```bash
 # Start your local server
 npm run dev  # or your server's start command
 
-# In another terminal, expose it
+# In another terminal, expose it (either works)
+fedify tunnel 3000
 ngrok http 3000
 
-# Use the ngrok URL for testing
-# https://abc123.ngrok.io
+# Use the public HTTPS URL the tunnel prints for testing
 ```
 
 ## What to Test
@@ -200,20 +174,17 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
 
       - name: Start server
         run: |
-          npm install
+          npm ci
           npm start &
-          sleep 5
+          npx wait-on http://localhost:3000
 
-      - name: Run ActivityPub tests
-        run: |
-          git clone https://github.com/steve-bate/activitypub-testsuite
-          cd activitypub-testsuite
-          pip install -r requirements.txt
-          pytest --server=http://localhost:3000
+      - name: Run your ActivityPub smoke tests
+        # e.g. the actor-endpoint and signature tests from this page
+        run: node test/activitypub-smoke.test.js
 ```
 
 ## Common Test Failures
@@ -238,7 +209,7 @@ if (req.accepts('application/activity+json') ||
     req.accepts('application/ld+json')) {
   return res.type('application/activity+json').json(actor);
 }
-return res.html(profilePage);
+return res.send(renderProfilePage());
 ```
 
 ### Missing Required Fields
@@ -264,4 +235,4 @@ return res.html(profilePage);
 
 - **[Debugging Tips](/docs/tools/debugging-tips)** - Troubleshoot test failures
 - **[Compliance Checklist](/docs/tools/compliance-checklist)** - Manual compliance verification
-- **[Activity Validator](/docs/tools/activity-validator)** - Validate individual activities
+- **[Validating activities](/docs/tools/activity-validator)** - Check individual activities

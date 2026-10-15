@@ -71,7 +71,7 @@ const FeatureList: FeatureItem[] = [
     link: '/docs/ecosystem/server-software',
   },
   {
-    title: 'Developer Tools',
+    title: 'Testing & Debugging',
     icon: '🛠️',
     description: (
       <>
@@ -79,7 +79,7 @@ const FeatureList: FeatureItem[] = [
         help you build and debug your ActivityPub implementation.
       </>
     ),
-    link: '/docs/tools/debugging-tips',
+    link: '/docs/tools/overview',
   },
 ];
 

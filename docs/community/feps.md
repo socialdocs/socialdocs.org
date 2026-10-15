@@ -244,7 +244,7 @@ These drafts are actively being developed:
 |-----|-------|-------------|
 | FEP-c390 | Identity Proofs | Cryptographic identity verification |
 | FEP-4adb | Dereferencing identifiers with webfinger | Enhanced actor discovery |
-| FEP-e3e9 | Conversation Threads | Improved reply threading |
+| FEP-e3e9 | Actor-Relative URLs | Stable URLs relative to an actor, for portability |
 | FEP-8b32 | Object Integrity Proofs | Content authenticity |
 
 ## Relationship to Standards
