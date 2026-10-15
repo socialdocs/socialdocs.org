@@ -1,0 +1,65 @@
+name: Tutorial server
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - 'examples/**'
+      - '.github/workflows/tutorial.yml'
+  pull_request:
+  schedule:
+    - cron: '30 4 * * 1' # weekly: catch GoToSocial behaviour changes
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: examples/verify-requests/package-lock.json
+      - name: Install verify-requests (imported by the tutorial server)
+        run: npm ci
+        working-directory: examples/verify-requests
+      - run: npm test
+        working-directory: examples/first-server
+
+  federation:
+    needs: unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Decide whether to run
+        id: changed
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "origin/${{ github.base_ref }}...HEAD" \
+              | grep -qE '^(examples/(first-server|verify-requests)/|\.github/workflows/tutorial\.yml)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-node@v7
+        if: steps.changed.outputs.run == 'true'
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: examples/verify-requests/package-lock.json
+      - name: Install verify-requests
+        if: steps.changed.outputs.run == 'true'
+        run: npm ci
+        working-directory: examples/verify-requests
+      - name: Federate with GoToSocial
+        if: steps.changed.outputs.run == 'true'
+        run: examples/first-server/integration/run.sh

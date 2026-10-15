@@ -209,3 +209,44 @@ test('rejects unsigned requests', async () => {
     /not signed/,
   );
 });
+
+// GoToSocial serves its key at .../users/x/main-key as a stub of the owner:
+// { id: .../users/x, publicKey: { id: .../main-key, owner: .../users/x } }
+// https://docs.gotosocial.org/en/latest/federation/http_signatures/#quirks
+test('accepts a GoToSocial-style keyId (key served as an owner stub)', async () => {
+  const GTS = 'https://gts.example/users/carol';
+  const keyId = `${GTS}/main-key`;
+  const keys = rsa();
+  const pem = keys.publicKey.export({ type: 'spki', format: 'pem' });
+  const full = { ...actorDoc(GTS, {}), publicKey: { id: keyId, owner: GTS, publicKeyPem: pem } };
+  const stub = { id: GTS, type: 'Person', preferredUsername: 'carol', publicKey: full.publicKey };
+  const { fetchJson, calls } = fakeFetch({ [keyId]: stub, [GTS]: full });
+  const raw = Buffer.from(JSON.stringify({ id: 'https://gts.example/a/1', type: 'Follow', actor: GTS, object: 'https://receiver.example/users/bob' }));
+  const req = cavageReq({ raw, keyId, key: keys.privateKey });
+  const signer = await verifyRequest(req, { keyStore: new KeyStore(fetchJson), now: NOW });
+  assert.equal(signer.actorId, GTS);
+  assert.deepEqual(calls, [keyId, GTS]); // the full owner document was checked
+});
+
+test('rejects an owner stub whose full actor does not list the key', async () => {
+  const GTS = 'https://gts.example/users/carol';
+  const keyId = `${GTS}/main-key`;
+  const keys = rsa();
+  const pem = keys.publicKey.export({ type: 'spki', format: 'pem' });
+  const stub = { id: GTS, type: 'Person', publicKey: { id: keyId, owner: GTS, publicKeyPem: pem } };
+  const full = actorDoc(GTS, { rsa: rsa().publicKey }); // lists a different key
+  const { fetchJson } = fakeFetch({ [keyId]: stub, [GTS]: full });
+  const req = cavageReq({ keyId, key: keys.privateKey });
+  await assert.rejects(verifyRequest(req, { keyStore: new KeyStore(fetchJson), now: NOW }), /does not list key/);
+});
+
+test('rejects an owner stub that names an actor on another origin', async () => {
+  const keyId = 'https://evil.example/users/x/main-key';
+  const keys = rsa();
+  const pem = keys.publicKey.export({ type: 'spki', format: 'pem' });
+  // evil.example serves a "stub" claiming to be alice, with its own key
+  const stub = { id: ALICE, type: 'Person', publicKey: { id: keyId, owner: ALICE, publicKeyPem: pem } };
+  const { fetchJson } = fakeFetch({ [keyId]: stub, [ALICE]: actorDoc(ALICE, { rsa: aliceKeys.publicKey }) });
+  const req = cavageReq({ keyId, key: keys.privateKey });
+  await assert.rejects(verifyRequest(req, { keyStore: new KeyStore(fetchJson), now: NOW }), /does not match origin/);
+});

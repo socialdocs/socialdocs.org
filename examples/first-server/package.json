@@ -1,0 +1,13 @@
+{
+  "name": "socialdocs-first-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The tested example server from socialdocs.org's 'Your first ActivityPub server' tutorial.",
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node src/main.js",
+    "test": "node --test"
+  }
+}

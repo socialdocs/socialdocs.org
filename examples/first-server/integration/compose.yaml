@@ -1,0 +1,60 @@
+# Federation test: our example server (ap.test) and a real GoToSocial
+# (gts.test) on a private network, both serving https on port 443 with
+# certificates from a throwaway CA (see run.sh).
+name: first-server-federation
+
+networks:
+  fedi:
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+
+services:
+  gts:
+    image: superseriousbusiness/gotosocial:0.22.2
+    environment:
+      GTS_CONFIG_PATH: /config/gotosocial.yaml
+      SSL_CERT_FILE: /certs/ca.pem        # Go trusts the test CA
+    volumes:
+      - ./gotosocial.yaml:/config/gotosocial.yaml:ro
+      - ./certs:/certs:ro
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: "0" # the image runs as uid 1000
+    networks:
+      fedi:
+        aliases: [gts.test]
+
+  ap:
+    image: node:24-alpine
+    working_dir: /examples/first-server
+    command: ["node", "src/main.js"]
+    environment:
+      DOMAIN: ap.test
+      USERNAME: tester
+      PORT: "443"
+      TLS_CERT: /certs/server.pem
+      TLS_KEY: /certs/server.key
+      ADMIN_TOKEN: ${ADMIN_TOKEN:?set ADMIN_TOKEN}
+      ALLOW_PRIVATE_ADDRESSES: "true"     # test network only
+      NODE_EXTRA_CA_CERTS: /certs/ca.pem
+    volumes:
+      - ../..:/examples:ro
+      - ./certs:/certs:ro
+    networks:
+      fedi:
+        aliases: [ap.test]
+
+  tester:
+    image: node:24-alpine
+    profiles: [tools]
+    working_dir: /examples/first-server
+    entrypoint: ["node", "integration/federate.mjs"]
+    environment:
+      ADMIN_TOKEN: ${ADMIN_TOKEN:?set ADMIN_TOKEN}
+      GTS_EMAIL: ${GTS_EMAIL:?set GTS_EMAIL}
+      GTS_PASSWORD: ${GTS_PASSWORD:?set GTS_PASSWORD}
+      NODE_EXTRA_CA_CERTS: /certs/ca.pem
+    volumes:
+      - ../..:/examples:ro
+      - ./certs:/certs:ro
+    networks: [fedi]

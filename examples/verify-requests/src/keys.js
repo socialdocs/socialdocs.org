@@ -90,6 +90,16 @@ export async function resolveKey(keyId, fetchJson) {
     actor = second.json;
     if (actor.id !== ownerId) throw new KeyResolutionError('Owner document id mismatch');
     assertServedFromOwnOrigin(actor, second.url);
+  } else if (first.json.id !== keyId && findKeyInActor(first.json, keyId)) {
+    // keyId is served as a stub of its owner (GoToSocial: .../users/x/main-key
+    // returns { id: .../users/x, publicKey }). The stub only names the owner;
+    // fetch the full owner document and require that it lists the key.
+    assertServedFromOwnOrigin(first.json, first.url);
+    const ownerId = first.json.id;
+    const second = await fetchJson(ownerId);
+    actor = second.json;
+    if (actor.id !== ownerId) throw new KeyResolutionError('Owner document id mismatch');
+    assertServedFromOwnOrigin(actor, second.url);
   } else {
     throw new KeyResolutionError(`Document at ${keyId} is neither the key nor its owner`);
   }
