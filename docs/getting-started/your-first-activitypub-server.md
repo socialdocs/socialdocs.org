@@ -19,7 +19,7 @@ In this tutorial, we'll build a minimal but functional ActivityPub server from s
 
 ## Prerequisites
 
-- Node.js 22+ installed
+- Node.js 22.12+ installed
 - Basic understanding of HTTP and REST APIs
 - A domain name (or use ngrok for testing)
 
@@ -31,7 +31,7 @@ Create a new project:
 mkdir my-activitypub-server
 cd my-activitypub-server
 npm init -y
-npm install express body-parser
+npm install express
 ```
 
 ## Step 1: Basic Server Structure
@@ -40,17 +40,14 @@ Create `server.js`:
 
 ```javascript
 const express = require('express');
-const bodyParser = require('body-parser');
 
 const app = express();
 const PORT = 3000;
 const DOMAIN = 'your-domain.com'; // Change this!
 const USERNAME = 'alice';
 
-// Parse JSON bodies
-app.use(bodyParser.json({
-  type: ['application/json', 'application/activity+json', 'application/ld+json']
-}));
+// No global JSON body parser: the inbox (Step 5) reads the raw body so that
+// the signature's body digest can be checked against the exact bytes received.
 
 // Store for followers (in-memory for demo)
 const followers = new Set();
@@ -148,15 +145,45 @@ const PUBLIC_KEY = fs.readFileSync('./public.pem', 'utf8');
 
 ## Step 5: Inbox Endpoint
 
-The inbox receives activities from other servers:
+The inbox receives activities from other servers. **Anyone on the internet can POST to it**, so it has to verify that each request really comes from the actor named in the activity before acting on it.
+
+Don't write the verification yourself. Copy the tested module from [`examples/verify-requests`](https://github.com/socialdocs/socialdocs.org/tree/gh-pages/examples/verify-requests) (explained on [Verifying incoming requests](/docs/security/verifying-requests)) into your project:
+
+```bash
+git clone --depth 1 https://github.com/socialdocs/socialdocs.org.git /tmp/socialdocs
+cp -r /tmp/socialdocs/examples/verify-requests ./verify-requests
+(cd verify-requests && npm install)
+```
+
+The module is an ES module. This tutorial uses `require()`, which can load ES modules from Node.js 22.12 onwards.
 
 ```javascript
-app.post('/users/:username/inbox', async (req, res) => {
+const {
+  verifyRequest, parseActivityFrom, authorizeActivity, KeyStore, safeFetchJson,
+  SignatureError,
+} = require('./verify-requests/src/index.js');
+
+const keyStore = new KeyStore((url) => safeFetchJson(url));
+
+app.post('/users/:username/inbox', express.raw({ type: '*/*', limit: '1mb' }), async (req, res) => {
   if (req.params.username !== USERNAME) {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  const activity = req.body;
+  let activity;
+  try {
+    const signer = await verifyRequest({
+      method: req.method,
+      url: `https://${DOMAIN}${req.originalUrl}`,
+      headers: req.headers,
+      rawBody: req.body, // raw bytes, so the body digest can be checked
+    }, { keyStore });
+    activity = parseActivityFrom(signer, req.body); // signer must be activity.actor
+    authorizeActivity(activity);                    // e.g. no Creates for other servers' objects
+  } catch (err) {
+    console.log('Rejected:', err.message);
+    return res.status(err instanceof SignatureError ? 401 : 403).json({ error: err.message });
+  }
   console.log('Received activity:', JSON.stringify(activity, null, 2));
 
   // Store the activity
@@ -197,9 +224,10 @@ async function handleFollow(activity) {
   followers.add(followerActor);
   console.log(`New follower: ${followerActor}`);
 
-  // Fetch the follower's inbox
+  // Fetch the follower's inbox (followerActor was verified as the signer)
   const followerInfo = await fetchActor(followerActor);
   const followerInbox = followerInfo.inbox;
+  if (typeof followerInbox !== 'string') return;
 
   // Create Accept activity
   const acceptActivity = {
@@ -300,45 +328,13 @@ async function sendActivity(inboxUrl, activity) {
 
 ## Step 9: Fetch Remote Actors
 
-Fetch actor information from other servers:
+Fetch actor information from other servers. Every URL you fetch here came from someone else's activity, so use the SSRF-safe fetcher from the module. It refuses private and loopback addresses, re-checks every redirect, limits size and time, and requires an ActivityPub `Content-Type`:
 
 ```javascript
 async function fetchActor(actorUrl) {
-  return new Promise((resolve, reject) => {
-    const urlObj = new URL(actorUrl);
-
-    // Note: servers in Mastodon's "secure mode" require this GET to be
-    // signed too, and in production you need an SSRF-safe fetch
-    const req = https.get({
-      hostname: urlObj.hostname,
-      path: urlObj.pathname + urlObj.search,
-      timeout: 10000,
-      headers: {
-        'Accept': 'application/ld+json; profile="https://www.w3.org/ns/activitystreams", application/activity+json'
-      }
-    }, (res) => {
-      if (res.statusCode !== 200) {
-        res.resume();
-        return reject(new Error(`Fetch failed: ${res.statusCode}`));
-      }
-      let data = '';
-      res.on('data', chunk => {
-        data += chunk;
-        if (data.length > 1_000_000) req.destroy(new Error('Response too large'));
-      });
-      res.on('end', () => {
-        // A throw inside this callback would crash the process —
-        // turn bad JSON into a rejected promise instead
-        try {
-          resolve(JSON.parse(data));
-        } catch (err) {
-          reject(err);
-        }
-      });
-    });
-    req.on('timeout', () => req.destroy(new Error('Timeout')));
-    req.on('error', reject);
-  });
+  const { json } = await safeFetchJson(actorUrl);
+  if (json.id !== actorUrl) throw new Error(`Actor id mismatch for ${actorUrl}`);
+  return json;
 }
 ```
 
@@ -391,7 +387,6 @@ Here's the complete minimal server:
 ```javascript
 // server.js - Complete minimal ActivityPub server
 const express = require('express');
-const bodyParser = require('body-parser');
 const crypto = require('crypto');
 const https = require('https');
 const fs = require('fs');
@@ -409,9 +404,7 @@ const PUBLIC_KEY = fs.readFileSync('./public.pem', 'utf8');
 const followers = new Set();
 const inbox = [];
 
-app.use(bodyParser.json({
-  type: ['application/json', 'application/activity+json', 'application/ld+json']
-}));
+// No global JSON body parser: the inbox route uses express.raw().
 
 // ... (all the endpoints from above)
 

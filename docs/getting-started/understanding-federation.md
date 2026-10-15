@@ -360,7 +360,7 @@ This allows servers to reconstruct conversation threads.
 ### Signature Verification Failures
 
 **Causes:**
-- Clock skew (Mastodon rejects signatures created more than 12 hours ago, or more than 1 hour in the future)
+- Clock skew or stale requests (Mastodon treats a signature without `expires` as valid for 5 minutes after creation, plus 1 hour of tolerated skew, so about 65 minutes; and never more than 1 hour in the future)
 - Incorrect key format
 - Wrong signing algorithm
 

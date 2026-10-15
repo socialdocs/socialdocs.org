@@ -344,5 +344,5 @@ http POST localhost:3000/inbox < activity.json
 
 - **[WebFinger Lookup](/docs/tools/webfinger-lookup)** - Test discovery
 - **[Actor Inspector](/docs/tools/actor-inspector)** - Validate actors
-- **[Signature Tester](/docs/tools/signature-tester)** - Debug signatures
+- **[HTTP signatures in 2026](/docs/specs/http-signatures/overview)** - Debugging 401s
 - **[Compliance Checklist](/docs/tools/compliance-checklist)** - Full validation

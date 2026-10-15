@@ -6,10 +6,6 @@ description: Implementing moderation tools using ActivityPub Block, Flag, and do
 
 # Content Moderation
 
-:::danger Not safe for production
-The code on this page is illustrative and **has known security flaws**: incomplete signature verification (signed headers, key-owner ↔ actor binding, Digest over the raw body), missing origin checks, and/or missing SSRF and output-escaping guards. Do not copy it into a real server. Use a maintained library such as [Fedify](https://fedify.dev/) or [activitypub-federation-rust](https://github.com/LemmyNet/activitypub-federation-rust) for request verification. Tracking: [issue #37](https://github.com/socialdocs/socialdocs.org/issues/37).
-:::
-
 Content moderation is essential for healthy federated communities. ActivityPub provides **Block** and **Flag** activities, while implementations add domain-level controls. This guide covers implementing moderation tools.
 
 ## Moderation Levels
@@ -495,36 +491,49 @@ async function importBlocklist(url) {
 
 ### Authorized Fetch
 
-Prevent suspended users from fetching content:
+Require a valid signature on GETs (Mastodon's "secure mode"), so suspended servers and actors can't fetch content:
 
 ```javascript
+import { verifyRequest, SignatureError } from './verify-requests/src/index.js';
+// keyStore: see /docs/security/verifying-requests
+
 async function authorizedFetch(req, res, next) {
-  const signature = parseSignature(req);
-
-  if (signature) {
-    const signer = await fetchActor(signature.keyId.split('#')[0]);
-
-    // Check if signer's domain is blocked
-    const domain = new URL(signer.id).hostname;
-    const domainBlock = await db.domainBlocks.findOne({
-      domain,
-      severity: 'suspend'
-    });
-
-    if (domainBlock) {
-      return res.status(403).json({ error: 'Domain blocked' });
-    }
-
-    // Check if actor is suspended
-    const actor = await db.actors.findOne({ id: signer.id });
-    if (actor?.suspended) {
-      return res.status(403).json({ error: 'Actor suspended' });
-    }
+  // Authorized fetch means: no valid signature, no content.
+  if (!req.headers.signature && !req.headers['signature-input']) {
+    return res.status(401).json({ error: 'Signature required' });
   }
 
+  let signer;
+  try {
+    signer = await verifyRequest({
+      method: req.method,
+      url: `https://${DOMAIN}${req.originalUrl}`,
+      headers: req.headers,
+      rawBody: Buffer.alloc(0),
+    }, { keyStore });
+  } catch (err) {
+    return res.status(err instanceof SignatureError ? 401 : 503).json({ error: err.message });
+  }
+
+  // Check if the signer's domain is suspended
+  const domain = new URL(signer.actorId).hostname;
+  const domainBlock = await db.domainBlocks.findOne({ domain, severity: 'suspend' });
+  if (domainBlock) {
+    return res.status(403).json({ error: 'Domain blocked' });
+  }
+
+  // Check if the signing actor is suspended
+  const actor = await db.actors.findOne({ id: signer.actorId });
+  if (actor?.suspended) {
+    return res.status(403).json({ error: 'Actor suspended' });
+  }
+
+  req.signer = signer;
   next();
 }
 ```
+
+Sign the GETs you make to such servers with your [instance actor](/docs/specs/activitypub/actors) key, or they will answer 401. Your own instance actor and its key must stay fetchable **without** a signature, or two servers in secure mode can deadlock fetching each other's keys.
 
 ## Best Practices
 

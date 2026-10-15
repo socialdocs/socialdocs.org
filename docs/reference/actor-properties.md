@@ -221,5 +221,5 @@ For account migration. These go on **different** accounts: the new account lists
 
 - **[Actor Types](/docs/reference/actor-types)**
 - **[Building an Actor](/docs/guides/building-an-actor)**
-- **[HTTP Signatures](/docs/reference/http-signatures-reference)**
+- **[HTTP Signatures](/docs/specs/http-signatures/overview)**
 

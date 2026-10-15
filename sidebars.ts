@@ -25,6 +25,19 @@ const sidebars: SidebarsConfig = {
     },
   ],
 
+  securitySidebar: [
+    {
+      type: 'category',
+      label: 'Security',
+      collapsed: false,
+      items: [
+        'security/verifying-requests',
+        'security/origin-model',
+        'security/known-vulnerability-classes',
+      ],
+    },
+  ],
+
   specsSidebar: [
     {
       type: 'category',
@@ -161,7 +174,6 @@ const sidebars: SidebarsConfig = {
       label: 'Security',
       collapsed: true,
       items: [
-        'reference/http-signatures-reference',
         'reference/json-ld-security',
         'reference/content-security',
       ],
@@ -228,7 +240,6 @@ const sidebars: SidebarsConfig = {
         'tools/activity-validator',
         'tools/actor-inspector',
         'tools/webfinger-lookup',
-        'tools/signature-tester',
         'tools/json-ld-playground',
       ],
     },

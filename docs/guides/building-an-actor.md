@@ -6,10 +6,6 @@ description: Complete guide to implementing an ActivityPub actor
 
 # Building an Actor
 
-:::danger Not safe for production
-The code on this page is illustrative and **has known security flaws**: incomplete signature verification (signed headers, key-owner ↔ actor binding, Digest over the raw body), missing origin checks, and/or missing SSRF and output-escaping guards. Do not copy it into a real server. Use a maintained library such as [Fedify](https://fedify.dev/) or [activitypub-federation-rust](https://github.com/LemmyNet/activitypub-federation-rust) for request verification. Tracking: [issue #37](https://github.com/socialdocs/socialdocs.org/issues/37).
-:::
-
 This guide walks through implementing a complete ActivityPub actor from scratch. By the end, you'll have a functioning federated user that can be discovered, followed, and receive activities.
 
 ## What We're Building
@@ -162,21 +158,21 @@ app.get('/users/:username', (req, res) => {
 ## Step 4: Inbox Endpoint
 
 ```javascript
-app.post('/users/:username/inbox', async (req, res) => {
+app.post('/users/:username/inbox', express.raw({ type: '*/*', limit: '1mb' }), async (req, res) => {
   const { username } = req.params;
 
   if (!actors.has(username)) {
     return res.status(404).json({ error: 'Not found' });
   }
 
-  // Verify HTTP Signature (see Step 6)
+  // Verify the signature, bind it to activity.actor and apply origin rules
+  // (see Step 6). Needs the raw body: register this route with express.raw().
+  let activity;
   try {
-    await verifySignature(req);
+    activity = await authenticate(req);
   } catch (error) {
-    return res.status(401).json({ error: error.message });
+    return res.status(rejectStatus(error)).json({ error: error.message });
   }
-
-  const activity = req.body;
   console.log('Received:', activity.type, 'from', activity.actor);
 
   // Process activity
@@ -246,48 +242,37 @@ async function handleUndo(username, activity) {
 
 ## Step 6: HTTP Signature Verification
 
+:::tip Use the tested verifier
+Request verification has its own page with tested code: **[Verifying incoming requests](/docs/security/verifying-requests)**. It covers draft-cavage and RFC 9421, the digest over the raw body, the required signed headers, binding the key owner to `activity.actor`, and SSRF-safe key fetching.
+:::
+
+The `authenticate` and `rejectStatus` helpers used in Step 4 wrap that module:
+
 ```javascript
-async function verifySignature(req) {
-  const sigHeader = req.headers.signature;
-  if (!sigHeader) throw new Error('Missing signature');
+import express from 'express';
+import { verifyRequest, parseActivityFrom, authorizeActivity, KeyStore, safeFetchJson,
+         SignatureError, AuthorizationError } from './verify-requests/src/index.js';
+// verify-requests/ is a copy of https://github.com/socialdocs/socialdocs.org/tree/gh-pages/examples/verify-requests
 
-  // Parse signature header
-  const params = {};
-  sigHeader.replace(/(\w+)="([^"]+)"/g, (_, key, val) => params[key] = val);
+const keyStore = new KeyStore((url) => safeFetchJson(url));
 
-  // Check date freshness
-  const date = new Date(req.headers.date);
-  if (Math.abs(Date.now() - date) > 5 * 60 * 1000) {
-    throw new Error('Request too old');
-  }
-
-  // Fetch public key
-  const actorUrl = params.keyId.split('#')[0];
-  const actor = await fetchActor(actorUrl);
-  const publicKey = actor.publicKey.publicKeyPem;
-
-  // Rebuild signing string
-  const signingString = params.headers.split(' ').map(header => {
-    if (header === '(request-target)') {
-      return `(request-target): ${req.method.toLowerCase()} ${req.originalUrl}`;
-    }
-    return `${header}: ${req.headers[header.toLowerCase()]}`;
-  }).join('\n');
-
-  // Verify
-  const verifier = crypto.createVerify('RSA-SHA256');
-  verifier.update(signingString);
-
-  if (!verifier.verify(publicKey, params.signature, 'base64')) {
-    throw new Error('Invalid signature');
-  }
+// Verify, bind the signer to activity.actor, apply origin rules.
+async function authenticate(req) {
+  const signer = await verifyRequest({
+    method: req.method,
+    url: `https://${DOMAIN}${req.originalUrl}`, // full URL, query string included
+    headers: req.headers,
+    rawBody: req.body,                          // raw bytes: see express.raw below
+  }, { keyStore });
+  const activity = parseActivityFrom(signer, req.body);
+  authorizeActivity(activity);
+  return activity;
 }
 
-async function fetchActor(url) {
-  const response = await fetch(url, {
-    headers: { 'Accept': 'application/activity+json' }
-  });
-  return response.json();
+function rejectStatus(err) {
+  if (err instanceof SignatureError) return 401;
+  if (err instanceof AuthorizationError) return 403;
+  return 503; // couldn't fetch the key: ask the sender to retry later
 }
 ```
 

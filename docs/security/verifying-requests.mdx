@@ -1,0 +1,141 @@
+---
+sidebar_position: 1
+title: Verifying incoming requests
+description: Tested reference code for authenticating ActivityPub inbox deliveries with draft-cavage and RFC 9421 HTTP signatures, without the usual bypasses.
+---
+
+import CodeBlock from '@theme/CodeBlock';
+import verifySrc from '!!raw-loader!@site/examples/verify-requests/src/verify.js';
+import keysSrc from '!!raw-loader!@site/examples/verify-requests/src/keys.js';
+import digestSrc from '!!raw-loader!@site/examples/verify-requests/src/digest.js';
+import cavageSrc from '!!raw-loader!@site/examples/verify-requests/src/cavage.js';
+import rfc9421Src from '!!raw-loader!@site/examples/verify-requests/src/rfc9421.js';
+import safeFetchSrc from '!!raw-loader!@site/examples/verify-requests/src/safe-fetch.js';
+
+# Verifying incoming requests
+
+Every POST to your inbox claims to come from some actor. Before you act on it you have to prove three things:
+
+1. **The request was signed by a key, and the signature covers the method, the full URL, the host, a recent time and a digest of the body.**
+2. **The body you received is the body that was signed.** Check the digest over the raw bytes.
+3. **The key belongs to `activity.actor`.** A valid signature from *some* server proves nothing about *this* activity.
+
+Most real-world ActivityPub security bugs skip one of these. Mastodon's [CVE-2024-23832](https://github.com/mastodon/mastodon/security/advisories/GHSA-3fjr-858r-92rw) and Fedify's [CVE-2026-96625](https://github.com/fedify-dev/fedify/security/advisories) both allowed impersonation. See [Known vulnerability classes](/docs/security/known-vulnerability-classes).
+
+:::tip The code on this page is tested
+Every code block below is imported straight from [`examples/verify-requests`](https://github.com/socialdocs/socialdocs.org/tree/gh-pages/examples/verify-requests). Its test suite runs in CI on every change and covers each bypass listed under [What the tests prove](#what-the-tests-prove), plus the RFC 9421 test vector. It's still teaching code: in production, prefer a maintained framework such as [Fedify](https://fedify.dev/) or [activitypub-federation-rust](https://github.com/LemmyNet/activitypub-federation-rust), and use this page to check what that framework does for you.
+:::
+
+## Using it in an inbox
+
+```js
+import express from 'express';
+import { verifyRequest, parseActivityFrom, KeyStore, safeFetchJson,
+         authorizeActivity, SignatureError } from './src/index.js';
+
+const keyStore = new KeyStore((url) => safeFetchJson(url, {
+  // Needed for servers in "secure mode" / authorized fetch:
+  signRequest: ({ method, url }) => signCavage({ method, url, keyId: INSTANCE_KEY_ID, privateKey: INSTANCE_KEY }),
+}));
+
+// Keep the raw bytes: the digest is over them, not over re-serialised JSON.
+app.post('/users/:name/inbox', express.raw({ type: '*/*', limit: '1mb' }), async (req, res) => {
+  try {
+    const signer = await verifyRequest({
+      method: req.method,
+      url: `https://${MY_HOST}${req.originalUrl}`, // full URL, query string included
+      headers: req.headers,                         // Node lower-cases header names
+      rawBody: req.body,
+    }, { keyStore });
+    const activity = parseActivityFrom(signer, req.body); // signer must BE activity.actor
+    const { trustEmbedded } = authorizeActivity(activity); // see the origin model page
+    await queue.add({ activity, trustEmbedded });          // process asynchronously
+    res.status(202).end();
+  } catch (err) {
+    if (err instanceof SignatureError) return res.status(401).json({ error: err.message });
+    // Couldn't fetch the key: tell the sender to retry later, as Mastodon does since 4.6.
+    return res.status(503).json({ error: 'Temporarily unable to verify' });
+  }
+});
+```
+
+Use your own public hostname when you build `url`. Don't trust a client-supplied `Host` or `X-Forwarded-Host` unless your reverse proxy sets it.
+
+## The rules, and why
+
+| Check | Rule | Without it |
+|---|---|---|
+| Signed components (cavage) | `(request-target)`, `host`, `date` (or `(created)`), and `digest` on POST | A signature covering only `date` can be replayed against any path with any body |
+| Signed components (RFC 9421) | `@method`, `@target-uri`, and `content-digest` on POST, plus a `created` parameter | Same as above |
+| Request target | Path **and query string** | A signature can be replayed on another URL |
+| Body digest | `Digest` (cavage) or `Content-Digest` (RFC 9421), SHA-256, over the **raw** bytes | The body can be swapped, or valid requests fail because re-serialised JSON differs |
+| Time window | Without `expires`, valid 5 minutes after creation; any expiry is capped at 12 hours; 1 hour of clock skew is allowed either way | Replays of old requests |
+| Key owner | The `keyId` must resolve to a key **listed in the owner actor's own document**, and that actor must be `activity.actor` | Any server can post activities "from" anyone |
+| Key fetch | SSRF-safe: public IPs only, re-validated on every redirect, size and time limits, ActivityPub `Content-Type` | Your server fetches internal URLs, or accepts a JSON file uploaded as media as an actor |
+| Key rotation | If a cached key fails, refetch it **once** and retry | Senders that rotate keys are locked out, or a bad signature triggers unbounded refetches |
+
+The time window copies Mastodon's [`SignedRequest`](https://github.com/mastodon/mastodon/blob/main/app/lib/signed_request.rb) (`EXPIRATION_WINDOW_LIMIT = 12.hours`, `CLOCK_SKEW_MARGIN = 1.hour`, default validity 5 minutes). The required signed headers match Mastodon's `verify_signature_strength!` in the same file, with one stricter rule: `host` is required on POST as well. Mastodon signs `host` on its own requests.
+
+## The code
+
+### `verify.js`: the entry point
+
+<CodeBlock language="js" title="examples/verify-requests/src/verify.js">{verifySrc}</CodeBlock>
+
+### `cavage.js`: draft-cavage signatures
+
+This is the scheme most of the Fediverse still sends. Mastodon 4.7 sends it first.
+
+<CodeBlock language="js" title="examples/verify-requests/src/cavage.js">{cavageSrc}</CodeBlock>
+
+### `rfc9421.js`: RFC 9421 HTTP Message Signatures
+
+Mastodon has verified RFC 9421 since 4.5. Since 4.7 it also retries with RFC 9421 when a draft-cavage delivery gets a 400 or 401.
+
+<CodeBlock language="js" title="examples/verify-requests/src/rfc9421.js">{rfc9421Src}</CodeBlock>
+
+### `digest.js`: body digests over raw bytes
+
+<CodeBlock language="js" title="examples/verify-requests/src/digest.js">{digestSrc}</CodeBlock>
+
+### `keys.js`: from keyId to a key and its owner
+
+<CodeBlock language="js" title="examples/verify-requests/src/keys.js">{keysSrc}</CodeBlock>
+
+### `safe-fetch.js`: fetching untrusted URLs
+
+<CodeBlock language="js" title="examples/verify-requests/src/safe-fetch.js">{safeFetchSrc}</CodeBlock>
+
+## What the tests prove
+
+The [test suite](https://github.com/socialdocs/socialdocs.org/tree/gh-pages/examples/verify-requests/test) generates keys at runtime and uses an in-memory network. It checks that the code:
+
+- accepts valid draft-cavage and RFC 9421 requests, including an Ed25519 FEP-521a Multikey;
+- reproduces the Ed25519 example from [RFC 9421 Appendix B.2.6](https://www.rfc-editor.org/rfc/rfc9421#appendix-B.2.6);
+- rejects:
+  - a signature covering only `date`
+  - a POST whose signature doesn't cover the digest
+  - a swapped body
+  - a digest computed over re-serialised JSON
+  - a signature replayed with a different query string
+  - an activity whose `actor` isn't the key owner
+  - a key document claiming an owner that doesn't list it
+  - an actor document served from another origin
+  - requests more than about 65 minutes old or more than 1 hour in the future
+  - keyIds that resolve to private, loopback, link-local, IPv4-mapped or IPv4-compatible IPv6 addresses
+  - redirects to private addresses
+  - oversized responses
+  - non-ActivityPub content types
+- refetches a rotated key exactly once.
+
+## Interop notes
+
+- **Authorized fetch.** Some servers, including mastodon.social, answer **401** to unsigned GETs, even for public actors. Sign your key and actor fetches with an [instance actor](/docs/specs/activitypub/actors) key using the `signRequest` option.
+- **User-Agent.** Some servers drop requests that have no `User-Agent` (lemmy.ml does). `safeFetchJson` always sends one.
+- **Respond quickly.** Verify, enqueue, return `202`, and do the work in a background job. Senders retry on timeouts.
+
+## See also
+
+- [HTTP signatures in 2026](/docs/specs/http-signatures/overview): the schemes, double-knocking, and "why did I get a 401?"
+- [Origin-based security](/docs/security/origin-model): what an authenticated actor is *allowed* to do
+- [Known vulnerability classes](/docs/security/known-vulnerability-classes)

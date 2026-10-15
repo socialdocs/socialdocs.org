@@ -6,10 +6,6 @@ description: Understanding Actors in ActivityPub - users, bots, organizations, a
 
 # Actors
 
-:::danger Not safe for production
-The code on this page is illustrative and **has known security flaws**: incomplete signature verification (signed headers, key-owner ↔ actor binding, Digest over the raw body), missing origin checks, and/or missing SSRF and output-escaping guards. Do not copy it into a real server. Use a maintained library such as [Fedify](https://fedify.dev/) or [activitypub-federation-rust](https://github.com/LemmyNet/activitypub-federation-rust) for request verification. Tracking: [issue #37](https://github.com/socialdocs/socialdocs.org/issues/37).
-:::
-
 In ActivityPub, an **Actor** is any entity that can perform activities. Most commonly actors represent users, but they can also represent bots, organizations, services, or groups.
 
 ## Actor Types
@@ -307,29 +303,13 @@ In Lemmy, `attributedTo` on a community points to its **moderators collection**,
 
 When receiving activities, verify:
 
-1. **Actor ID domain matches keyId domain**
-2. **Public key belongs to actor**
-3. **Actor is not blocked**
+1. **The key belongs to the actor**: the actor's own document lists the key (`publicKey` or a FEP-521a `assertionMethod` entry). A key hosted on another origin is only acceptable if the actor document lists it.
+2. **The key owner is `activity.actor`**
+3. **The actor (or its domain) is not blocked**
 
-```javascript
-function verifyActor(activity, signature) {
-  const actorUrl = new URL(activity.actor);
-  const keyUrl = new URL(signature.keyId);
-
-  // Key must be on same domain as actor
-  if (actorUrl.hostname !== keyUrl.hostname) {
-    throw new Error('Key domain mismatch');
-  }
-
-  // Fetch and verify actor owns the key
-  const actor = await fetchActor(activity.actor);
-  if (actor.publicKey.id !== signature.keyId) {
-    throw new Error('Key ID mismatch');
-  }
-
-  return true;
-}
-```
+:::tip Use the tested verifier
+Request verification has its own page with tested code: **[Verifying incoming requests](/docs/security/verifying-requests)**. It covers draft-cavage and RFC 9421, the digest over the raw body, the required signed headers, binding the key owner to `activity.actor`, and SSRF-safe key fetching.
+:::
 
 ## Caching Actors
 

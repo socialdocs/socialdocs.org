@@ -64,12 +64,30 @@ When other servers send activities to your inbox, you need to verify them and pr
 ## Setting Up the Inbox
 
 ```javascript
+import { verifyRequest, parseActivityFrom, authorizeActivity,
+         SignatureError, AuthorizationError } from './verify-requests/src/index.js';
+// keyStore: see /docs/security/verifying-requests
+
 app.post('/users/:username/inbox',
-  express.json({ type: ['application/activity+json', 'application/ld+json'] }),
-  verifySignature,
+  express.raw({ type: '*/*', limit: '1mb' }), // keep the raw bytes: the digest is over them
   async (req, res) => {
+    let activity;
     try {
-      await processActivity(req.body, req.params.username);
+      const signer = await verifyRequest({
+        method: req.method,
+        url: `https://${DOMAIN}${req.originalUrl}`,
+        headers: req.headers,
+        rawBody: req.body,
+      }, { keyStore });
+      activity = parseActivityFrom(signer, req.body); // the signer MUST be activity.actor
+      authorizeActivity(activity);                    // same-origin rules for Create/Update/Delete/Undo
+    } catch (error) {
+      const status = error instanceof SignatureError ? 401
+        : error instanceof AuthorizationError ? 403 : 503;
+      return res.status(status).json({ error: error.message });
+    }
+    try {
+      await processActivity(activity, req.params.username);
       res.status(202).send('Accepted');
     } catch (error) {
       console.error('Inbox error:', error);
@@ -78,6 +96,12 @@ app.post('/users/:username/inbox',
   }
 );
 ```
+
+:::tip Use the tested verifier
+Request verification has its own page with tested code: **[Verifying incoming requests](/docs/security/verifying-requests)**. It covers draft-cavage and RFC 9421, the digest over the raw body, the required signed headers, binding the key owner to `activity.actor`, and SSRF-safe key fetching.
+:::
+
+Activities that were **forwarded** by another server are signed by the forwarder, not by `activity.actor`, so `parseActivityFrom` rejects them. To accept them, refetch the object from its origin instead (see [inbox forwarding](/docs/security/origin-model#inbox-forwarding)).
 
 ## Activity Validation
 

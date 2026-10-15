@@ -1,0 +1,82 @@
+---
+sidebar_position: 2
+title: Origin-based security
+description: What an authenticated actor is allowed to do. FEP-fe34 origin rules for Create, Update, Delete, Undo and Announce; when to refetch from the origin; and inbox forwarding.
+---
+
+import CodeBlock from '@theme/CodeBlock';
+import originSrc from '!!raw-loader!@site/examples/verify-requests/src/origin.js';
+
+# Origin-based security
+
+[Verifying a request](/docs/security/verifying-requests) tells you **who sent it**. It doesn't tell you whether that actor may do what the activity says. ActivityPub's answer is the **same-origin policy**: an actor can only speak for objects on its own origin (scheme, host and port), unless the other origin confirms the relationship.
+
+The rules below come from [FEP-fe34: Origin-based security model](https://codeberg.org/fediverse/fep/src/branch/main/fep/fe34/fep-fe34.md) (status: DRAFT). It writes down what Mastodon, Mitra and other servers already enforce. Ignoring them is how the most severe ActivityPub bug to date happened: Mastodon's [CVE-2024-23832](https://github.com/mastodon/mastodon/security/advisories/GHSA-3fjr-858r-92rw) (critical, "Remote user impersonation and takeover"), fixed in February 2024.
+
+## Origins and owners
+
+- **Origin** of an id: `(scheme, host, port)`, compared case-insensitively for scheme and host, with default ports filled in.
+- **Owner** of an object:
+  - for an actor, its `id`
+  - for an activity, its `actor`
+  - for a key, its `owner` or `controller`
+  - for anything else, its `attributedTo`
+- An object's id and its owner's id **MUST have the same origin**.
+
+## Rules for incoming activities
+
+| Activity | Rule | If it fails |
+|---|---|---|
+| any | `activity.id` (if present) is on the same origin as `activity.actor` | reject |
+| `Create` | `object.attributedTo` is the actor, and `object.id` is on the actor's origin | reject |
+| `Update` | `object.id` is on the actor's origin, and the object's owner is the actor | reject |
+| `Delete` | `object` (id or Tombstone) is on the actor's origin | reject |
+| `Undo` | the undone activity's `actor` is this actor, on the same origin | reject |
+| `Announce`, `Like` | may target objects on any origin, because they don't modify them | accept, but **refetch** an embedded object from its own id rather than trusting the copy |
+| Cross-origin relationships (moderators deleting, `Move`, keys hosted elsewhere) | need a **reciprocal claim** from the other origin, for example the actor document listing the key, or `alsoKnownAs` on the `Move` target | reject unless confirmed |
+
+### Trusting embedded objects
+
+An embedded object (an `object` that is a full JSON object, not just an id) can be trusted only if:
+
+- the wrapping activity is trusted, **and**
+- the embedded object has no id or shares the wrapper's origin, **and**
+- it has no id or the same owner as the wrapper.
+
+Otherwise treat it as a hint and fetch it by its id from its origin, using an [SSRF-safe fetch](/docs/security/verifying-requests#safe-fetchjs-fetching-untrusted-urls). When you fetch it, check that:
+
+- the response `Content-Type` is `application/activity+json`, or `application/ld+json` with the ActivityStreams profile (Mastodon's [CVE-2024-25623](https://github.com/mastodon/mastodon/security/advisories/GHSA-jhrq-qvrm-qr36) let a JSON file uploaded as media pass as an actor);
+- the final URL after redirects has the same origin as the returned `id`.
+
+## The code
+
+`authorizeActivity` implements the table above. Run it after [`verifyRequest` and `parseActivityFrom`](/docs/security/verifying-requests). It's tested in [`origin.test.js`](https://github.com/socialdocs/socialdocs.org/blob/gh-pages/examples/verify-requests/test/origin.test.js), including the CVE-2024-23832 pattern: a `Create` that overwrites another server's object.
+
+<CodeBlock language="js" title="examples/verify-requests/src/origin.js">{originSrc}</CodeBlock>
+
+## Inbox forwarding
+
+[ActivityPub §7.1.2](https://www.w3.org/TR/activitypub/#inbox-forwarding) asks a server that receives an activity addressed to one of *its own* collections (typically a followers collection), which it hasn't seen before, to forward it to the members of that collection. This is how replies reach everyone in a thread.
+
+A forwarded activity arrives **signed by the forwarding server, not by `activity.actor`**, so `parseActivityFrom` correctly refuses to treat the signature as proof. Don't simply reject it, and **never** accept it on the forwarder's word. Instead:
+
+1. **Refetch it from its origin.** `GET activity.id` (or the object's id) with an SSRF-safe fetch, check that the returned id is on the actor's origin, and process what you fetched. Many servers don't serve activities, only objects, so fetching the object (for example the reply `Note`) is the common path.
+2. **Or verify an object integrity proof.** If the activity carries a [FEP-8b32](https://codeberg.org/fediverse/fep/src/branch/main/fep/8b32/fep-8b32.md) proof whose verification method belongs to the actor, it's self-authenticating. Mastodon verifies these since 4.7.0 (`eddsa-jcs-2022`, and `mldsa44-jcs-2024` with OpenSSL 3.5 or later).
+3. **Otherwise discard it.**
+
+Avoid relying on legacy **Linked Data Signatures** (`RsaSignature2017`) for this. In May 2026 the same JSON-LD named-graph restructuring bypass hit both Mastodon ([CVE-2026-46349](https://github.com/mastodon/mastodon/security/advisories/GHSA-chgx-jx3p-rf73)) and Fedify ([CVE-2026-42462](https://github.com/fedify-dev/fedify/security/advisories/GHSA-9rfg-v8g9-9367)).
+
+## Serving objects safely
+
+The same model applies when **you** are the origin:
+
+- Serve media from a **different origin** (for example a separate subdomain) if users can upload arbitrary files, so an uploaded JSON file can never be mistaken for one of your actors.
+- Serve ActivityPub documents only with an ActivityPub `Content-Type`, and return `Vary: Accept` if the same URL also serves HTML.
+- For non-public objects, require a signed GET from a key whose owner is in the object's audience.
+- If your responses depend on the request signature, make sure caches don't serve one requester's response to another. That was Mastodon's [CVE-2026-25540](https://github.com/mastodon/mastodon/security/advisories/GHSA-ccpr-m53r-mfwr).
+
+## See also
+
+- [Verifying incoming requests](/docs/security/verifying-requests)
+- [Known vulnerability classes](/docs/security/known-vulnerability-classes)
+- [Server-to-server](/docs/specs/activitypub/server-to-server)

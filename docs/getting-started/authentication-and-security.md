@@ -125,30 +125,9 @@ function createSignature(privateKey, method, url, headers, body) {
 
 ### Verifying a Signature
 
-```javascript
-async function verifySignature(req) {
-  // Parse the Signature header
-  const sigHeader = req.headers.signature;
-  const params = parseSignatureHeader(sigHeader);
-
-  // Fetch the public key
-  const actor = await fetchActor(params.keyId.split('#')[0]);
-  const publicKey = actor.publicKey.publicKeyPem;
-
-  // Reconstruct the signing string
-  const signingString = params.headers.split(' ').map(header => {
-    if (header === '(request-target)') {
-      return `(request-target): ${req.method.toLowerCase()} ${req.path}`;
-    }
-    return `${header}: ${req.headers[header]}`;
-  }).join('\n');
-
-  // Verify
-  const verifier = crypto.createVerify('RSA-SHA256');
-  verifier.update(signingString);
-  return verifier.verify(publicKey, params.signature, 'base64');
-}
-```
+:::tip Use the tested verifier
+Request verification has its own page with tested code: **[Verifying incoming requests](/docs/security/verifying-requests)**. It covers draft-cavage and RFC 9421, the digest over the raw body, the required signed headers, binding the key owner to `activity.actor`, and SSRF-safe key fetching.
+:::
 
 ## Key Management
 
@@ -221,50 +200,11 @@ Servers that fail to verify a signature refetch the actor's key once before reje
 
 ### Object Attribution
 
-Verify that activities come from the actor they claim:
+Verify that activities come from the actor they claim, and that the actor may act on the object:
 
-```javascript
-function verifyAttribution(activity) {
-  // The activity's actor must match the signing key's owner
-  const signerActor = extractActorFromKeyId(req.headers.signature);
-  const activityActor = activity.actor;
-
-  if (signerActor !== activityActor) {
-    throw new Error('Actor mismatch');
-  }
-
-  // For Create activities, the object's attributedTo must match
-  if (activity.type === 'Create') {
-    const objectAuthor = activity.object.attributedTo;
-    if (objectAuthor !== activityActor) {
-      throw new Error('Object author mismatch');
-    }
-  }
-
-  return true;
-}
-```
-
-### ID Verification
-
-Object IDs must be on the same domain as the actor:
-
-```javascript
-function verifyObjectId(activity) {
-  const actorDomain = new URL(activity.actor).hostname;
-
-  if (activity.object && activity.object.id) {
-    const objectDomain = new URL(activity.object.id).hostname;
-
-    // Object ID must be on same domain as actor (for Creates)
-    if (activity.type === 'Create' && objectDomain !== actorDomain) {
-      throw new Error('Object ID domain mismatch');
-    }
-  }
-
-  return true;
-}
-```
+:::tip Use the tested origin rules
+Which actor may create, update, delete or undo which objects is covered, with tested code, on **[Origin-based security](/docs/security/origin-model)**. Compare **origins** (scheme, host and port), not hostnames, and bind the signer to `activity.actor` first. A signer worked out from the keyId string proves nothing.
+:::
 
 ## Common Attack Vectors
 
@@ -282,7 +222,7 @@ function verifyObjectId(activity) {
 **Attack**: Attacker captures and re-sends a valid signed request.
 
 **Defense**:
-- Check the `Date` header is recent (a tight window like ±5 minutes is fine for your own policy; Mastodon accepts signatures created up to 12 hours ago, with a 1-hour clock-skew margin)
+- Check the `Date` header is recent (a tight window like ±5 minutes is fine for your own policy; Mastodon treats a signature without `expires` as valid for 5 minutes after creation, with a 1-hour clock-skew margin, and caps explicit expiries at 12 hours)
 - Store activity IDs and reject duplicates
 
 ```javascript

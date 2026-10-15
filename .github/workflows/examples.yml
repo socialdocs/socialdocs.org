@@ -1,0 +1,33 @@
+name: Test code examples
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - 'examples/**'
+      - '.github/workflows/examples.yml'
+  pull_request:
+    paths:
+      - 'examples/**'
+      - '.github/workflows/examples.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-requests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: examples/verify-requests
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: examples/verify-requests/package-lock.json
+      - run: npm ci
+      - run: npm test

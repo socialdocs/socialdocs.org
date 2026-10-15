@@ -6,10 +6,6 @@ description: Ensuring your ActivityPub implementation works with Mastodon
 
 # Mastodon Compatibility
 
-:::danger Not safe for production
-The code on this page is illustrative and **has known security flaws**: incomplete signature verification (signed headers, key-owner ↔ actor binding, Digest over the raw body), missing origin checks, and/or missing SSRF and output-escaping guards. Do not copy it into a real server. Use a maintained library such as [Fedify](https://fedify.dev/) or [activitypub-federation-rust](https://github.com/LemmyNet/activitypub-federation-rust) for request verification. Tracking: [issue #37](https://github.com/socialdocs/socialdocs.org/issues/37).
-:::
-
 Mastodon is the largest ActivityPub implementation, making compatibility essential for any fediverse application. This guide covers Mastodon-specific requirements, extensions, and common interoperability issues.
 
 ## Mastodon's ActivityPub Extensions
@@ -385,33 +381,9 @@ function signRequest(request, actor, privateKey) {
 
 ### Verifying Incoming Requests
 
-```javascript
-async function verifySignature(request) {
-  const signatureHeader = request.headers.signature;
-  const params = parseSignatureHeader(signatureHeader);
-
-  // Fetch the public key
-  const actor = await fetchActor(params.keyId.split('#')[0]);
-  const publicKey = actor.publicKey.publicKeyPem;
-
-  // Reconstruct the signature string
-  const headers = params.headers.split(' ');
-  const signatureString = headers.map(header => {
-    if (header === '(request-target)') {
-      return `(request-target): ${request.method.toLowerCase()} ${request.path}`;
-    }
-    return `${header}: ${request.headers[header.toLowerCase()]}`;
-  }).join('\n');
-
-  // Verify
-  return crypto.verify(
-    'sha256',
-    Buffer.from(signatureString),
-    publicKey,
-    Buffer.from(params.signature, 'base64')
-  );
-}
-```
+:::tip Use the tested verifier
+Request verification has its own page with tested code: **[Verifying incoming requests](/docs/security/verifying-requests)**. It covers draft-cavage and RFC 9421, the digest over the raw body, the required signed headers, binding the key owner to `activity.actor`, and SSRF-safe key fetching.
+:::
 
 ## Common Compatibility Issues
 
