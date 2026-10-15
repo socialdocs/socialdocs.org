@@ -105,3 +105,19 @@ test('requires an ActivityPub Content-Type (CVE-2024-25623 class)', async () => 
   await safeFetchJson('https://cdn.example/x', opts('application/activity+json; charset=utf-8'));
   await safeFetchJson('https://cdn.example/x', opts('application/ld+json; profile="https://www.w3.org/ns/activitystreams"'));
 });
+
+test('allowPrivateAddresses opts in to private networks (tests/dev only)', async () => {
+  const res = await safeFetchJson('https://ap.test/users/tester', {
+    lookup: lookupFrom({ 'ap.test': ['172.30.0.10'] }),
+    transport: async () => ok({ id: 'https://ap.test/users/tester' }),
+    allowPrivateAddresses: true,
+  });
+  assert.equal(res.json.id, 'https://ap.test/users/tester');
+});
+
+test('resolveAddress blocks private addresses by default', async () => {
+  const { resolveAddress } = await import('../src/safe-fetch.js');
+  await assert.rejects(resolveAddress('ap.test', { lookup: lookupFrom({ 'ap.test': ['10.0.0.1'] }) }), /not a public address/);
+  const ok4 = await resolveAddress('pub.example', { lookup: lookupFrom({ 'pub.example': ['93.184.215.14'] }) });
+  assert.equal(ok4.address, '93.184.215.14');
+});

@@ -113,6 +113,7 @@ Mastodon has verified RFC 9421 since 4.5. Since 4.7 it also retries with RFC 942
 The [test suite](https://github.com/socialdocs/socialdocs.org/tree/gh-pages/examples/verify-requests/test) generates keys at runtime and uses an in-memory network. It checks that the code:
 
 - accepts valid draft-cavage and RFC 9421 requests, including an Ed25519 FEP-521a Multikey;
+- accepts GoToSocial-style key ids (`.../main-key` served as a stub of the owner), after fetching the full owner and checking that it lists the key;
 - reproduces the Ed25519 example from [RFC 9421 Appendix B.2.6](https://www.rfc-editor.org/rfc/rfc9421#appendix-B.2.6);
 - rejects:
   - a signature covering only `date`
@@ -123,6 +124,7 @@ The [test suite](https://github.com/socialdocs/socialdocs.org/tree/gh-pages/exam
   - an activity whose `actor` isn't the key owner
   - a key document claiming an owner that doesn't list it
   - an actor document served from another origin
+  - an owner stub naming an actor on another origin, or whose full actor doesn't list the key
   - requests more than about 65 minutes old or more than 1 hour in the future
   - keyIds that resolve to private, loopback, link-local, IPv4-mapped or IPv4-compatible IPv6 addresses
   - redirects to private addresses
@@ -133,6 +135,7 @@ The [test suite](https://github.com/socialdocs/socialdocs.org/tree/gh-pages/exam
 ## Interop notes
 
 - **Authorized fetch.** Some servers, including mastodon.social, answer **401** to unsigned GETs, even for public actors. Sign your key and actor fetches with an [instance actor](/docs/specs/activitypub/actors) key using the `signRequest` option.
+- **GoToSocial key ids.** GoToSocial signs with `keyId="https://host/users/x/main-key"` (no `#`), and that URL returns a stub of the actor containing only the key ([GoToSocial docs](https://docs.gotosocial.org/en/latest/federation/http_signatures/#quirks)). `resolveKey` treats the stub as a pointer and verifies against the full actor document. The [tutorial server](/docs/getting-started/your-first-activitypub-server) federates with GoToSocial in CI through this code path.
 - **User-Agent.** Some servers drop requests that have no `User-Agent` (lemmy.ml does). `safeFetchJson` always sends one.
 - **Respond quickly.** Verify, enqueue, return `202`, and do the work in a background job. Senders retry on timeouts.
 

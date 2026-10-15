@@ -1,0 +1,167 @@
+---
+sidebar_position: 3
+title: Your First ActivityPub Server
+description: Build a small, secure ActivityPub server in Node.js whose code is tested in CI against a real GoToSocial instance.
+last_verified: 2026-10-15
+verified_against: "GoToSocial 0.22.2 (federation test in CI), Node.js 24; code tested in examples/first-server"
+---
+
+import CodeBlock from '@theme/CodeBlock';
+import configSrc from '!!raw-loader!@site/examples/first-server/src/config.js';
+import storeSrc from '!!raw-loader!@site/examples/first-server/src/store.js';
+import documentsSrc from '!!raw-loader!@site/examples/first-server/src/documents.js';
+import appSrc from '!!raw-loader!@site/examples/first-server/src/app.js';
+import inboxSrc from '!!raw-loader!@site/examples/first-server/src/inbox.js';
+import deliverSrc from '!!raw-loader!@site/examples/first-server/src/deliver.js';
+import mainSrc from '!!raw-loader!@site/examples/first-server/src/main.js';
+
+# Your First ActivityPub Server
+
+This tutorial walks through a small ActivityPub server with one account. By the end you will have a server that:
+
+- can be found with WebFinger (`@alice@your.domain`)
+- serves an actor with a public key
+- verifies every request that reaches its inbox
+- accepts followers, and delivers posts to them with signed requests
+
+:::tip This code is tested against a real server
+Every code block on this page is imported from [`examples/first-server`](https://github.com/socialdocs/socialdocs.org/tree/gh-pages/examples/first-server). Its unit tests run on every change, and a [federation test](#test-it-against-a-real-server) starts **GoToSocial 0.22.2** in Docker, follows this server from it, publishes a post and checks that the post arrives in the follower's home timeline. The test runs on changes to the code and weekly ([workflow](https://github.com/socialdocs/socialdocs.org/blob/gh-pages/.github/workflows/tutorial.yml)). It is not yet tested against Mastodon.
+:::
+
+It is teaching code, written to be read. For a production server, start from a maintained framework such as [Fedify](/docs/ecosystem/fedify) and use this page to understand what it does for you.
+
+## Prerequisites
+
+- Node.js 22 or later (CI uses 24)
+- A public hostname with HTTPS on port 443. Federation needs it: other servers build URLs from your hostname and only speak https. For local development, a tunnel such as `fedify tunnel` (see [Testing &amp; debugging](/docs/tools/overview)) gives your machine a temporary public https address.
+
+## Get the code
+
+The server uses no framework and only one library, [`structured-headers`](https://www.npmjs.com/package/structured-headers), which comes in through the [request-verification module](/docs/security/verifying-requests) it imports.
+
+```bash
+git clone https://github.com/socialdocs/socialdocs.org.git
+cd socialdocs.org/examples/verify-requests && npm ci
+cd ../first-server
+DOMAIN=your.domain USERNAME=alice ADMIN_TOKEN=change-me DATA_DIR=./data npm start
+```
+
+The server listens on port 8443 by default. Set `PORT=443`, `TLS_CERT` and `TLS_KEY` to terminate TLS itself, or put a reverse proxy in front of it.
+
+## Step 1: Configuration and URLs
+
+Everything about the server's identity comes from its domain and username. Keep every public URL in one place: an actor's URLs are permanent, and other servers store them.
+
+<CodeBlock language="js" title="src/config.js">{configSrc}</CodeBlock>
+
+## Step 2: Keys and storage
+
+Each actor needs a key pair. Other servers fetch the public key from the actor document to check the requests you sign. This store generates an RSA key once, then keeps it with the followers and posts in a JSON file.
+
+<CodeBlock language="js" title="src/store.js">{storeSrc}</CodeBlock>
+
+## Step 3: The documents other servers fetch
+
+- **WebFinger** turns `acct:alice@your.domain` into the actor URL. It's how a user on another server finds you when they search for `@alice@your.domain`. See the [WebFinger guide](/docs/guides/webfinger-implementation).
+- **The actor** advertises the inbox, outbox and collections, and the `publicKey`. The key's `owner` must be the actor's own `id`.
+- **Notes** are posted as plain text and escaped into HTML. Never insert user or remote text into HTML unescaped.
+- **Accept** embeds the original Follow so the follower's server can match it to the request it sent.
+
+<CodeBlock language="js" title="src/documents.js">{documentsSrc}</CodeBlock>
+
+## Step 4: Routing
+
+Every ActivityPub response uses `Content-Type: application/activity+json`. Mastodon ignores documents served as plain `application/json`. WebFinger uses `application/jrd+json`, and [RFC 7033](https://www.rfc-editor.org/rfc/rfc7033#section-5) requires it to allow cross-origin requests.
+
+The handler also defines `fetchJson`, used for every remote fetch. It signs its GET requests, because GoToSocial (always) and Mastodon (in "secure mode") refuse unsigned fetches of actors and keys. It also refuses private network addresses, because remote servers choose the URLs it fetches.
+
+`POST /admin/notes` publishes a post. It only exists when `ADMIN_TOKEN` is set, and the token is compared in constant time.
+
+<CodeBlock language="js" title="src/app.js">{appSrc}</CodeBlock>
+
+## Step 5: The inbox
+
+Anyone on the internet can POST to an inbox, so the order of checks matters:
+
+1. **Verify the HTTP signature** over the raw request body, at the full URL that was signed. This step is [`verifyRequest`](/docs/security/verifying-requests). It accepts draft-cavage and RFC 9421 signatures, and resolves both Mastodon-style (`#main-key`) and GoToSocial-style (`/main-key`) key ids.
+2. **Require that the signer is `activity.actor`.** A valid signature from one actor says nothing about an activity that claims to come from another.
+3. **Apply the [origin rules](/docs/security/origin-model)**, for example that an Undo can only undo the sender's own activity.
+4. **Answer quickly.** The server replies `202 Accepted`, then does the slow work (fetching the follower, sending the Accept) in the background.
+
+When a Follow arrives, the server fetches the follower's actor document itself and delivers the Accept to the inbox listed there, never to a URL taken from the activity.
+
+<CodeBlock language="js" title="src/inbox.js">{inboxSrc}</CodeBlock>
+
+## Step 6: Signed delivery
+
+Delivering an activity means POSTing it to the recipient's inbox, signed with your key. The receiver fetches your actor, finds the key named in `keyId`, and checks the signature.
+
+This code signs with draft-cavage first, because most servers verify it. If the receiver answers 400 or 401 it retries once with RFC 9421, which is how Mastodon 4.7 does it (see [HTTP signatures](/docs/specs/http-signatures/overview)). Inbox URLs come from remote documents, so delivery applies the same private-address checks as fetching.
+
+When publishing, the server sends one copy per remote server where possible, using that server's shared inbox.
+
+<CodeBlock language="js" title="src/deliver.js">{deliverSrc}</CodeBlock>
+
+## Step 7: Start it
+
+<CodeBlock language="js" title="src/main.js">{mainSrc}</CodeBlock>
+
+Check it from another machine:
+
+```bash
+curl "https://your.domain/.well-known/webfinger?resource=acct:alice@your.domain"
+curl -H "Accept: application/activity+json" https://your.domain/users/alice
+```
+
+Then search for `@alice@your.domain` from an account on another server and follow it. To publish a post to your followers:
+
+```bash
+curl -X POST https://your.domain/admin/notes \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" \
+  -d '{"text": "Hello, fediverse!"}'
+```
+
+The response lists each delivery and the status code the receiving server returned.
+
+## Test it against a real server
+
+The unit tests (`npm test` in `examples/first-server`) cover WebFinger, the actor, the inbox's rejection of unsigned and mismatched requests, Follow → Accept, Undo, publishing, and the delivery retry.
+
+The federation test, [`integration/run.sh`](https://github.com/socialdocs/socialdocs.org/blob/gh-pages/examples/first-server/integration/run.sh), needs Docker and OpenSSL. It:
+
+1. creates a throwaway certificate authority and a certificate for `ap.test` and `gts.test`
+2. starts this server as `ap.test` and [GoToSocial](https://docs.gotosocial.org/) 0.22.2 as `gts.test` on a private Docker network, both on https port 443
+3. creates a GoToSocial user with its admin CLI and gets an API token through GoToSocial's documented OAuth flow
+4. resolves `@tester@ap.test` from GoToSocial, follows it, and waits until the follow is accepted
+5. publishes a post on `ap.test` and waits until it appears in the GoToSocial user's home timeline
+
+Two settings make this work on a private network, and both are for testing only:
+- `ALLOW_PRIVATE_ADDRESSES=true` on our server
+- GoToSocial's `http-client.allow-ips` limited to the test subnet
+
+Never enable either on a server reachable from the internet.
+
+## Common problems
+
+**Other servers can't find you.** Check that WebFinger answers for the exact `acct:` you searched for, and that the actor is served with `Content-Type: application/activity+json` over https on port 443.
+
+**Follows stay pending.** Your Accept wasn't delivered or wasn't accepted. Check the status code your server got back. A 401 usually means the receiver couldn't fetch your key, or your signature doesn't cover what it expects.
+
+**Your inbox rejects a server.** Your server's logs give the reason. A 503 means the sender's key couldn't be fetched (the sender will retry). A clock that's off by more than an hour also breaks signatures: Mastodon accepts a signature for about 65 minutes.
+
+## What's missing for production
+
+This server is deliberately small. A real one also needs:
+
+- a database, and a job queue that retries failed deliveries with backoff (see [Delivery](/docs/specs/activitypub/delivery))
+- handling for incoming Create, Update, Delete, Like and Announce (see [Handling incoming activities](/docs/guides/handling-incoming-activities))
+- followers and outbox collections with paging
+- rate limiting, and a plan for key rotation
+- checks against [Mastodon](/docs/guides/mastodon-compatibility) as well as GoToSocial
+
+## Next steps
+
+- [Verifying incoming requests](/docs/security/verifying-requests): the verification code this server imports
+- [The origin model](/docs/security/origin-model): which servers may say what about which objects
+- [Sending activities](/docs/guides/sending-activities)
+- [HTTP signatures in 2026](/docs/specs/http-signatures/overview)

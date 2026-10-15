@@ -54,12 +54,22 @@ export function isBlockedAddress(address) {
   return blocked6.check(address, 'ipv6');
 }
 
-async function resolvePublic(hostname, lookup) {
+/**
+ * Resolve a hostname and return the address to connect to, refusing
+ * private and special-purpose addresses. Use the returned address for the
+ * connection (see nodeTransport) so DNS can't change between check and use.
+ *
+ * `allowPrivateAddresses` exists only for local development and integration
+ * tests where every server sits on a private network. Never enable it on a
+ * server reachable from the internet.
+ */
+export async function resolveAddress(hostname, { lookup = dns.lookup, allowPrivateAddresses = false } = {}) {
   const host = hostname.replace(/^\[|\]$/g, '');
   const addresses = net.isIP(host)
     ? [{ address: host, family: net.isIP(host) }]
     : await lookup(host, { all: true, verbatim: true });
   if (addresses.length === 0) throw new UnsafeUrlError(`No addresses for ${host}`);
+  if (allowPrivateAddresses) return addresses[0];
   // Reject if *any* address is private: an attacker controls which one a
   // client library would pick.
   for (const { address } of addresses) {
@@ -127,6 +137,7 @@ export async function safeFetchJson(rawUrl, {
   // headers for your instance actor, e.g.
   //   ({ url }) => signCavage({ method: 'GET', url, keyId, privateKey })
   signRequest,
+  allowPrivateAddresses = false, // local development / integration tests only
 } = {}) {
   let url = new URL(rawUrl);
   const deadline = Date.now() + timeoutMs;
@@ -135,7 +146,7 @@ export async function safeFetchJson(rawUrl, {
       throw new UnsafeUrlError(`Refusing scheme ${url.protocol}`);
     }
     if (url.username || url.password) throw new UnsafeUrlError('Refusing URL with credentials');
-    const address = await resolvePublic(url.hostname, lookup);
+    const address = await resolveAddress(url.hostname, { lookup, allowPrivateAddresses });
     const remaining = deadline - Date.now();
     if (remaining <= 0) throw new Error(`Timed out after ${timeoutMs} ms`);
 

@@ -21,3 +21,6 @@ yarn-error.log*
 
 # Reference-check cache (scripts/check-references.mjs)
 /.cache
+
+# Federation test certificates (generated)
+examples/first-server/integration/certs/

@@ -1,0 +1,17 @@
+# GoToSocial config for the federation test ONLY. Keys are from GoToSocial's
+# example/config.yaml (v0.22.2); test-only overrides are commented.
+host: "gts.test"
+protocol: "https"
+bind-address: "0.0.0.0"
+port: 443                         # federation uses the default https port
+db-type: "sqlite"
+db-address: "/gotosocial/storage/sqlite.db"
+storage-local-base-path: "/gotosocial/storage"
+letsencrypt-enabled: false
+tls-certificate-chain: "/certs/server.pem"   # signed by the test CA
+tls-certificate-key: "/certs/server.key"
+accounts-registration-open: false
+http-client:
+  # The test network is private; GoToSocial blocks private ranges by
+  # default. Allow only the compose subnet.
+  allow-ips: ["172.30.0.0/24"]
