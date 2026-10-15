@@ -6,7 +6,11 @@ description: Implementing account migration using the ActivityPub Move activity
 
 # Account Migration
 
-Account migration allows users to move their identity and followers from one server to another. ActivityPub uses the **Move** activity along with `movedTo` and `alsoKnownAs` properties to facilitate this. This guide covers implementing migration support.
+:::info Verified against
+Mastodon 4.7.3 ([`move.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/activity/move.rb), [`move_worker.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/workers/move_worker.rb)) and [FEP-7628: Move actor](https://codeberg.org/fediverse/fep/src/branch/main/fep/7628/fep-7628.md) (FINAL, 2026-08-26), checked 2026-10-15.
+:::
+
+Account migration allows users to move their identity and followers from one server to another. ActivityPub uses the **Move** activity along with `movedTo` and `alsoKnownAs` properties to facilitate this. The behaviour is standardised in [FEP-7628](https://codeberg.org/fediverse/fep/src/branch/main/fep/7628/fep-7628.md), which became FINAL in August 2026. This guide covers implementing migration support.
 
 ## Migration Overview
 
@@ -29,6 +33,15 @@ Account migration allows users to move their identity and followers from one ser
 ```
 
 ## Actor Properties
+
+Both properties are in the ActivityStreams namespace and are IRIs. Mastodon declares them in its `@context` as:
+
+```json
+{
+  "movedTo": { "@id": "as:movedTo", "@type": "@id" },
+  "alsoKnownAs": { "@id": "as:alsoKnownAs", "@type": "@id" }
+}
+```
 
 ### movedTo
 
@@ -159,42 +172,48 @@ async function sendMoveActivity(oldActor, newAccountId) {
 
 ## Processing Incoming Move
 
-When receiving a Move activity:
+When receiving a Move activity (this is what Mastodon's [`move.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/activity/move.rb) does):
+
+1. The signer must be the `object` (the old account) — the old account moves itself.
+2. Re-fetch the `target` **bypassing your cache** and check that its `alsoKnownAs` includes the old account. Also reject a target that is itself moved or suspended.
+3. Take a per-account lock so duplicate Moves don't trigger repeated unfollow/follow storms (Mastodon locks for **7 days**).
+4. Record `movedTo` on the old account yourself, then migrate followers in a **background job**.
+
+You don't need to require `movedTo` on the old actor: Mastodon doesn't check it, and FEP-7628 doesn't treat it as part of linking the two accounts.
 
 ```javascript
+const idOf = (v) => (typeof v === 'string' ? v : v?.id);
+
 async function processMove(activity, signer) {
-  // Verify actor matches signer
-  if (activity.actor !== signer.id) {
-    throw new Error('Actor does not match signer');
+  const oldAccountId = idOf(activity.object);
+  const newAccountId = idOf(activity.target);
+
+  // 1. The old account must be the one moving itself
+  if (activity.actor !== signer.id || oldAccountId !== activity.actor) {
+    throw new Error('Move must be signed by the account being moved');
   }
 
-  // Verify object matches actor (moving themselves)
-  if (activity.object !== activity.actor) {
-    throw new Error('Can only move your own account');
-  }
-
-  const oldAccountId = activity.actor;
-  const newAccountId = activity.target;
-
-  // Fetch and verify the new account
-  const newActor = await fetchActor(newAccountId);
-
-  // Verify alsoKnownAs links back to old account
-  if (!newActor.alsoKnownAs?.includes(oldAccountId)) {
+  // 2. Fresh fetch (SSRF-safe, no cache) of the target, and check the link
+  const newActor = await fetchActor(newAccountId, { force: true });
+  if (!newActor?.alsoKnownAs?.includes(oldAccountId)) {
     throw new Error('Migration not verified: alsoKnownAs missing');
   }
-
-  // Verify the old account has movedTo set
-  const oldActor = await fetchActor(oldAccountId);
-  if (oldActor.movedTo !== newAccountId) {
-    throw new Error('Migration not verified: movedTo mismatch');
+  if (newActor.movedTo || await isSuspended(newActor.id)) {
+    throw new Error('Target account is unavailable');
   }
 
-  // Process the migration for local followers
-  await migrateFollowers(oldAccountId, newAccountId);
+  // 3. Idempotency: one Move per old account per 7 days
+  const locked = await redis.set(`move_in_progress:${oldAccountId}`, '1',
+    { NX: true, EX: 7 * 24 * 60 * 60 });
+  if (!locked) return;
+
+  // 4. Remember the redirect, then migrate off the request path
+  await db.actors.update({ id: oldAccountId }, { $set: { movedTo: newAccountId } });
+  await jobs.enqueue('migrateFollowers', { oldAccountId, newAccountId });
 }
 
-async function migrateFollowers(oldAccountId, newAccountId) {
+// Runs in a background worker
+async function migrateFollowers({ oldAccountId, newAccountId }) {
   // Find local users following the old account
   const localFollowers = await db.following.find({
     following: oldAccountId
@@ -209,11 +228,11 @@ async function migrateFollowers(oldAccountId, newAccountId) {
 
     // Follow new account
     await sendFollow(localActor, { id: newAccountId });
-
-    console.log(`Migrated ${localActor.id} from ${oldAccountId} to ${newAccountId}`);
   }
 }
 ```
+
+Mastodon's `MoveWorker` also carries over your **local users' blocks and mutes** of the old account to the new one, and adds an account note explaining why.
 
 ## Migration Validation
 
@@ -237,9 +256,10 @@ async function validateMigration(oldAccountId, newAccountId) {
   }
 
   if (oldActor && newActor) {
-    // Check movedTo
-    if (oldActor.movedTo !== newAccountId) {
-      errors.push('Old account movedTo does not point to new account');
+    // movedTo on the old account is expected after a push-mode move,
+    // but receivers shouldn't require it (Mastodon and FEP-7628 don't)
+    if (oldActor.movedTo && oldActor.movedTo !== newAccountId) {
+      errors.push('Old account movedTo points somewhere else');
     }
 
     // Check alsoKnownAs
@@ -260,13 +280,22 @@ async function validateMigration(oldAccountId, newAccountId) {
 ### Show Migration Notice
 
 ```javascript
+function safeHttpUrl(value) {
+  try {
+    const u = new URL(value);
+    return u.protocol === 'https:' || u.protocol === 'http:' ? u.href : '';
+  } catch {
+    return '';
+  }
+}
+
 function renderActor(actor) {
   if (actor.movedTo) {
     return `
       <div class="actor moved">
         <div class="migration-notice">
           This account has moved to
-          <a href="${actor.movedTo}">${actor.movedTo}</a>
+          <a href="${escapeHtml(safeHttpUrl(actor.movedTo))}">${escapeHtml(actor.movedTo)}</a>
         </div>
         <p>You can no longer follow this account.</p>
       </div>
@@ -307,53 +336,46 @@ Account migration has significant limitations:
 - **Posts don't migrate**: Your old posts stay on the old server
 - **Media doesn't migrate**: Images, videos remain on old server
 - **Likes/boosts don't migrate**: Engagement history is lost
-- **Blocks may not migrate**: Block lists need manual recreation
+- **Your own blocks and mutes don't migrate automatically**: export and re-import them (Mastodon offers CSV export/import). Other users' blocks and mutes *of you* are carried over by Mastodon
 - **If old server dies**: Migration may fail if old server is down
 :::
 
-## Alternative: Mitra-Style Migration
+## Pull Mode: Moving from the New Server (FEP-7628)
 
-Mitra sends the Move from the new server, allowing migration even if the old server is down:
+[FEP-7628](https://codeberg.org/fediverse/fep/src/branch/main/fep/7628/fep-7628.md) defines two kinds of `Move`:
 
-```javascript
-// New server initiates the Move
-async function initiateMoveFromNewServer(newActor, oldAccountId) {
-  // Verify alsoKnownAs is set
-  if (!newActor.alsoKnownAs?.includes(oldAccountId)) {
-    throw new Error('Must set alsoKnownAs first');
-  }
+1. **Push mode** (everything above): the **old** actor sends the Move to its followers. The old server must be online.
+2. **Pull mode**: the **new** actor sends the Move, so migration works even when the old server is gone. The user needs a saved copy of their follower list, and the Move is addressed to the **new** actor's followers.
 
-  // Try to verify with old server
-  try {
-    const oldActor = await fetchActor(oldAccountId);
-    if (oldActor.movedTo !== newActor.id) {
-      throw new Error('Old account does not have movedTo set');
-    }
-  } catch (error) {
-    // Old server might be down - proceed with caution
-    console.warn('Could not verify with old server:', error);
-  }
+In pull mode, `actor` is the **new** account — a server can only sign as its own actors. It can never send a Move with `actor` set to the old account:
 
-  // Send Move activity
-  const activity = {
-    '@context': 'https://www.w3.org/ns/activitystreams',
-    id: `${newActor.id}/move`,
-    type: 'Move',
-    actor: oldAccountId,
-    object: oldAccountId,
-    target: newActor.id
-  };
-
-  // Deliver to known followers (requires follower list export)
-  // ...
+```json
+{
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "id": "https://new.example/activities/9b496346",
+  "type": "Move",
+  "actor": "https://new.example/users/alice",
+  "object": "https://old.example/users/alice",
+  "target": "https://new.example/users/alice",
+  "to": "https://www.w3.org/ns/activitystreams#Public",
+  "cc": "https://new.example/users/alice/followers"
 }
 ```
+
+A Move is valid if the `object` and `target` actors are **linked**. FEP-7628 accepts `alsoKnownAs`, [FEP-c390](https://codeberg.org/fediverse/fep/src/branch/main/fep/c390/fep-c390.md) identity proofs with the same `subject`, or verified rel-me links. If the old actor still works after the move, it uses `copiedTo` instead of `movedTo`.
+
+:::note Receiver support
+Mastodon 4.7 processes **push mode only**: it ignores a Move unless the signer is the `object`. Pull mode is implemented by [Mitra](https://codeberg.org/silverpill/mitra/src/branch/main/FEDERATION.md) and other FEP-7628 adopters, so don't rely on it reaching Mastodon users.
+:::
 
 ## Data Export/Import
 
 ### Export User Data
 
+There is no standard ActivityPub export format. The shape below is just an example; real options include Mastodon's CSV/archive export and [FEP-1580](https://codeberg.org/fediverse/fep/src/branch/main/fep/1580/fep-1580.md) (moving objects with a migration collection, draft).
+
 ```javascript
+// Illustrative, non-standard export shape
 async function exportUserData(actor) {
   const [followers, following, posts, blocks] = await Promise.all([
     db.followers.find({ actor: actor.id }),
@@ -363,8 +385,6 @@ async function exportUserData(actor) {
   ]);
 
   return {
-    '@context': 'https://www.w3.org/ns/activitystreams',
-    type: 'OrderedCollection',
     actor: actor,
     followers: followers.map(f => f.follower),
     following: following.map(f => f.following),
@@ -393,31 +413,26 @@ async function importFollowing(actor, followingList) {
 
 ### Race Conditions
 
-Handle the case where Move arrives before alsoKnownAs is set:
+A Move can arrive before the new account's `alsoKnownAs` change has propagated (for example, from a cached copy). Don't sleep and retry inside the inbox request. Keep all of `processMove`'s checks, and if only the `alsoKnownAs` check fails, schedule a background retry with a fresh fetch:
 
 ```javascript
-async function processMove(activity, signer) {
-  // Retry fetching new account a few times
-  for (let i = 0; i < 3; i++) {
-    const newActor = await fetchActor(activity.target, { force: true });
-
-    if (newActor.alsoKnownAs?.includes(activity.actor)) {
-      // Valid, proceed
-      break;
+async function processMoveWithRetry(activity, signer, attempt = 0) {
+  try {
+    await processMove(activity, signer); // all signer/object checks included
+  } catch (error) {
+    if (error.message.includes('alsoKnownAs') && attempt < 3) {
+      await jobs.enqueue('processMove', { activity, signer, attempt: attempt + 1 },
+        { delaySeconds: 60 * (attempt + 1) });
+      return;
     }
-
-    if (i < 2) {
-      await sleep(5000); // Wait 5 seconds
-    } else {
-      throw new Error('Migration validation failed after retries');
-    }
+    throw error;
   }
 }
 ```
 
 ### Cooldown Period
 
-Prevent abuse with migration cooldowns:
+Prevent abuse with migration cooldowns. Mastodon uses 30 days between outgoing migrations ([`account_migration.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/models/account_migration.rb)):
 
 ```javascript
 async function canMigrate(actor) {
