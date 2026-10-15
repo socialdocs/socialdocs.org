@@ -447,3 +447,4 @@ Return HTTP 410 Gone for deleted objects.
 - **[Activities](/docs/specs/activitypub/activities)** - Actions on objects
 - **[Collections](/docs/specs/activitypub/collections)** - Groups of objects
 - **[Posts and Replies](/docs/guides/posts-and-replies)** - Implementation guide
+- **[Threads, Replies and Backfill](/docs/guides/threads-replies-and-backfill)** - The `context` and `replies` properties in practice
