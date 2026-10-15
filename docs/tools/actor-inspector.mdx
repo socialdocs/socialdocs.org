@@ -1,13 +1,22 @@
 ---
 sidebar_position: 2
-title: Inspecting Actors
-description: Tools for inspecting and validating ActivityPub actors
+title: Actor Inspector
+description: Look up a fediverse handle via WebFinger, fetch the actor from your browser, and lint it against ActivityPub and Mastodon's rules
 ---
 
-# Inspecting Actors
+import ActorInspector from '@site/src/components/tools/ActorInspector';
 
-:::info
-This is a guide, not an interactive tool. For hands-on tools see [Testing & Debugging Tools](/docs/tools/overview).
+# Actor Inspector
+
+Enter a handle or actor URL. Your browser looks it up with WebFinger, fetches the actor document directly from that server, and runs the [Activity Linter](/docs/tools/activity-validator) rules on it, including the `Content-Type` check Mastodon applies.
+
+<ActorInspector />
+
+:::note What a browser can't fetch
+- **CORS.** [RFC 7033 §5](https://www.rfc-editor.org/rfc/rfc7033#section-5) requires WebFinger to send `Access-Control-Allow-Origin`, so the lookup usually works. Actor endpoints have no such rule: [Mastodon allows CORS](https://github.com/mastodon/mastodon/blob/v4.7.3/config/initializers/cors.rb) on `/users/:username`, but many other servers don't, and the browser then hides the response.
+- **Signed fetch.** Servers in Mastodon's [secure mode](https://docs.joinmastodon.org/spec/activitypub/#secure-mode) (mastodon.social among them) answer unsigned requests with 401. A browser can't sign as a server.
+
+In both cases, fetch the actor with `fedify lookup` from the [Fedify CLI](https://fedify.dev/cli), which signs its requests, and paste the JSON into the box below the tool.
 :::
 
 Inspecting ActivityPub actors helps debug federation issues and understand how different platforms represent users, groups, and services.
@@ -107,9 +116,9 @@ console.log(actor);
 └────────────────────────────────────────────────────────────┘
 ```
 
-## Actor Inspector Tool
+## Inspecting actors in code
 
-### Full Validation Script
+### Validation script
 
 ```javascript
 class ActorInspector {

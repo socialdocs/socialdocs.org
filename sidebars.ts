@@ -217,6 +217,7 @@ const sidebars: SidebarsConfig = {
         'tools/overview',
         'tools/activity-validator',
         'tools/actor-inspector',
+        'tools/signature-inspector',
         'tools/json-ld-playground',
       ],
     },

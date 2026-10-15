@@ -1,0 +1,131 @@
+/* Shared styles for the interactive tools. Infima variables keep both
+   colour modes correct. */
+
+.tool {
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: var(--ifm-global-radius);
+  padding: 1rem;
+  margin: 1rem 0 2rem;
+  background: var(--ifm-background-surface-color);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.9rem;
+}
+
+.label {
+  font-weight: var(--ifm-font-weight-semibold);
+}
+
+.hint {
+  font-size: 0.85rem;
+  color: var(--ifm-color-emphasis-700);
+}
+
+.textarea,
+.input,
+.select {
+  width: 100%;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.85rem;
+  padding: 0.5rem;
+  border: 1px solid var(--ifm-color-emphasis-400);
+  border-radius: var(--ifm-global-radius);
+  background: var(--ifm-background-color);
+  color: var(--ifm-font-color-base);
+}
+
+.textarea {
+  min-height: 12rem;
+  resize: vertical;
+}
+
+.select {
+  width: auto;
+  font-family: inherit;
+}
+
+.textarea:focus-visible,
+.input:focus-visible,
+.select:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 1px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.results {
+  margin-top: 0.5rem;
+}
+
+.summary {
+  font-weight: var(--ifm-font-weight-semibold);
+  margin-bottom: 0.5rem;
+}
+
+.findings {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.finding {
+  border-left: 4px solid var(--ifm-color-emphasis-400);
+  padding: 0.4rem 0.75rem;
+  margin-bottom: 0.5rem;
+  background: var(--ifm-color-emphasis-100);
+  border-radius: 0 var(--ifm-global-radius) var(--ifm-global-radius) 0;
+}
+
+.error {
+  border-left-color: var(--ifm-color-danger);
+}
+
+.warning {
+  border-left-color: var(--ifm-color-warning);
+}
+
+.info {
+  border-left-color: var(--ifm-color-info);
+}
+
+.ok {
+  border-left-color: var(--ifm-color-success);
+}
+
+.badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: var(--ifm-font-weight-bold);
+  text-transform: uppercase;
+  margin-right: 0.5rem;
+}
+
+.path {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.85rem;
+}
+
+.source {
+  display: block;
+  font-size: 0.8rem;
+  margin-top: 0.2rem;
+}
+
+.pre {
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-size: 0.8rem;
+}
+
+.steps {
+  padding-left: 1.25rem;
+}
