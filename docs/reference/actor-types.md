@@ -154,7 +154,7 @@ All actors MUST have:
 
 ### Mastodon
 
-Uses `Person` for users with bot flag:
+Uses `Person` for human accounts. Bot accounts are published as `Service` (and Mastodon treats incoming `Service` or `Application` actors as bots):
 
 ```json
 {
@@ -171,10 +171,13 @@ Uses `Group` for communities:
 ```json
 {
   "type": "Group",
-  "name": "!programming@lemmy.ml",
-  "moderators": ["..."]
+  "preferredUsername": "programming",
+  "name": "Programming",
+  "attributedTo": "https://lemmy.ml/c/programming/moderators"
 }
 ```
+
+Moderators are listed in the collection that `attributedTo` points to.
 
 ## See Also
 

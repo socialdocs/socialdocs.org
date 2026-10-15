@@ -226,7 +226,7 @@ app.get('/users/:username/outbox', async (req, res) => {
     // Return collection metadata
     const count = await db.activities.count({ actor: username });
 
-    return res.json({
+    return res.type('application/activity+json').json({
       '@context': 'https://www.w3.org/ns/activitystreams',
       type: 'OrderedCollection',
       id: baseUrl,
@@ -252,7 +252,7 @@ app.get('/users/:username/outbox', async (req, res) => {
     ? activities[activities.length - 1].id
     : null;
 
-  res.json({
+  res.type('application/activity+json').json({
     '@context': 'https://www.w3.org/ns/activitystreams',
     type: 'OrderedCollectionPage',
     id: maxId ? `${baseUrl}?max_id=${maxId}` : `${baseUrl}?page=true`,

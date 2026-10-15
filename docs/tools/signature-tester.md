@@ -211,7 +211,7 @@ curl -X POST "https://example.com/inbox" \
 │  └── publicKey.id doesn't match keyId                     │
 │                                                            │
 │  "Signature expired"                                       │
-│  └── Date header too old (>30 seconds typical)            │
+│  └── Date header too old (Mastodon: >12 h, +1 h skew)     │
 │  └── Clock skew between servers                            │
 │                                                            │
 │  "Missing headers"                                         │
@@ -292,7 +292,7 @@ app.listen(3000, () => {
 
 ### Signature Generation
 
-- [ ] Date header is current (within 30 seconds)
+- [ ] Date header is current (send the current time; Mastodon accepts signatures created up to 12 hours ago, with a 1-hour clock-skew margin)
 - [ ] Digest matches request body SHA-256
 - [ ] keyId points to valid public key
 - [ ] All listed headers are included

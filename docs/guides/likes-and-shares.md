@@ -386,7 +386,7 @@ app.get('/notes/:id/likes', async (req, res) => {
 
   const totalItems = await db.likes.count({ object: noteId });
 
-  res.json({
+  res.type('application/activity+json').json({
     '@context': 'https://www.w3.org/ns/activitystreams',
     type: 'Collection',
     id: `${noteId}/likes`,
@@ -406,7 +406,7 @@ app.get('/notes/:id/shares', async (req, res) => {
 
   const totalItems = await db.announces.count({ object: noteId });
 
-  res.json({
+  res.type('application/activity+json').json({
     '@context': 'https://www.w3.org/ns/activitystreams',
     type: 'Collection',
     id: `${noteId}/shares`,

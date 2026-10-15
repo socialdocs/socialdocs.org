@@ -142,7 +142,7 @@ app.get('/users/:user/outbox', async (req, res) => {
   if (!page) {
     // Return collection summary
     const count = await getActivityCount(user);
-    return res.json({
+    return res.type('application/activity+json').json({
       "@context": "https://www.w3.org/ns/activitystreams",
       "type": "OrderedCollection",
       "id": `https://example.com/users/${user}/outbox`,
@@ -153,7 +153,7 @@ app.get('/users/:user/outbox', async (req, res) => {
 
   // Return paginated items
   const activities = await getActivities(user, page);
-  res.json({
+  res.type('application/activity+json').json({
     "@context": "https://www.w3.org/ns/activitystreams",
     "type": "OrderedCollectionPage",
     "partOf": `https://example.com/users/${user}/outbox`,

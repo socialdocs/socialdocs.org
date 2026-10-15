@@ -430,7 +430,7 @@ app.get('/.well-known/webfinger', (req, res) => {
   const [username, domain] = resource.slice(5).split('@');
 
   // Return JRD
-  res.json({
+  res.type('application/jrd+json').json({
     subject: resource,
     links: [{
       rel: 'self',
@@ -462,7 +462,7 @@ app.get('/users/:username', (req, res) => {
   if (accept.includes('application/activity+json') ||
       accept.includes('application/ld+json')) {
     // Return ActivityPub actor
-    return res.json(getActor(req.params.username));
+    return res.type('application/activity+json').json(getActor(req.params.username));
   }
 
   // Return HTML page

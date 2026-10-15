@@ -145,7 +145,7 @@ Check the [release notes](https://github.com/mastodon/mastodon/releases) for the
 ### Quirks
 
 1. **Signature Algorithm**: Uses `rsa-sha256` (not RS256)
-2. **Date Header**: Strict validation, ±30 seconds
+2. **Date Header**: Signatures older than 12 hours (or more than 1 hour in the future) are rejected
 3. **Digest Header**: Required for POST requests
 4. **Content-Type**: Prefers `application/activity+json`
 

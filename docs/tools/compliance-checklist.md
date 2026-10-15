@@ -98,8 +98,8 @@ Use this checklist to verify your ActivityPub implementation meets the specifica
 │  [ ] Parses Signature header                               │
 │  [ ] Fetches public key from keyId                        │
 │  [ ] Verifies signature against request                    │
-│  [ ] Allows reasonable clock skew (~30 seconds)            │
-│  [ ] Verifies Digest header if present                     │
+│  [ ] Allows reasonable clock skew (Mastodon: 12 h + 1 h)   │
+│  [ ] Requires Digest on POST, checked over the raw body    │
 │                                                            │
 └────────────────────────────────────────────────────────────┘
 ```

@@ -280,7 +280,7 @@ function verifyObjectId(activity) {
 **Attack**: Attacker captures and re-sends a valid signed request.
 
 **Defense**:
-- Check `Date` header is within ±5 minutes
+- Check the `Date` header is recent (a tight window like ±5 minutes is fine for your own policy; Mastodon accepts signatures created up to 12 hours ago, with a 1-hour clock-skew margin)
 - Store activity IDs and reject duplicates
 
 ```javascript

@@ -99,7 +99,7 @@ function example() {
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 22+
 - npm or yarn
 
 ### Local Development
@@ -183,7 +183,7 @@ We follow the [Contributor Covenant](https://www.contributor-covenant.org/). Be 
 
 ## License
 
-All contributions are licensed under MIT, matching the project license.
+By contributing you agree that documentation is licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) and code examples under [AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0), matching the [LICENSE](https://github.com/socialdocs/socialdocs.org/blob/gh-pages/LICENSE) file.
 
 ---
 
