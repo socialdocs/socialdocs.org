@@ -388,5 +388,5 @@ jsonld.documentLoader = customLoader;
 ## Related Tools
 
 - **[Actor Inspector](/docs/tools/actor-inspector)** - Inspect actors
-- **[Debugging Tips](/docs/tools/debugging-tips)** - General debugging
+- **[Troubleshooting by symptom](/docs/guides/troubleshooting)** - General debugging
 - **[Compliance Checklist](/docs/tools/compliance-checklist)** - Full validation

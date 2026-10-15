@@ -38,7 +38,7 @@ There is no maintained, official conformance suite. See [Test Suites](/docs/tool
 - [Inspecting actors](/docs/tools/actor-inspector) — fetching and reading actor documents
 - [Testing WebFinger](/docs/guides/webfinger-implementation#lookup-tools) — checking discovery
 - [Working with JSON-LD](/docs/tools/json-ld-playground) — contexts and expansion
-- [Debugging tips](/docs/tools/debugging-tips) — common federation failures
+- [Troubleshooting by symptom](/docs/guides/troubleshooting) — common federation failures
 - [Compliance checklist](/docs/tools/compliance-checklist) — what to verify before you federate
 
 :::note Help wanted
