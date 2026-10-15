@@ -53,7 +53,7 @@ Used by clients to publish activities.
 app.get('/users/:username/outbox', async (req, res) => {
   const activities = await getActivities(req.params.username);
 
-  res.json({
+  res.type('application/activity+json').json({
     "@context": "https://www.w3.org/ns/activitystreams",
     "type": "OrderedCollection",
     "totalItems": activities.length,

@@ -15,7 +15,7 @@ In this tutorial, we'll build a minimal but functional ActivityPub server from s
 
 ## Prerequisites
 
-- Node.js 18+ installed
+- Node.js 22+ installed
 - Basic understanding of HTTP and REST APIs
 - A domain name (or use ngrok for testing)
 
@@ -75,7 +75,7 @@ app.get('/.well-known/webfinger', (req, res) => {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  res.json({
+  res.type('application/jrd+json').json({
     subject: `acct:${USERNAME}@${DOMAIN}`,
     links: [
       {

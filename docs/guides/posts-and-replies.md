@@ -504,7 +504,7 @@ app.get('/notes/:id', async (req, res) => {
     return res.status(410).json(note);
   }
 
-  res.json(note);
+  res.type('application/activity+json').json(note);
 });
 ```
 

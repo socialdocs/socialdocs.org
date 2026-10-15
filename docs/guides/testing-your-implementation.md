@@ -283,7 +283,7 @@ describe('Federation Integration', () => {
 
     // Mock actor endpoint
     app.get('/users/remote', (req, res) => {
-      res.json({
+      res.type('application/activity+json').json({
         '@context': 'https://www.w3.org/ns/activitystreams',
         type: 'Person',
         id: `${mockServerUrl}/users/remote`,

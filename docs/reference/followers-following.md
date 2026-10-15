@@ -55,7 +55,7 @@ Some implementations hide lists (only show `totalItems`).
 app.get('/users/:username/followers', async (req, res) => {
   const followers = await getFollowers(req.params.username);
 
-  res.json({
+  res.type('application/activity+json').json({
     "@context": "https://www.w3.org/ns/activitystreams",
     "type": "OrderedCollection",
     "totalItems": followers.length,

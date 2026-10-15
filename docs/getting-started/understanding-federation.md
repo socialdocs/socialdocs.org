@@ -244,7 +244,7 @@ Once Alice follows Bob, she'll receive Bob's public posts. Here's how a post get
 ### 2. Server B Determines Recipients
 
 Looking at `to` and `cc`:
-- `as:Public` - Public post (deliver to all known servers)
+- `as:Public` - Public post: anyone may read it, but it is **not** a delivery target — servers MUST NOT deliver to the Public collection. Delivery still goes only to the listed actors and collections
 - `bob/followers` - Expand to list of follower inboxes
 
 ### 3. Deduplicate and Batch
@@ -355,7 +355,7 @@ This allows servers to reconstruct conversation threads.
 ### Signature Verification Failures
 
 **Causes:**
-- Clock skew (server times differ by >5 minutes)
+- Clock skew (Mastodon rejects signatures created more than 12 hours ago, or more than 1 hour in the future)
 - Incorrect key format
 - Wrong signing algorithm
 

@@ -74,7 +74,7 @@ function verify(publicKey, signingString, signature) {
 
 | Issue | Solution |
 |-------|----------|
-| Clock skew | Allow ±30 seconds |
+| Clock skew | Allow generous skew — Mastodon accepts signatures up to 12 h old, +1 h in the future |
 | Header order | Match `headers` param order |
 | Line endings | Use `\n` not `\r\n` |
 

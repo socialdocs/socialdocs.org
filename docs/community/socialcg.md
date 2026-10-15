@@ -248,13 +248,12 @@ The Social Web Working Group was a formal W3C Working Group that:
 
 - Developed ActivityPub from concept to specification
 - Standardized ActivityStreams 2.0
-- Published both as W3C Recommendations in 2018
+- Published as W3C Recommendations (Activity Streams 2.0 in May 2017, ActivityPub in January 2018)
 
 Key participants included:
-- Evan Prodromou (ActivityPub co-author)
-- Christopher Lemmer Webber (ActivityPub co-author)
-- Amy Guy (AS2 editor)
-- James Snell (AS2 co-editor)
+- Christine Lemmer-Webber and Jessica Tallon (ActivityPub editors)
+- Erin Shepherd, Amy Guy and Evan Prodromou (ActivityPub co-authors)
+- James Snell and Evan Prodromou (Activity Streams 2.0 editors)
 
 ### Transition to Community Group
 

@@ -452,7 +452,7 @@ app.get('/users/:username/followers', async (req, res) => {
     const totalCount = await db.followers.count({ actor: actor.id });
     const totalPages = Math.ceil(totalCount / pageSize);
 
-    return res.json({
+    return res.type('application/activity+json').json({
       '@context': 'https://www.w3.org/ns/activitystreams',
       type: 'OrderedCollectionPage',
       id: `${actor.id}/followers?page=${page}`,
@@ -470,7 +470,7 @@ app.get('/users/:username/followers', async (req, res) => {
   // Return collection summary
   const totalItems = await db.followers.count({ actor: actor.id });
 
-  res.json({
+  res.type('application/activity+json').json({
     '@context': 'https://www.w3.org/ns/activitystreams',
     type: 'OrderedCollection',
     id: `${actor.id}/followers`,

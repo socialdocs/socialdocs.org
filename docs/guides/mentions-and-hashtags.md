@@ -293,7 +293,7 @@ app.get('/tags/:tag', async (req, res) => {
 
   // Return as ActivityPub collection or HTML
   if (req.accepts('application/activity+json')) {
-    res.json({
+    res.type('application/activity+json').json({
       '@context': 'https://www.w3.org/ns/activitystreams',
       type: 'OrderedCollection',
       id: `https://${config.domain}/tags/${tag}`,

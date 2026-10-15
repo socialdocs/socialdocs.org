@@ -275,7 +275,7 @@ jobs:
 ```javascript
 if (req.accepts('application/activity+json') ||
     req.accepts('application/ld+json')) {
-  return res.json(actor);
+  return res.type('application/activity+json').json(actor);
 }
 return res.html(profilePage);
 ```
