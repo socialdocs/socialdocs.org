@@ -352,14 +352,12 @@ For account migration. Before sending, the **new** account must list the old one
 
 ### Handling Incoming Activities
 
+Only dispatch an activity after the request has been authenticated: the HTTP signature verified over the raw body, and the signing key's owner confirmed to be `activity.actor`. That step is covered, with tested code, in [Verifying incoming requests](/docs/security/verifying-requests); the dispatcher below assumes it has already happened.
+
 ```javascript
+// `activity` has already passed verifyRequest() + parseActivityFrom()
+// (see /docs/security/verifying-requests), so activity.actor is the signer.
 async function handleActivity(activity) {
-  // Verify signature
-  await verifySignature(request);
-
-  // Verify actor
-  await verifyActor(activity);
-
   switch (activity.type) {
     case 'Create':
       return handleCreate(activity);

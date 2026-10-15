@@ -250,5 +250,5 @@ Import ActivityPub collections for testing.
 ## See Also
 
 - **[Actor Inspector](/docs/tools/actor-inspector)** - Inspect remote actors
-- **[WebFinger Lookup](/docs/tools/webfinger-lookup)** - Test discovery
+- **[WebFinger Lookup](/docs/guides/webfinger-implementation#lookup-tools)** - Test discovery
 - **[Test Suites](/docs/tools/test-suites)** - Comprehensive testing

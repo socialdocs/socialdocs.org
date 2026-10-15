@@ -6,10 +6,6 @@ description: Processing activities received in your inbox
 
 # Handling Incoming Activities
 
-:::danger Not safe for production
-The code on this page is illustrative and **has known security flaws**: incomplete signature verification (signed headers, key-owner ↔ actor binding, Digest over the raw body), missing origin checks, and/or missing SSRF and output-escaping guards. Do not copy it into a real server. Use a maintained library such as [Fedify](https://fedify.dev/) or [activitypub-federation-rust](https://github.com/LemmyNet/activitypub-federation-rust) for request verification. Tracking: [issue #37](https://github.com/socialdocs/socialdocs.org/issues/37).
-:::
-
 When other servers send activities to your inbox, you need to verify them and process them appropriately. This guide covers the complete inbox handling flow.
 
 ## Inbox Processing Flow
@@ -167,6 +163,10 @@ async function processActivity(activity, targetUsername) {
 
 ```javascript
 async function handleCreate(activity, targetUsername) {
+  // authorizeActivity() (see "Setting Up the Inbox") has already rejected a
+  // Create whose object id is on a different origin from the actor. Without
+  // that check, the upsert below would let evil.example overwrite objects
+  // belonging to other servers (the CVE-2024-23832 bug class).
   const object = activity.object;
 
   // Verify attribution
@@ -296,27 +296,35 @@ async function sendAccept(username, followActivity) {
 
 ```javascript
 async function handleAccept(activity, targetUsername) {
-  const accepted = activity.object;
+  const localActor = `https://${DOMAIN}/users/${targetUsername}`;
 
-  // Check if it's accepting our Follow
-  if (accepted.type === 'Follow' &&
-      accepted.actor === `https://${DOMAIN}/users/${targetUsername}`) {
+  // The Accept may embed the Follow or just reference it by id. Either way,
+  // only trust *our own record* of the Follow: an embedded copy is written by
+  // the sender and proves nothing.
+  const followId = typeof activity.object === 'string'
+    ? activity.object
+    : activity.object?.id;
+  if (!followId) return;
 
-    // Add to our following list
-    await db.following.upsert({
-      actor: `https://${DOMAIN}/users/${targetUsername}`,
-      following: activity.actor,
-      createdAt: new Date()
-    });
+  // Accept only a Follow we actually sent, from this local actor, to the
+  // actor who is now accepting it (activity.actor is the verified signer).
+  const pending = await db.pendingFollows.findOne({
+    id: followId,
+    actor: localActor,
+    target: activity.actor
+  });
+  if (!pending) return; // unsolicited Accept: ignore it
 
-    // Update pending follows
-    await db.pendingFollows.remove({
-      actor: `https://${DOMAIN}/users/${targetUsername}`,
-      target: activity.actor
-    });
-  }
+  await db.following.upsert({
+    actor: localActor,
+    following: activity.actor,
+    createdAt: new Date()
+  });
+  await db.pendingFollows.remove({ id: followId });
 }
 ```
+
+When you send a Follow, store it in `pendingFollows` with its `id`, your actor and the target actor, so the Accept can be matched against it. Mastodon does the same: it matches the Accept's object id against its own pending follow requests, and only when that fails and a `Follow` is embedded does it fall back to the pending request between the local account and the accepting actor ([accept.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/activity/accept.rb)). Either way, a pending Follow must already exist.
 
 ## Handling Like
 

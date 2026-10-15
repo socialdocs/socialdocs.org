@@ -13,7 +13,7 @@ A comprehensive glossary of terms used in ActivityPub, ActivityStreams, and the 
 ### Activity
 An action performed by an [Actor](#actor). Activities are the core unit of communication in ActivityPub. Examples include `Create`, `Follow`, `Like`, `Announce`, and `Delete`.
 
-**See also:** [Activity Types](/docs/reference/activity-types), [Activity Properties](/docs/reference/activity-properties)
+**See also:** [Activity Types](/docs/specs/activitystreams/activity-types), [Activity Properties](/docs/specs/activitystreams/properties)
 
 ### ActivityPub
 A W3C Recommendation protocol for decentralized social networking. It defines how servers communicate (Server-to-Server) and how clients interact with servers (Client-to-Server).
@@ -28,7 +28,7 @@ A JSON-LD based vocabulary for representing social data. ActivityPub uses Activi
 ### Actor
 An entity that can perform activities. Actors have an `inbox` for receiving activities and an `outbox` for publishing them. Types include `Person`, `Group`, `Service`, `Application`, and `Organization`.
 
-**See also:** [Actor Types](/docs/reference/actor-types), [Building an Actor](/docs/guides/building-an-actor)
+**See also:** [Actor Types](/docs/specs/activitystreams/actor-types), [Building an Actor](/docs/guides/building-an-actor)
 
 ### Addressing
 The mechanism for specifying recipients of an activity using `to`, `cc`, `bto`, `bcc`, and `audience` properties.
@@ -69,7 +69,7 @@ The ActivityPub protocol for client applications to interact with servers. Less 
 ### Collection
 An ordered or unordered set of objects. Used for followers lists, outboxes, and other aggregations.
 
-**See also:** [Collection Types](/docs/reference/collection-types)
+**See also:** [Collection Types](/docs/specs/activitypub/collections)
 
 ### Content Negotiation
 The HTTP mechanism for requesting different representations of a resource. ActivityPub uses this to serve JSON-LD to federation requests and HTML to browsers.
@@ -190,7 +190,7 @@ A mechanism for authenticating HTTP requests using public key cryptography. Requ
 ### Inbox
 An endpoint where an actor receives activities from other servers. Every actor must have an inbox.
 
-**See also:** [Inbox Endpoint](/docs/reference/inbox-endpoint)
+**See also:** [Inbox Endpoint](/docs/specs/activitypub/server-to-server)
 
 ### Instance
 A single installation of Fediverse software running on a domain. Also called a "server."
@@ -269,7 +269,7 @@ An activity used for account migration, indicating that an actor has moved to a 
 ### NodeInfo
 A protocol for exposing server metadata, including software name, version, and statistics.
 
-**See also:** [NodeInfo Endpoint](/docs/reference/nodeinfo-endpoint)
+**See also:** [NodeInfo Endpoint](/docs/specs/nodeinfo/overview)
 
 ### Note
 The most common object type, representing a short text post. Used by Mastodon for toots/posts.
@@ -281,7 +281,7 @@ The most common object type, representing a short text post. Used by Mastodon fo
 ### Object
 A thing that activities act upon. Can be content (Note, Article, Image) or other entities.
 
-**See also:** [Object Types](/docs/reference/object-types), [Object Properties](/docs/reference/object-properties)
+**See also:** [Object Types](/docs/specs/activitystreams/object-types), [Object Properties](/docs/specs/activitystreams/properties)
 
 ### OrderedCollection
 A [Collection](#collection) where the order of items is significant. Used for outboxes and timelines.
@@ -292,7 +292,7 @@ An [Actor](#actor) type representing a formal organization, company, or institut
 ### Outbox
 An endpoint listing activities an actor has published. Used for fetching an actor's posts.
 
-**See also:** [Outbox Endpoint](/docs/reference/outbox-endpoint)
+**See also:** [Outbox Endpoint](/docs/specs/activitypub/collections#outbox)
 
 ---
 
@@ -445,5 +445,5 @@ HTTP status indicating a resource was deleted. Used for tombstoned content.
 ## See Also
 
 - **[Core Concepts](/docs/getting-started/core-concepts)** - Introduction to fundamental concepts
-- **[Reference Overview](/docs/reference/endpoints-overview)** - Technical reference documentation
+- **[Endpoints at a Glance](/docs/specs/activitypub/overview#endpoints-at-a-glance)** - Every endpoint a federating server exposes
 - **[ActivityPub Specification](https://www.w3.org/TR/activitypub/)** - Official W3C specification

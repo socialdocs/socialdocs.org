@@ -372,7 +372,7 @@ async function testActor(domain, username) {
 
 ## Related Tools
 
-- **[WebFinger Lookup](/docs/tools/webfinger-lookup)** - Test discovery
+- **[WebFinger Lookup](/docs/guides/webfinger-implementation#lookup-tools)** - Test discovery
 - **[Actor Inspector](/docs/tools/actor-inspector)** - Validate actors
 - **[HTTP signatures in 2026](/docs/specs/http-signatures/overview)** - Debugging 401s
 - **[Debugging Tips](/docs/tools/debugging-tips)** - Troubleshooting

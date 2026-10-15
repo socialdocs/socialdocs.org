@@ -57,7 +57,7 @@ const FeatureList: FeatureItem[] = [
         endpoints, and security implementations.
       </>
     ),
-    link: '/docs/reference/object-types',
+    link: '/docs/specs/activitystreams/object-types',
   },
   {
     title: 'Ecosystem Directory',

@@ -6,10 +6,6 @@ description: HTTP Signatures, key management, and security best practices for Ac
 
 # Authentication and Security
 
-:::danger Not safe for production
-The code on this page is illustrative and **has known security flaws**: incomplete signature verification (signed headers, key-owner ↔ actor binding, Digest over the raw body), missing origin checks, and/or missing SSRF and output-escaping guards. Do not copy it into a real server. Use a maintained library such as [Fedify](https://fedify.dev/) or [activitypub-federation-rust](https://github.com/LemmyNet/activitypub-federation-rust) for request verification. Tracking: [issue #37](https://github.com/socialdocs/socialdocs.org/issues/37).
-:::
-
 Security is critical in federated systems. This guide covers how ActivityPub handles authentication, the role of HTTP Signatures, and best practices for securing your implementation.
 
 ## Security Model Overview
@@ -99,7 +95,7 @@ function createSignature(privateKey, method, url, headers, body) {
     : '(request-target) host date';
 
   const signingString = [
-    `(request-target): ${method.toLowerCase()} ${urlObj.pathname}`,
+    `(request-target): ${method.toLowerCase()} ${urlObj.pathname}${urlObj.search}`,
     `host: ${urlObj.host}`,
     `date: ${date}`,
     body ? `digest: ${digest}` : null
@@ -213,9 +209,9 @@ Which actor may create, update, delete or undo which objects is covered, with te
 **Attack**: Malicious server sends activity claiming to be from another actor.
 
 **Defense**:
-- Verify HTTP Signature
-- Check keyId domain matches actor domain
-- Fetch actor to confirm key ownership
+- Verify the HTTP signature over the raw body ([tested code](/docs/security/verifying-requests))
+- Require the signing key's owner to **be** `activity.actor` — a matching domain is not enough
+- Fetch the owner's actor document and confirm it lists that key
 
 ### Replay Attacks
 
@@ -335,10 +331,27 @@ const { JSDOM } = require('jsdom');
 const window = new JSDOM('').window;
 const DOMPurify = createDOMPurify(window);
 
+// Keep only the class names fediverse markup needs, as Mastodon's
+// sanitize_config.rb does; arbitrary classes would pick up your site's CSS.
+function allowedClass(c) {
+  return /^(h|p|u|dt|e)-/.test(c)            // microformats
+      || /^(mention|hashtag)$/.test(c)       // semantic
+      || /^(ellipsis|invisible)$/.test(c)    // link formatting
+      || c === 'quote-inline';
+}
+
+DOMPurify.addHook('uponSanitizeAttribute', (node, data) => {
+  if (data.attrName !== 'class') return;
+  const kept = data.attrValue.split(/\s+/).filter(allowedClass);
+  if (kept.length) data.attrValue = kept.join(' ');
+  else data.keepAttr = false;
+});
+
 function sanitizeContent(html) {
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS: ['p', 'br', 'a', 'span', 'strong', 'em', 'code', 'pre'],
     ALLOWED_ATTR: ['href', 'class', 'rel'],
+    ALLOWED_URI_REGEXP: /^https?:/i, // no javascript:, data:, etc.
     ALLOW_DATA_ATTR: false
   });
 }

@@ -155,6 +155,21 @@ Lists of items are represented as Collections:
 | Outbox | POST | Client submits new activities |
 | Inbox | GET | Client reads incoming activities |
 
+## Endpoints at a Glance
+
+| Endpoint | Method | Purpose | Authentication |
+|----------|--------|---------|----------------|
+| `/.well-known/webfinger` | GET | Resolve `user@domain` to an actor URL ([WebFinger](/docs/specs/webfinger/overview)) | None |
+| Actor (e.g. `/users/{name}`) | GET | Fetch the actor document | None, or a signed GET under authorized fetch |
+| `inbox` | POST | Receive activities from other servers | HTTP signature — see [Verifying incoming requests](/docs/security/verifying-requests) |
+| shared inbox (`endpoints.sharedInbox`) | POST | One delivery per server instead of per recipient | HTTP signature |
+| `outbox` | GET | List the actor's **public** activities | None |
+| `outbox` | POST | Publish an activity (C2S) | Not specified by AP; OAuth by convention ([FEP-d8c2](https://codeberg.org/fediverse/fep/src/branch/main/fep/d8c2/fep-d8c2.md)) |
+| `followers` / `following` | GET | Social graph (many servers return only `totalItems`) | Varies |
+| `/.well-known/nodeinfo` | GET | Server software and usage metadata ([NodeInfo](/docs/specs/nodeinfo/overview)) | None |
+
+Actor and object fetches use content negotiation, described next.
+
 ## Content Negotiation
 
 The spec says the client **MUST** send an `Accept` header with the `application/ld+json; profile="https://www.w3.org/ns/activitystreams"` media type, and servers **MUST** respond to it with an ActivityStreams representation; servers **SHOULD** also respond to `application/activity+json` ([AP §3.2](https://www.w3.org/TR/activitypub/#retrieving-objects)). Sending both is the safe choice in practice:

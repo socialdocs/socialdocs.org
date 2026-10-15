@@ -120,59 +120,19 @@ describe('Activity Parsing', () => {
 
 ### Testing HTTP Signatures
 
-```javascript
-describe('HTTP Signatures', () => {
-  const { signRequest, verifySignature } = require('../src/signatures');
-  const crypto = require('crypto');
+Testing that a valid signature passes is the easy half. The bugs that matter are the requests your verifier **accepts when it shouldn't**. At minimum, test that it rejects:
 
-  let keyPair;
+- an unsigned request
+- a signature that covers only some headers (e.g. just `date`) — it must cover the method and full URL, `host`, `date` and the digest
+- a POST whose signature doesn't cover the digest, or whose body was swapped
+- a body that was re-serialised (the digest is over the raw bytes, not `JSON.stringify(req.body)`)
+- a signature replayed against a different query string
+- an activity whose `actor` is not the owner of the signing key
+- a key document claiming an owner whose actor document doesn't list that key
+- a stale or future-dated signature (Mastodon's window is roughly 65 minutes back, 1 hour forward)
+- a `keyId` that resolves to a private or loopback address
 
-  before(() => {
-    keyPair = crypto.generateKeyPairSync('rsa', {
-      modulusLength: 2048,
-      publicKeyEncoding: { type: 'spki', format: 'pem' },
-      privateKeyEncoding: { type: 'pkcs8', format: 'pem' }
-    });
-  });
-
-  it('should sign a request', () => {
-    const request = {
-      method: 'POST',
-      url: 'https://example.com/inbox',
-      headers: {
-        host: 'example.com',
-        date: new Date().toUTCString()
-      },
-      body: JSON.stringify({ type: 'Create' })
-    };
-
-    const signed = signRequest(request, {
-      keyId: 'https://example.com/users/alice#main-key',
-      privateKey: keyPair.privateKey
-    });
-
-    expect(signed.headers.signature).to.exist;
-  });
-
-  it('should verify a valid signature', async () => {
-    const request = signRequest(/* ... */);
-
-    const isValid = await verifySignature(request, async (keyId) => {
-      return keyPair.publicKey;
-    });
-
-    expect(isValid).to.be.true;
-  });
-
-  it('should reject tampered requests', async () => {
-    const request = signRequest(/* ... */);
-    request.body = 'tampered content';
-
-    const isValid = await verifySignature(request, /* ... */);
-    expect(isValid).to.be.false;
-  });
-});
-```
+The [tested verification module](https://github.com/socialdocs/socialdocs.org/tree/gh-pages/examples/verify-requests/test) behind [Verifying incoming requests](/docs/security/verifying-requests) has a `node --test` case for each of these, plus the RFC 9421 Ed25519 test vector. Use it as a checklist, or run your own verifier against the same cases.
 
 ### Testing Activity Handlers
 

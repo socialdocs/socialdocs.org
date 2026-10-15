@@ -136,4 +136,3 @@ Ready to start building? Here's your path:
 - [ActivityPub Specification (W3C)](https://www.w3.org/TR/activitypub/)
 - [Fediverse.info](https://fediverse.info/) - User-friendly introduction
 - [FediDB](https://fedidb.org/) - Fediverse statistics
-- [The-Federation.info](https://the-federation.info/) - Network statistics

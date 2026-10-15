@@ -297,7 +297,7 @@ For communities (like Lemmy):
 }
 ```
 
-In Lemmy, `attributedTo` on a community points to its **moderators collection**, `name` is the display title and `preferredUsername` the slug ([Lemmy group.json](https://github.com/LemmyNet/lemmy/blob/main/crates/apub/assets/lemmy/objects/group.json)). Group federation in general is described by [FEP-1b12](https://codeberg.org/fediverse/fep/src/branch/main/fep/1b12/fep-1b12.md) (FINAL).
+In Lemmy, `attributedTo` on a community points to its **moderators collection**, `name` is the display title and `preferredUsername` the slug ([Lemmy group.json](https://github.com/LemmyNet/lemmy/blob/main/crates/apub/apub/assets/lemmy/objects/group.json)). Group federation in general is described by [FEP-1b12](https://codeberg.org/fediverse/fep/src/branch/main/fep/1b12/fep-1b12.md) (FINAL).
 
 ## Actor Verification
 

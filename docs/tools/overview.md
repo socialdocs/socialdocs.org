@@ -36,7 +36,7 @@ There is no maintained, official conformance suite. See [Test Suites](/docs/tool
 
 - [Validating activities](/docs/tools/activity-validator) — checking activities and objects by hand and in code
 - [Inspecting actors](/docs/tools/actor-inspector) — fetching and reading actor documents
-- [Testing WebFinger](/docs/tools/webfinger-lookup) — checking discovery
+- [Testing WebFinger](/docs/guides/webfinger-implementation#lookup-tools) — checking discovery
 - [Working with JSON-LD](/docs/tools/json-ld-playground) — contexts and expansion
 - [Debugging tips](/docs/tools/debugging-tips) — common federation failures
 - [Compliance checklist](/docs/tools/compliance-checklist) — what to verify before you federate
