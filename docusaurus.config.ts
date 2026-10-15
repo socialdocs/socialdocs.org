@@ -17,7 +17,7 @@ const config: Config = {
   organizationName: 'socialdocs',
   projectName: 'socialdocs.org',
 
-  onBrokenLinks: 'warn',
+  onBrokenLinks: 'throw',
 
   i18n: {
     defaultLocale: 'en',
@@ -31,6 +31,7 @@ const config: Config = {
         docs: {
           sidebarPath: './sidebars.ts',
           editUrl: 'https://github.com/socialdocs/socialdocs.org/tree/gh-pages/',
+          showLastUpdateTime: true,
         },
         blog: {
           showReadingTime: true,
@@ -49,6 +50,17 @@ const config: Config = {
           customCss: './src/css/custom.css',
         },
       } satisfies Preset.Options,
+    ],
+  ],
+
+  themes: [
+    [
+      require.resolve('@easyops-cn/docusaurus-search-local'),
+      {
+        hashed: true,
+        indexBlog: true,
+        highlightSearchTermsOnTargetPage: true,
+      },
     ],
   ],
 
