@@ -36,7 +36,7 @@ federation.setActorDispatcher('/users/{identifier}', async (ctx, identifier) => 
 
 | Library | Description | License |
 |---------|-------------|---------|
-| [federation](https://github.com/jaywink/federation) | Multi-protocol social web library | BSD-3 |
+| [federation](https://codeberg.org/socialhome/federation) | Multi-protocol social web library | BSD-3 |
 | [little-boxes](https://github.com/tsileo/little-boxes) | Minimal ActivityPub framework (archived) | ISC |
 | [bovine](https://codeberg.org/bovine/bovine) | Fediverse application library | MIT |
 | [Takahē](https://github.com/jointakahe/takahe) | Multi-domain AP server | BSD-3 |
