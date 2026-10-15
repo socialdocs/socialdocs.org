@@ -296,5 +296,6 @@ FEPs bridge the gap between W3C specifications and implementation-specific exten
 ## Next Steps
 
 - **[SocialCG](/docs/community/socialcg)** - W3C Community Group
+- **[Quote Posts and Interaction Policies](/docs/guides/quote-posts-and-interaction-policies)** - FEP-044f and FEP-7aa9 in practice
 - **[Events](/docs/community/events)** - Fediverse conferences
 - **[Resources](/docs/community/resources)** - Developer resources

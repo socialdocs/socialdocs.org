@@ -549,5 +549,6 @@ describe('Mastodon Compatibility', () => {
 ## Next Steps
 
 - **[Lemmy Compatibility](/docs/guides/lemmy-compatibility)** - Link aggregator federation
+- **[Quote Posts and Interaction Policies](/docs/guides/quote-posts-and-interaction-policies)** - FEP-044f quotes and `canQuote`
 - **[Testing Your Implementation](/docs/guides/testing-your-implementation)** - Validation tools
 - **[HTTP Signatures](/docs/specs/http-signatures/overview)** - Signature details

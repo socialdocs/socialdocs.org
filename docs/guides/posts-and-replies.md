@@ -570,6 +570,7 @@ async function deliverToRecipients(activity, author) {
 ## Next Steps
 
 - **[Likes and Shares](/docs/guides/likes-and-shares)** - Engagement activities
+- **[Threads, Replies and Backfill](/docs/guides/threads-replies-and-backfill)** - `context`, `replies` and recovering missing replies
 - **[Mentions and Hashtags](/docs/guides/mentions-and-hashtags)** - Tagging content
 - **[Media Attachments](/docs/guides/media-attachments)** - Adding images and video
 - **[Create](https://github.com/boyter/activitypub/blob/main/create-post.md) / [Delete](https://github.com/boyter/activitypub/blob/main/delete-post.md) sequence diagrams** - External reference for the delivery exchanges
