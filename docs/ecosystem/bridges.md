@@ -33,14 +33,17 @@ Connects ActivityPub to multiple protocols.
 
 Supported protocols:
 - **Bluesky** (AT Protocol)
-- **Nostr**
 - **Web** (IndieWeb/Webmention)
+
+Nostr is not supported; the [docs](https://fed.brid.gy/docs) say only that Farcaster and Nostr are being considered.
 
 ### How it works:
 
-1. User opts in via their profile
+1. Users opt in on each side: fediverse users follow `@bsky.brid.gy@bsky.brid.gy`, Bluesky users follow `@ap.brid.gy` (blocking that account opts out)
 2. Bridge creates proxy accounts
-3. Posts and interactions sync bidirectionally
+3. Only fully public posts are bridged — unlisted, followers-only posts and DMs never are
+
+Handle formats and other interop details: [Big Platforms → Bridgy Fed](/docs/ecosystem/big-platforms#bridgy-fed).
 
 ### Matrix-ActivityPub
 
@@ -58,13 +61,13 @@ Bridges Matrix chat to ActivityPub.
 Bridgy Fed provides the primary bridge:
 
 ```
-@user@bsky.brid.gy ← Bluesky user on Fediverse
-@user@ap.brid.gy   ← Fediverse user on Bluesky
+@handle@bsky.brid.gy        ← Bluesky user on the Fediverse (e.g. @snarfed.bsky.social@bsky.brid.gy)
+user.instance.ap.brid.gy    ← Fediverse user on Bluesky (e.g. snarfed.indieweb.social.ap.brid.gy)
 ```
 
 ### Nostr
 
-Two main bridges connect Nostr to the Fediverse:
+The main bridge between Nostr and the Fediverse is Mostr (Bridgy Fed does not support Nostr):
 
 #### Mostr
 
@@ -85,14 +88,6 @@ How it works:
 ```
 Nostr user:     npub1abc...@mostr.pub
 Fediverse user: @alice@mastodon.social (follow npub via mostr.pub)
-```
-
-#### Bridgy Fed (Nostr)
-
-Bridgy Fed also supports Nostr alongside Bluesky and IndieWeb:
-
-```
-npub...@nostr.brid.gy ← Nostr user on Fediverse
 ```
 
 #### Identity Linking (Alternative to Bridging)
