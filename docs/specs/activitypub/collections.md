@@ -2,6 +2,8 @@
 sidebar_position: 5
 title: Collections
 description: Collections in ActivityPub - Inboxes, Outboxes, and paginated lists
+last_verified: 2026-10-15
+verified_against: "ActivityPub REC §5, AS2 Core, Mastodon v4.7.3 source (outboxes_controller, follower_accounts_controller), FEP-8fcf, examples/verify-requests"
 ---
 
 # Collections
@@ -9,6 +11,8 @@ description: Collections in ActivityPub - Inboxes, Outboxes, and paginated lists
 Collections in ActivityPub are ordered or unordered lists of objects or activities. They're used for inboxes, outboxes, followers lists, and any other groupings of items.
 
 ## Collection Types
+
+Defined in [AS2 Core §5](https://www.w3.org/TR/activitystreams-core/#collections). AP requires the inbox and outbox to be `OrderedCollection`s, and lets followers, following and liked be either kind ([AP §5](https://www.w3.org/TR/activitypub/#collections)).
 
 | Type | Description | Order |
 |------|-------------|-------|
@@ -89,7 +93,7 @@ For larger collections:
 | `partOf` | URL | Parent collection |
 | `next` | URL | Next page |
 | `prev` | URL | Previous page |
-| `startIndex` | Integer | Index of first item |
+| `startIndex` | Integer | Index of the first item (`OrderedCollectionPage` only) |
 
 ## Standard Collections
 
@@ -108,7 +112,7 @@ Receives incoming activities:
 ```
 
 **POST** to inbox: Receive activities (S2S)
-**GET** from inbox: Read activities (C2S, authenticated)
+**GET** from inbox: Read activities (C2S, authenticated) — the inbox MUST be an `OrderedCollection` ([AP §5.2](https://www.w3.org/TR/activitypub/#inbox))
 
 ### Outbox
 
@@ -124,7 +128,7 @@ Contains activities by the actor:
 }
 ```
 
-**GET** from outbox: Read activities. An unauthenticated GET must only return activities addressed to `as:Public` — the outbox is not a place to leak followers-only posts or DMs.
+**GET** from outbox: Read activities. Its contents "are filtered by the permissions of the person reading it" ([AP §5.1](https://www.w3.org/TR/activitypub/#outbox)), so an unauthenticated GET must only return activities addressed to `as:Public` — the outbox is not a place to leak followers-only posts or DMs.
 **POST** to outbox: Submit activities (C2S, authenticated)
 
 ### Followers
@@ -170,9 +174,11 @@ Collection of objects the actor has liked:
 
 ## Pagination Strategies
 
+AP doesn't define a pagination scheme; these are conventions.
+
 ### Cursor-Based (Recommended)
 
-Use item IDs as cursors:
+Use item IDs as cursors. This is what Mastodon's outbox does (20 items per page, `page=true` with `max_id`/`min_id`; [outboxes_controller.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/controllers/activitypub/outboxes_controller.rb)):
 
 ```
 /outbox?max_id=12345  → Items older than 12345
@@ -273,15 +279,15 @@ app.get('/users/:username/outbox', async (req, res) => {
 
 ### Fetching a Collection
 
+Collection URLs come from remote data, so fetch them with the SSRF-safe fetcher from [`examples/verify-requests`](https://github.com/socialdocs/socialdocs.org/tree/gh-pages/examples/verify-requests) (scheme and private-address checks, redirect re-validation, size and time limits), and treat the result as untrusted.
+
 ```javascript
+import { safeFetchJson } from './verify-requests/src/index.js';
+
 async function fetchCollection(collectionUrl) {
   const items = [];
 
-  // Fetch collection
-  let response = await fetch(collectionUrl, {
-    headers: { 'Accept': 'application/activity+json' }
-  });
-  let collection = await response.json();
+  const collection = await safeFetchJson(collectionUrl);
 
   // If items are inline, return them
   if (collection.orderedItems) {
@@ -299,10 +305,7 @@ async function fetchCollection(collectionUrl) {
   while (next && pagesFetched < 50) {   // cap iterations, not just items
     let page = next;
     if (typeof next === 'string') {
-      response = await fetch(next, {
-        headers: { 'Accept': 'application/activity+json' }
-      });
-      page = await response.json();
+      page = await safeFetchJson(next);
       pagesFetched++;
     }
 
@@ -323,7 +326,7 @@ async function fetchCollection(collectionUrl) {
 
 ### Synchronizing Followers
 
-Followers collections drift out of sync between servers (missed Undo/Reject, data loss). [FEP-8fcf](https://codeberg.org/fediverse/fep/src/branch/main/fep/8fcf/fep-8fcf.md) (FINAL), implemented by Mastodon, fixes this: when delivering to followers, the sender adds a `Collection-Synchronization` header with a digest of the followers it has on the receiving server, so the receiver can detect and repair mismatches.
+Followers collections drift out of sync between servers (missed Undo/Reject, data loss). [FEP-8fcf](https://codeberg.org/fediverse/fep/src/branch/main/fep/8fcf/fep-8fcf.md) (FINAL, 2022), implemented by Mastodon, fixes this — see [Delivery at Scale](/docs/guides/delivery-at-scale) for the receiver's checks: when delivering to followers, the sender adds a `Collection-Synchronization` header with a digest of the followers it has on the receiving server, so the receiver can detect and repair mismatches.
 
 ### Synchronizing Follow Lists
 
@@ -344,17 +347,18 @@ After receiving an Accept for a Follow:
 
 ### Privacy
 
-Some servers hide followers/following counts or require authentication:
+Followers and following MAY be filtered by what the requester is allowed to see ([AP §5.3](https://www.w3.org/TR/activitypub/#followers)). When a Mastodon user hides their network, Mastodon still returns the real `totalItems` but omits `first`, and refuses requests for pages ([follower_accounts_controller.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/controllers/follower_accounts_controller.rb#L43-L91)):
 
 ```json
 {
+  "@context": "https://www.w3.org/ns/activitystreams",
   "type": "OrderedCollection",
   "id": "https://example.com/users/private/followers",
-  "totalItems": 0
+  "totalItems": 42
 }
 ```
 
-(Omitting `totalItems` is the honest way to hide the count; returning `0` misreports it, and some clients will display "0 followers".)
+To hide the count as well, omit `totalItems`; don't return `0`, which misreports it.
 
 ## Best Practices
 

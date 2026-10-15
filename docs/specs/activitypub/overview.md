@@ -2,6 +2,8 @@
 sidebar_position: 1
 title: ActivityPub Overview
 description: Understanding the ActivityPub protocol for federated social networking
+last_verified: 2026-10-15
+verified_against: "ActivityPub REC 2018 and Editor's Draft (Oct 2026), AS2 Vocabulary, Mastodon v4.7.3 CHANGELOG and routes, Pleroma/Akkoma routers, Pixelfed v0.14.4, Lemmy 0.19.20, PeerTube v8.3.1 routes"
 ---
 
 # ActivityPub Overview
@@ -142,11 +144,13 @@ Lists of items are represented as Collections:
 
 ### For All Actors
 
+Actor objects MUST have an `inbox` and an `outbox`; they SHOULD have `followers` and `following`, and MAY have `liked` ([AP §4.1](https://www.w3.org/TR/activitypub/#actor-objects)).
+
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | Actor URL | GET | Returns the actor's profile |
-| Inbox | POST | Receives activities from other servers |
-| Outbox | GET | Returns activities by this actor |
+| Inbox | POST | Receives activities from other servers (federated servers) |
+| Outbox | GET | Returns activities by this actor, filtered by what the requester may see ([AP §5.1](https://www.w3.org/TR/activitypub/#outbox)) |
 
 ### For C2S (Optional)
 
@@ -202,9 +206,9 @@ Activities specify recipients using:
 |----------|---------|
 | `to` | Primary recipients (visible) |
 | `cc` | Secondary recipients (visible) |
-| `bto` | Private primary recipients |
-| `bcc` | Private secondary recipients |
-| `audience` | Additional context |
+| `bto` | Private primary recipients — removed before delivery ([AP §6](https://www.w3.org/TR/activitypub/#remove-bto-bcc-before-delivery), [§7.1](https://www.w3.org/TR/activitypub/#delivery)) |
+| `bcc` | Private secondary recipients — removed before delivery |
+| `audience` | The total population the object is relevant to (e.g. a group); also a delivery target ([AS2 Vocab](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-audience), [AP §7.1](https://www.w3.org/TR/activitypub/#delivery)) |
 
 Special addresses:
 - `https://www.w3.org/ns/activitystreams#Public` - Public visibility. The compact forms `as:Public` and `Public` mean the same thing and implementations should accept all three. It is not a real inbox: servers MUST NOT deliver to it ([AP §5.6](https://www.w3.org/TR/activitypub/#public-addressing)).
@@ -215,7 +219,7 @@ The ActivityPub spec itself does not mandate an authentication mechanism ([AP §
 
 1. **HTTPS** - Required in practice by every major implementation
 2. **HTTP Signatures** - De facto requirement for server-to-server delivery (draft-cavage, and increasingly [RFC 9421](https://www.rfc-editor.org/rfc/rfc9421.html), which Mastodon verifies since 4.5)
-3. **Object Integrity Proofs** - (Optional) sign objects themselves with [FEP-8b32](https://codeberg.org/fediverse/fep/src/branch/main/fep/8b32/fep-8b32.md), which Mastodon 4.7 verifies. The older *Linked Data Signatures* are deprecated: Mastodon's docs advise against implementing them, and a JSON-LD named-graph bypass hit both [Mastodon (CVE-2026-46349)](https://github.com/mastodon/mastodon/security/advisories/GHSA-chgx-jx3p-rf73) and [Fedify (CVE-2026-42462)](https://github.com/fedify-dev/fedify/security/advisories/GHSA-9rfg-v8g9-9367) in 2026
+3. **Object Integrity Proofs** - (Optional) sign objects themselves with [FEP-8b32](https://codeberg.org/fediverse/fep/src/branch/main/fep/8b32/fep-8b32.md), which Mastodon 4.7 verifies ([CHANGELOG](https://github.com/mastodon/mastodon/blob/v4.7.3/CHANGELOG.md)). The older *Linked Data Signatures* are deprecated: [Mastodon's docs](https://docs.joinmastodon.org/spec/security/#ld) advise against implementing them, and a JSON-LD named-graph bypass hit both [Mastodon (CVE-2026-46349)](https://github.com/mastodon/mastodon/security/advisories/GHSA-chgx-jx3p-rf73) and [Fedify (CVE-2026-42462)](https://github.com/fedify-dev/fedify/security/advisories/GHSA-9rfg-v8g9-9367) in 2026
 
 [Learn more about Security →](/docs/getting-started/authentication-and-security)
 
@@ -264,6 +268,8 @@ The Fediverse has developed de facto extensions:
 | `Hashtag` | Hashtag type | Most platforms |
 
 ## Implementation Status
+
+Checked against each project's routes: Pleroma exposes `POST /users/:nickname/outbox` and `GET /users/:nickname/inbox` ([Pleroma source](https://git.pleroma.social/pleroma/pleroma), `lib/pleroma/web/router.ex`); Mastodon, Pixelfed, Lemmy and PeerTube only serve outboxes for reading.
 
 | Platform | C2S | S2S |
 |----------|-----|-----|

@@ -2,6 +2,8 @@
 sidebar_position: 4
 title: Activities
 description: Activity types in ActivityPub - Create, Follow, Like, and more
+last_verified: 2026-10-15
+verified_against: "ActivityPub REC §6–§7, Mastodon v4.7.3 source (block_service, move.rb, flag) and docs.joinmastodon.org/spec/activitypub, FEP-7628"
 ---
 
 # Activities
@@ -30,7 +32,7 @@ All activities share a common structure:
 | Property | Required | Description |
 |----------|----------|-------------|
 | `type` | Yes | Activity type |
-| `id` | Yes | Unique identifier |
+| `id` | Yes (between servers) | Unique identifier ([AP §3.1](https://www.w3.org/TR/activitypub/#obj-id)); in C2S the server assigns it ([AP §6](https://www.w3.org/TR/activitypub/#client-to-server-interactions)) |
 | `actor` | Yes | Who performed the activity |
 | `object` | Usually | Target of the activity |
 | `to` | No | Primary recipients |
@@ -62,7 +64,7 @@ Creates new content:
 ```
 
 :::note
-When receiving a Create, verify that `activity.actor` matches `object.attributedTo`.
+When receiving a Create, verify that `activity.actor` matches `object.attributedTo` and that the object's `id` is on the actor's origin — see [Origin model](/docs/security/origin-model).
 :::
 
 ### Update
@@ -131,7 +133,7 @@ Request to follow an actor:
 }
 ```
 
-The receiving server should respond with Accept or Reject.
+The receiving server SHOULD respond with an `Accept` or `Reject`, which MAY be generated automatically ([AP §7.5](https://www.w3.org/TR/activitypub/#follow-activity-inbox)).
 
 ### Accept
 
@@ -223,7 +225,7 @@ Block an actor:
 ```
 
 :::note
-The spec says servers SHOULD NOT deliver `Block` to its object ([AP §6.9](https://www.w3.org/TR/activitypub/#block-activity-outbox)), but **Mastodon does send it** to the blocked user's server, which uses it to hide the blocker's posts and disallow mentions ([Mastodon docs](https://docs.joinmastodon.org/spec/activitypub/#Block)). Expect to receive Blocks, and don't treat delivery as guaranteed enforcement.
+The spec says servers SHOULD NOT deliver `Block` to its object ([AP §6.9](https://www.w3.org/TR/activitypub/#block-activity-outbox)), but **Mastodon does send it** to the blocked user's server, which uses it to hide the blocker's posts and disallow mentions ([Mastodon docs](https://docs.joinmastodon.org/spec/activitypub/#Block), [block_service.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/services/block_service.rb#L45)). Expect to receive Blocks, and don't treat delivery as guaranteed enforcement.
 :::
 
 ### Flag (Report)
@@ -244,7 +246,7 @@ Report content or actors:
 }
 ```
 
-Send to the remote server's inbox (actor or shared inbox). Mastodon sends `Flag` from its **instance actor** rather than the reporting user, so the reporter stays anonymous to the remote server ([Mastodon docs](https://docs.joinmastodon.org/spec/activitypub/)); do the same.
+Send to the remote server's inbox (actor or shared inbox). Mastodon sends `Flag` from its **instance actor** rather than the reporting user, so the reporter stays anonymous to the remote server ([Mastodon docs](https://docs.joinmastodon.org/spec/activitypub/#Flag)); do the same.
 
 ## Undo
 
@@ -316,7 +318,7 @@ Add an object to a collection:
 }
 ```
 
-Used for pinning posts to profile.
+Mastodon uses this to pin posts to the actor's `featured` collection. When receiving `Add`/`Remove`, only accept it if the `target` collection belongs to the actor ([AP §7.8](https://www.w3.org/TR/activitypub/#add-activity-inbox)).
 
 ### Remove
 
@@ -335,7 +337,7 @@ Remove an object from a collection:
 
 ## Move
 
-For account migration. Before sending, the **new** account must list the old one in its `alsoKnownAs`; receivers (including Mastodon) reject the Move otherwise. [FEP-7628](https://codeberg.org/fediverse/fep/src/branch/main/fep/7628/fep-7628.md) (FINAL) describes the full flow:
+For account migration. Before sending, the **new** account must list the old one in its `alsoKnownAs`; receivers (including Mastodon) reject the Move otherwise ([move.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/activity/move.rb#L10-L12)). [FEP-7628](https://codeberg.org/fediverse/fep/src/branch/main/fep/7628/fep-7628.md) (FINAL) describes the full flow:
 
 ```json
 {
@@ -401,29 +403,23 @@ Activities trigger side effects:
 
 ## Idempotency
 
-Activities should be idempotent — processing the same activity twice should have the same result as processing it once.
+Processing the same activity twice must have the same result as processing it once: servers retry deliveries, and the same activity can arrive through several inboxes or relays. Deduplicate on the activity `id`, and for activities that should exist at most once per pair — Like, Announce, Follow — also on (actor, object). For a Like, one row per (actor, object) covers both:
 
 ```javascript
+// `activity` has passed verification, so activity.actor is the signer
 async function handleLike(activity) {
-  const existing = await db.likes.findOne({
-    activityId: activity.id
-  });
+  const objectId = typeof activity.object === 'string' ? activity.object : activity.object?.id;
+  if (!objectId) return;
 
-  if (existing) {
-    // Already processed, ignore
-    return { status: 200 };
-  }
-
-  await db.likes.insert({
-    activityId: activity.id,
-    actor: activity.actor,
-    object: activity.object,
-    createdAt: new Date()
-  });
-
-  return { status: 201 };
+  // Unique index on (actor, object) makes this safe under concurrency too
+  await db.likes.upsert(
+    { actor: activity.actor, object: objectId },
+    { activityId: activity.id, createdAt: new Date() }
+  );
 }
 ```
+
+The inbox still answers `202 Accepted` (or `200`) either way; a duplicate is not an error.
 
 ## Next Steps
 
