@@ -15,7 +15,7 @@ Fedbox and the [microfed](/docs/ecosystem/javascript-libraries#microfed) library
 :::
 
 :::danger Experimental — not for production
-Fedbox is an early experiment (npm 0.0.10, December 2025). As of that release its inbox **logs a failed or missing HTTP signature but still processes the activity**, so anyone can forge activities to it. It signs with draft-cavage only. Use it to explore identity ideas (WebID, `did:nostr`), not to run a public account.
+Fedbox is an early experiment. The npm release (0.0.10, December 2025) **logs a failed or missing HTTP signature but still processes the activity**, so anyone can forge activities to it. This is fixed on the main branch ([micro-fed/fedbox#2](https://github.com/micro-fed/fedbox/pull/2), October 2026: signatures are now required, the signer must be the activity's actor, and fetched documents must match their origin), but not yet in a published release — install from GitHub if you need it. It signs with draft-cavage only. Use it to explore identity ideas (WebID, `did:nostr`), not to run a public account.
 :::
 
 :::info Not FedBOX (go-ap)
