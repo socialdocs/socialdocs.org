@@ -2,6 +2,8 @@
 sidebar_position: 1
 title: URIs, IRIs & Linked Data
 description: Understanding identifiers and the opacity principle in ActivityPub
+last_verified: 2026-10-15
+verified_against: "RFC 3986/3987, W3C TAG httpRange-14 finding, Cool URIs for the Semantic Web, JSON-LD 1.1, ActivityStreams context document, w3c/activitypub#367, CVE-2024-23832"
 ---
 
 # URIs, IRIs & Linked Data
@@ -14,9 +16,9 @@ These terms are often confused:
 
 | Term | Meaning | Example |
 |------|---------|---------|
-| **URI** | Uniform Resource Identifier (ASCII only) | `https://example.com/users/alice` |
-| **IRI** | Internationalized Resource Identifier (Unicode) | `https://example.com/用户/アリス` |
-| **URL** | Uniform Resource Locator (a URI you can fetch) | `https://example.com/actor` |
+| **URI** | Uniform Resource Identifier, ASCII only ([RFC 3986](https://www.rfc-editor.org/rfc/rfc3986)) | `https://example.com/users/alice` |
+| **IRI** | Internationalized Resource Identifier, allows Unicode ([RFC 3987](https://www.rfc-editor.org/rfc/rfc3987)) | `https://example.com/用户/アリス` |
+| **URL** | Uniform Resource Locator — a URI that also tells you how to locate the resource | `https://example.com/actor` |
 | **URN** | Uniform Resource Name (persistent identifier) | `urn:isbn:0451450523` |
 
 In practice, ActivityPub uses **IRIs** (which include URIs as a subset). Most implementations treat them as URLs that can be dereferenced via HTTP.
@@ -62,11 +64,10 @@ This breaks when servers use different URL patterns.
 const PUBLIC = ['https://www.w3.org/ns/activitystreams#Public', 'as:Public', 'Public'];
 if (PUBLIC.includes(recipient)) return;
 
-// Use a signed, SSRF-safe fetch in production (many servers require
-// signed GETs, and recipient URLs are attacker-controlled).
-const data = await fetch(recipient, {
-  headers: { 'Accept': 'application/ld+json; profile="https://www.w3.org/ns/activitystreams", application/activity+json' }
-}).then(r => r.json());
+// Recipient URLs are attacker-controlled: use the SSRF-safe fetcher from
+// examples/verify-requests (pass signRequest for servers that require
+// signed GETs). It sends both ActivityPub Accept types.
+const data = await safeFetchJson(recipient);
 
 if (data.type === 'OrderedCollection' || data.type === 'Collection') {
   // It's a collection — expand members
@@ -119,6 +120,8 @@ A URL that serves both HTML and JSON should send `Vary: Accept`.
 Servers may redirect. You can follow redirects, but **never trust the `id` in the response blindly** — check that it has the same origin as the URL the document was actually served from. Accepting a document whose `id` points at another host lets an attacker plant objects "belonging" to someone else; this is the flaw behind Mastodon's [CVE-2024-23832](https://github.com/mastodon/mastodon/security/advisories/GHSA-3fjr-858r-92rw):
 
 ```javascript
+// Illustrates the check only — in production fetch through the SSRF-safe
+// fetcher, which re-validates every redirect hop
 const response = await fetch(url, { redirect: 'follow' });
 const finalUrl = new URL(response.url); // May differ from original
 const data = await response.json();
@@ -147,14 +150,15 @@ When you request `https://example.com/alice`:
 - Do you get **Alice** (the person)?
 - Or a **document about Alice**?
 
-This ambiguity led to the W3C TAG's **httpRange-14** resolution, which established:
+This ambiguity led to the W3C TAG's **httpRange-14** resolution. As summarised in the TAG's [Dereferencing HTTP URIs](https://www.w3.org/2001/tag/doc/httpRange-14/2007-05-31/HttpRange-14) draft finding:
 
-- If a URL returns `200 OK`, it identifies an **information resource** (a document)
-- If it returns `303 See Other`, it identifies something else (a person, concept, etc.)
+- If a GET returns `200 OK` with a representation, the URL identifies an **information resource** (a document)
+- If it returns `303 See Other`, the URL could identify **any** resource (a person, a concept, …); the `Location` points to a related document
+- A `4xx`/`5xx` tells you nothing about what the URL identifies
 
 ### Why Fragments Are Preferred
 
-In **5-star Linked Data**, fragment identifiers solve httpRange-14 elegantly:
+W3C's [Cool URIs for the Semantic Web](https://www.w3.org/TR/cooluris/) describes two ways to name things that aren't documents: `303` redirects, or **hash URIs** — fragment identifiers, which sidestep httpRange-14:
 
 ```
 https://example.com/alice#me
@@ -200,7 +204,7 @@ While fragments are a Linked Data best practice, their use in ActivityPub is inc
 - **`#main-key`** is widely used for signing keys, but often special-cased rather than resolved via general fragment handling
 - Some implementations generate fragment IDs for transient activities, but the fragments may not be present in the returned JSON
 - Very few implementations support fetching and resolving arbitrary fragment URIs
-- See [w3c/activitypub#367](https://github.com/w3c/activitypub/issues/367) for ongoing discussion
+- See [w3c/activitypub#367](https://github.com/w3c/activitypub/issues/367) ("Guidance on fragments in ids", now closed) for the discussion
 :::
 
 ### How Fragments Work
@@ -209,8 +213,8 @@ While fragments are a Linked Data best practice, their use in ActivityPub is inc
 2. You fetch the base URL, then extract the fragment portion client-side
 3. The server returns one document; the fragment selects part of it
 
-:::tip 5-Star Linked Data
-Using fragment URIs is a best practice in Linked Data because:
+:::tip Hash URIs
+[Cool URIs for the Semantic Web](https://www.w3.org/TR/cooluris/) recommends hash URIs because:
 - Clear distinction between documents and things
 - Single HTTP request retrieves related data
 - Avoids httpRange-14 ambiguity
@@ -258,7 +262,7 @@ means, in expanded form:
 }
 ```
 
-Notice the vocabulary terms are **fragment IRIs** on the namespace document — the ActivityStreams vocabulary itself follows the 5-star pattern described above.
+Notice the vocabulary terms are **fragment IRIs** on the namespace document — the ActivityStreams vocabulary itself uses the hash-URI pattern described above. You can check every mapping in the [ActivityStreams context document](https://www.w3.org/ns/activitystreams).
 
 ### Extensions and Prefixes
 
@@ -298,7 +302,7 @@ While IRIs are opaque in principle, the Fediverse has developed common conventio
 | `/users/{name}/outbox` | Actor outbox |
 | `/users/{name}/followers` | Followers collection |
 | `/users/{name}/following` | Following collection |
-| `/@{name}` | Actor (alternative) |
+| `/@{name}` | Human-readable profile page (Mastodon's `url`, not the actor `id`) |
 | `/activities/{id}` | Activity object |
 | `/objects/{id}` | Content object |
 
@@ -327,7 +331,7 @@ But production code should always dereference first.
 |-----------|-------------|
 | **IRIs are opaque** | Don't parse meaning from URL strings |
 | **Dereference first** | Fetch the URL and inspect `type` |
-| **Use fragments** | Prefer `#` URIs for non-document things (5-star LD) |
+| **Use fragments** | Prefer `#` URIs for non-document things ([Cool URIs](https://www.w3.org/TR/cooluris/)) |
 | **httpRange-14** | Fragments avoid document/thing ambiguity |
 | **@context maps keys to IRIs** | JSON keys only have global meaning through the context |
 | **Conventions ≠ specs** | URL patterns are hints, not guarantees |
@@ -350,8 +354,8 @@ The source documents for the principles on this page:
 
 ### Specifications & Notes
 
-- [5-Star Linked Data](https://5stardata.info/) — Tim Berners-Lee's Linked Data principles
-- [httpRange-14](https://www.w3.org/2001/tag/doc/httpRange-14/2007-05-31/HttpRange-14) — W3C TAG resolution
+- [5-Star Open Data](https://5stardata.info/) — Tim Berners-Lee's star rating for publishing open data, from a PDF to linked RDF
+- [Dereferencing HTTP URIs](https://www.w3.org/2001/tag/doc/httpRange-14/2007-05-31/HttpRange-14) — W3C TAG draft finding explaining the httpRange-14 resolution
 - [Cool URIs for the Semantic Web](https://www.w3.org/TR/cooluris/) — W3C best practices
 - [JSON-LD 1.1](https://www.w3.org/TR/json-ld11/) — the W3C Recommendation defining `@context`
 - [ActivityStreams 2.0 context](https://www.w3.org/ns/activitystreams) — the normative context document every ActivityPub document references

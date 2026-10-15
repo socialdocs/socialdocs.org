@@ -2,6 +2,8 @@
 sidebar_position: 6
 title: Client-to-Server
 description: The ActivityPub Client-to-Server protocol for user interactions
+last_verified: 2026-10-15
+verified_against: "ActivityPub REC §6 and Editor's Draft (Oct 2026), FEP-d8c2, Pleroma and Akkoma routers"
 ---
 
 # Client-to-Server (C2S)
@@ -35,7 +37,7 @@ Content-Type: application/activity+json
 
 ### Submit to Outbox
 
-Clients POST activities to the actor's outbox:
+Clients discover the outbox from the actor document and POST to it; the request MUST be authenticated as the outbox owner, and the body MUST be a single Activity or a single non-Activity object ([AP §6](https://www.w3.org/TR/activitypub/#client-to-server-interactions)):
 
 ```http
 POST /users/alice/outbox HTTP/1.1
@@ -55,13 +57,13 @@ Content-Type: application/activity+json
 
 ### Server Processing
 
-The server:
+The server ([AP §6](https://www.w3.org/TR/activitypub/#client-to-server-interactions)):
 1. Validates the activity
-2. Assigns an `id` to the activity
-3. Assigns an `id` to the object (if new)
+2. Ignores any client-supplied activity `id` and assigns its own (MUST)
+3. For a `Create`, assigns an `id` to the new object
 4. Sets the `actor` property
-5. Adds to the outbox collection
-6. Delivers to recipients (S2S)
+5. Adds the activity to the outbox collection (MUST)
+6. Removes `bto`/`bcc` before delivery (MUST) and delivers to recipients (S2S)
 
 ### Response
 
@@ -69,6 +71,8 @@ The server:
 HTTP/1.1 201 Created
 Location: https://example.com/activities/123
 ```
+
+The server MUST answer `201 Created` and, unless the activity is transient, MUST put the new `id` in `Location`.
 
 ## Activity Handling
 
@@ -87,11 +91,11 @@ Location: https://example.com/activities/123
 ```
 
 Server adds:
-- `id` to activity
-- `id` to object
+- `id` to activity and object
 - `actor` property
-- `published` timestamp
-- `attributedTo` on object
+- `attributedTo` on the object — the actor SHOULD be copied there ([AP §6.2](https://www.w3.org/TR/activitypub/#create-activity-outbox))
+- Recipients: the server SHOULD copy addressing between the `Create` and its object so they match
+- A `published` timestamp (not required by AP, but expected by most software)
 
 ### Like
 
@@ -114,6 +118,8 @@ Server adds:
 ```
 
 ### Update
+
+In C2S, `Update` is a **partial** update: each top-level key supplied replaces the stored value ([AP §6.3.1](https://www.w3.org/TR/activitypub/#partial-updates)). The current Editor's Draft no longer describes using `null` to remove a field ([ED](https://w3c.github.io/activitypub/)). When the server federates the change, it sends the **complete** object.
 
 ```json
 {
@@ -192,7 +198,7 @@ POST /users/alice/outbox HTTP/1.1
 }
 ```
 
-Server wraps in a Create activity automatically.
+The server MUST wrap it in a `Create`, and copy the object's `to`, `bto`, `cc`, `bcc` and `audience` onto that activity ([AP §6.2.1](https://www.w3.org/TR/activitypub/#object-without-create)).
 
 ## Addressing
 
@@ -231,7 +237,7 @@ Server wraps in a Create activity automatically.
 
 ### Upload Endpoint
 
-ActivityPub defines an optional `uploadMedia` endpoint on the actor's `endpoints` but leaves its protocol to a separate document ([AP §6.12](https://www.w3.org/TR/activitypub/#uploading-media)). In practice each server has its own upload API; the example below is illustrative (`/api/v1/media` is Mastodon's *client API*, not ActivityPub):
+The Recommendation leaves media upload out of scope ([AP §6.12](https://www.w3.org/TR/activitypub/#uploading-media), non-normative) and points to the SocialCG's [ActivityPub Media Upload](https://www.w3.org/wiki/SocialCG/ActivityPub/MediaUpload) report, which describes an `uploadMedia` endpoint; Pleroma implements one at `/api/ap/upload_media`. In practice each server has its own upload API; the example below is illustrative (`/api/v1/media` is Mastodon's *client API*, not ActivityPub):
 
 ```http
 POST /api/v1/media HTTP/1.1
@@ -287,32 +293,32 @@ app.post('/users/:username/outbox',
 
     let activity = req.body;
 
-    // Wrap bare objects in Create
+    // Wrap bare objects in Create, copying addressing (AP §6.2.1)
     if (!isActivityType(activity.type)) {
-      activity = {
-        '@context': 'https://www.w3.org/ns/activitystreams',
-        type: 'Create',
-        object: activity
-      };
+      const object = activity;
+      activity = { '@context': 'https://www.w3.org/ns/activitystreams', type: 'Create', object };
+      for (const field of ['to', 'bto', 'cc', 'bcc', 'audience']) {
+        if (object[field]) activity[field] = object[field];
+      }
     }
 
-    // Assign IDs and properties
-    activity.id = `https://example.com/activities/${uuid()}`;
+    // Servers MUST ignore a client-supplied activity id (AP §6)
+    activity.id = `https://example.com/activities/${crypto.randomUUID()}`;
     activity.actor = actor;
     activity.published = new Date().toISOString();
 
-    if (activity.object && typeof activity.object === 'object') {
-      // The spec says servers MUST ignore a client-supplied activity id
-      // (AP §6); do the same for the object so clients can't claim
-      // arbitrary ids
-      activity.object.id = `https://example.com/objects/${uuid()}`;
+    if (activity.type === 'Create' && activity.object && typeof activity.object === 'object') {
+      // A new object: mint its id too, so clients can't claim arbitrary ids.
+      // (For Update/Delete the object id refers to an existing object and
+      // must be checked for ownership instead.)
+      activity.object.id = `https://example.com/objects/${crypto.randomUUID()}`;
       activity.object.attributedTo = actor;
     }
 
     // Store activity
     await db.activities.insert(activity);
 
-    // Deliver to recipients (async)
+    // Deliver to recipients (async); strip bto/bcc first (AP §6)
     deliverActivity(activity);
 
     res.status(201)
@@ -347,7 +353,8 @@ app.post('/users/:username/outbox',
 
 | Platform | C2S Support |
 |----------|-------------|
-| Pleroma / Akkoma | Partial |
+| Pleroma | Yes — `POST` outbox, `GET` inbox, media upload ([Pleroma source](https://git.pleroma.social/pleroma/pleroma), `lib/pleroma/web/router.ex`) |
+| Akkoma | Reading the inbox only; no outbox `POST` ([router.ex](https://akkoma.dev/AkkomaGang/akkoma/src/branch/develop/lib/pleroma/web/router.ex)) |
 | Mastodon | No (uses its own client API) |
 | Pixelfed | No |
 | Lemmy | No |

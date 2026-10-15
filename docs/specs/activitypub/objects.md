@@ -2,6 +2,8 @@
 sidebar_position: 3
 title: Objects
 description: Content objects in ActivityPub - Notes, Articles, Images, and more
+last_verified: 2026-10-15
+verified_against: "ActivityPub REC §3, §6.4, AS2 Vocabulary, Mastodon v4.7.3 source (tag_manager, note_serializer, context_helper), Lemmy 0.19.20 page.json fixture"
 ---
 
 # Objects
@@ -30,7 +32,7 @@ All objects can have these properties:
 | Property | Type | Description |
 |----------|------|-------------|
 | `type` | String | Object type (Note, Article, etc.) |
-| `id` | URL | Unique, dereferenceable identifier |
+| `id` | URL | Unique, publicly dereferenceable identifier (HTTPS); MUST be present except on transient objects ([AP §3.1](https://www.w3.org/TR/activitypub/#obj-id)) |
 | `attributedTo` | URL/Actor | Creator of the object |
 | `content` | String | Main content (HTML allowed) |
 | `published` | DateTime | Creation timestamp |
@@ -51,7 +53,7 @@ All objects can have these properties:
 |----------|-------------|
 | `summary` | Content warning or preview |
 | `contentMap` | Localized content `{"en": "Hello"}` |
-| `source` | Original source format |
+| `source` | The source the `content` was rendered from, e.g. Markdown ([AP §3.3](https://www.w3.org/TR/activitypub/#source-property)) |
 | `mediaType` | MIME type of content |
 
 ## Common Object Types
@@ -123,26 +125,26 @@ Most fediverse software — including Pixelfed — federates a photo post as a *
 
 ### Video
 
-Video content:
+Video content (a generic AS2 example — PeerTube's real format is covered in the [PeerTube guide](/docs/guides/peertube-compatibility)):
 
 ```json
 {
   "@context": "https://www.w3.org/ns/activitystreams",
   "type": "Video",
-  "id": "https://peertube.example/videos/1",
-  "attributedTo": "https://peertube.example/accounts/creator",
+  "id": "https://video.example/videos/1",
+  "attributedTo": "https://video.example/accounts/creator",
   "name": "Tutorial: Building with ActivityPub",
   "duration": "PT15M30S",
   "url": [
     {
       "type": "Link",
-      "href": "https://peertube.example/videos/1.mp4",
+      "href": "https://video.example/videos/1.mp4",
       "mediaType": "video/mp4",
       "height": 1080
     },
     {
       "type": "Link",
-      "href": "https://peertube.example/videos/1.webm",
+      "href": "https://video.example/videos/1.webm",
       "mediaType": "video/webm"
     }
   ]
@@ -151,7 +153,7 @@ Video content:
 
 ### Page
 
-Link shares (like Lemmy posts):
+Lemmy posts are `Page` objects addressed to a community. Lemmy puts the shared link in `attachment` as a `Link`, not in `url`, and sets `audience` to the community (based on Lemmy's [page.json fixture](https://github.com/LemmyNet/lemmy/blob/0.19.20/crates/apub/assets/lemmy/objects/page.json)):
 
 ```json
 {
@@ -159,11 +161,21 @@ Link shares (like Lemmy posts):
   "type": "Page",
   "id": "https://lemmy.example/post/1",
   "attributedTo": "https://lemmy.example/u/alice",
+  "to": [
+    "https://lemmy.example/c/technology",
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "audience": "https://lemmy.example/c/technology",
   "name": "Interesting Article About ActivityPub",
-  "url": "https://example.com/article",
-  "content": "This is my commentary on the article..."
+  "content": "<p>This is my commentary on the article...</p>",
+  "mediaType": "text/html",
+  "attachment": [
+    { "type": "Link", "href": "https://example.com/article" }
+  ]
 }
 ```
+
+See the [Lemmy guide](/docs/guides/lemmy-compatibility) for details.
 
 ### Event
 
@@ -243,7 +255,7 @@ Objects can have media attachments:
 
 ### Blurhash
 
-Mastodon uses blurhash for image placeholders:
+Mastodon uses blurhash for image placeholders (`toot:blurhash` in its [context](https://github.com/mastodon/mastodon/blob/v4.7.3/app/helpers/context_helper.rb)):
 
 ```json
 {
@@ -254,6 +266,8 @@ Mastodon uses blurhash for image placeholders:
 ```
 
 ## Tags
+
+`Mention` is part of AS2. `Hashtag`, `Emoji` and `sensitive` are extensions: declare `"Hashtag": "as:Hashtag"`, `"sensitive": "as:sensitive"` and `"toot": "http://joinmastodon.org/ns#"`, `"Emoji": "toot:Emoji"` in your `@context`, as Mastodon does ([context_helper.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/helpers/context_helper.rb)).
 
 ### Hashtags
 
@@ -324,7 +338,7 @@ Use `sensitive` and `summary` for content warnings:
 
 ## Visibility
 
-Control who can see objects:
+AP has no visibility levels; they are conventions built from addressing. These are Mastodon's mappings ([tag_manager.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/tag_manager.rb#L173-L230)); Mastodon also adds mentioned accounts to `cc` (or to `to` for direct messages):
 
 ### Public
 
@@ -358,9 +372,14 @@ Control who can see objects:
 ```json
 {
   "to": ["https://other.example/users/bob"],
-  "cc": []
+  "cc": [],
+  "tag": [
+    { "type": "Mention", "href": "https://other.example/users/bob", "name": "@bob@other.example" }
+  ]
 }
 ```
+
+Include a `Mention` tag for each recipient — see [Direct Messages](/docs/guides/direct-messages).
 
 ## Polls (Question)
 
@@ -414,17 +433,15 @@ Adding location to objects:
 
 ## Object Fetching
 
-When you receive a reference to an object, you may need to fetch it:
+When you receive a reference to an object, you may need to fetch it. Clients MUST send the `ld+json` profile media type ([AP §3.2](https://www.w3.org/TR/activitypub/#retrieving-objects)); sending both types is the safe choice:
 
 ```http
 GET /notes/1 HTTP/1.1
 Host: example.com
-Accept: application/activity+json
+Accept: application/ld+json; profile="https://www.w3.org/ns/activitystreams", application/activity+json
 ```
 
-:::tip
-Cache fetched objects to reduce network requests. A TTL of 1-24 hours is typical.
-:::
+Only trust the result if its `id` is on the origin you fetched it from — see [Origin model](/docs/security/origin-model). Servers with authorized fetch require the GET to be signed — see [Authorized Fetch](/docs/security/authorized-fetch).
 
 ## Tombstones
 
@@ -440,7 +457,7 @@ Deleted objects become Tombstones:
 }
 ```
 
-Return HTTP 410 Gone for deleted objects.
+If a deleted object is requested, the server SHOULD respond with 410 Gone when it serves a Tombstone, or 404 Not Found otherwise ([AP §6.4](https://www.w3.org/TR/activitypub/#delete-activity-outbox)). Mastodon returns 404 for deleted posts — see [Deletion](/docs/guides/deletion).
 
 ## Next Steps
 

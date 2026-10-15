@@ -2,6 +2,8 @@
 sidebar_position: 2
 title: Actors
 description: Understanding Actors in ActivityPub - users, bots, organizations, and more
+last_verified: 2026-10-15
+verified_against: "ActivityPub REC §3.1/§4.1, AS2 Vocabulary, Mastodon v4.7.3 source (actor_serializer, context_helper, signature_verification, account.rb, routes), Lemmy group.json fixture, FEP-521a/1b12"
 ---
 
 # Actors
@@ -10,19 +12,21 @@ In ActivityPub, an **Actor** is any entity that can perform activities. Most com
 
 ## Actor Types
 
-ActivityStreams defines five actor types:
+ActivityStreams defines five actor types ([AS2 Vocabulary §3.2](https://www.w3.org/TR/activitystreams-vocabulary/#actor-types)):
 
-| Type | Description | Use Case |
+| Type | AS2 definition | Typical use |
 |------|-------------|----------|
-| `Person` | A human user | Individual accounts |
-| `Application` | A software bot | Automated accounts, bots |
-| `Organization` | A company or group | Business accounts |
-| `Service` | A software service | Relay servers, bridges |
-| `Group` | A shared actor | Communities, forums |
+| `Person` | An individual person | Individual accounts |
+| `Application` | A software application | Server/instance actors |
+| `Organization` | An organization | Business accounts |
+| `Service` | A service of any kind | Bots, relays, bridges |
+| `Group` | A formal or informal collective of actors | Communities, forums |
+
+Mastodon publishes bot accounts as `Service` and its instance actor as `Application`, and treats incoming `Service`/`Application` actors as bots ([actor_serializer.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/serializers/activitypub/actor_serializer.rb#L72-L80)).
 
 ## Required Properties
 
-Every actor MUST have:
+Every object MUST have an `id` and a `type` ([AP §3.1](https://www.w3.org/TR/activitypub/#obj-id)), and actors MUST also have an `inbox` and an `outbox` ([AP §4.1](https://www.w3.org/TR/activitypub/#actor-objects)). The security context below isn't required by the spec, but you need it for `publicKey`:
 
 ```json
 {
@@ -88,6 +92,8 @@ Every actor MUST have:
 
 ### Collections
 
+`followers` and `following` SHOULD be present; `liked` MAY be ([AP §4.1](https://www.w3.org/TR/activitypub/#actor-objects)).
+
 ```json
 {
   "followers": "https://example.com/users/alice/followers",
@@ -104,6 +110,8 @@ Every actor MUST have:
 
 ### Endpoints
 
+`endpoints` is optional; these are some of the properties AP defines for it ([AP §4.1](https://www.w3.org/TR/activitypub/#endpoints)). In practice `sharedInbox` is the one other servers use.
+
 ```json
 {
   "endpoints": {
@@ -117,7 +125,7 @@ Every actor MUST have:
 
 | Endpoint | Description |
 |----------|-------------|
-| `sharedInbox` | Server-wide inbox for batch delivery |
+| `sharedInbox` | Server-wide inbox for delivering public and followers-addressed activities once per server ([AP §7.1.3](https://www.w3.org/TR/activitypub/#shared-inbox-delivery)) |
 | `proxyUrl` | Proxy for fetching remote objects |
 | `oauthAuthorizationEndpoint` | OAuth 2.0 authorization |
 | `oauthTokenEndpoint` | OAuth 2.0 token endpoint |
@@ -142,7 +150,7 @@ ActivityPub itself doesn't require keys, but in practice actors must publish a p
 | `owner` | URL of the actor owning this key |
 | `publicKeyPem` | PEM-encoded public key (RSA is what everyone supports) |
 
-RSA via `publicKey` remains the baseline for interoperability, but it is no longer the only option. [FEP-521a](https://codeberg.org/fediverse/fep/src/branch/main/fep/521a/fep-521a.md) (FINAL) lets an actor publish **multiple keys**, including Ed25519, as `Multikey` entries in `assertionMethod`; Mastodon 4.6 accepts multiple keys per remote actor and 4.7 also verifies Ed25519 ([Mastodon 4.7 release](https://github.com/mastodon/mastodon/releases/tag/v4.7.0)). Multiple keys are also what makes **key rotation** workable: publish the new key alongside the old one, send an `Update` of the actor to followers, and remove the old key later. Servers that fail to verify a signature refetch the actor's keys once, so stale caches recover.
+RSA via `publicKey` remains the baseline for interoperability, but it is no longer the only option. [FEP-521a](https://codeberg.org/fediverse/fep/src/branch/main/fep/521a/fep-521a.md) (FINAL) lets an actor publish **multiple keys**, including Ed25519, as `Multikey` entries in `assertionMethod`; Mastodon 4.6 accepts multiple keys per remote actor and 4.7 also verifies Ed25519 in RFC 9421 signatures ([CHANGELOG](https://github.com/mastodon/mastodon/blob/v4.7.3/CHANGELOG.md)). Multiple keys are also what makes **key rotation** workable: publish the new key alongside the old one, send an `Update` of the actor to followers, and remove the old key later. Mastodon refetches the key once when a signature fails to verify, so stale caches recover ([signature_verification.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/controllers/concerns/signature_verification.rb#L48-L66)). See [Keys and Identity](/docs/security/keys-and-identity) for details.
 
 ## Complete Actor Example
 
@@ -208,7 +216,7 @@ RSA via `publicKey` remains the baseline for interoperability, but it is no long
 
 ## Mastodon Extensions
 
-Mastodon adds several properties to actors:
+Mastodon adds several properties to actors, defined in its JSON-LD context ([context_helper.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/helpers/context_helper.rb)):
 
 ### Profile Fields
 
@@ -260,7 +268,7 @@ Mastodon adds several properties to actors:
 
 ## Service and Application Actors
 
-Server-level actors for relays, bridges, and bots:
+Server-level actors for relays, bridges, and bots. Mastodon's instance actor, for example, is an `Application` served at `/actor` with an inbox at `/actor/inbox` and `preferredUsername` `mastodon.internal` ([routes.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/config/routes.rb#L62-L67), [seed](https://github.com/mastodon/mastodon/blob/v4.7.3/db/seeds/02_instance_actor.rb)):
 
 ```json
 {
@@ -313,15 +321,13 @@ Request verification has its own page with tested code: **[Verifying incoming re
 
 ## Caching Actors
 
-Cache remote actors to reduce requests:
+Cache remote actors to reduce requests, but refresh them:
 
-| Approach | TTL | Notes |
-|----------|-----|-------|
-| Short cache | 1-24 hours | Good for active federation |
-| Long cache | 1-7 days | Reduces requests, staler data |
-| On-demand | Fetch when needed | Most current, more requests |
+- **Periodically.** Mastodon treats a remote account as possibly stale after one day and refreshes it in the background ([account.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/models/account.rb#L71)).
+- **On `Update`.** Apply `Update` activities for the actor (after checking they come from the actor itself).
+- **On signature failure.** Refetch the key once before rejecting, as above.
 
-Recommended: 24-hour cache with refresh on key operations.
+The TTL is your choice; one day matches Mastodon.
 
 ## Next Steps
 

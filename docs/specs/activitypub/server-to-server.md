@@ -2,6 +2,8 @@
 sidebar_position: 7
 title: Server-to-Server
 description: The ActivityPub Server-to-Server federation protocol
+last_verified: 2026-10-15
+verified_against: "ActivityPub REC §7 and Appendix B, Mastodon v4.7.3 source (activity/create.rb, CHANGELOG), GHSA-3fjr-858r-92rw, examples/verify-requests API"
 ---
 
 # Server-to-Server (S2S)
@@ -40,22 +42,27 @@ The Server-to-Server protocol is how ActivityPub servers federate with each othe
 
 ### 1. Deliver Activity
 
-POST an activity to a remote inbox:
+POST an activity to a remote inbox. The REC says inbox POSTs MUST use `Content-Type: application/ld+json; profile="https://www.w3.org/ns/activitystreams"`, and that an activity sent over the network SHOULD have an `id` ([AP §7](https://www.w3.org/TR/activitypub/#server-to-server-interactions)). In practice almost every server sends — and accepts — `application/activity+json`; accept both:
 
 ```http
 POST /users/bob/inbox HTTP/1.1
 Host: server-b.com
 Date: Sun, 15 Jan 2024 10:30:00 GMT
-Digest: SHA-256=X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=
+Digest: SHA-256=...
 Signature: keyId="https://server-a.com/users/alice#main-key",...
 Content-Type: application/activity+json
 
 {
   "@context": "https://www.w3.org/ns/activitystreams",
+  "id": "https://server-a.com/activities/1",
   "type": "Create",
   "actor": "https://server-a.com/users/alice",
+  "to": ["https://server-b.com/users/bob"],
   "object": {
+    "id": "https://server-a.com/notes/1",
     "type": "Note",
+    "attributedTo": "https://server-a.com/users/alice",
+    "to": ["https://server-b.com/users/bob"],
     "content": "Hello from Server A!"
   }
 }
@@ -68,7 +75,7 @@ GET a remote actor profile:
 ```http
 GET /users/bob HTTP/1.1
 Host: server-b.com
-Accept: application/activity+json
+Accept: application/ld+json; profile="https://www.w3.org/ns/activitystreams", application/activity+json
 ```
 
 ### 3. Fetch Object
@@ -78,12 +85,12 @@ GET a remote object:
 ```http
 GET /notes/123 HTTP/1.1
 Host: server-b.com
-Accept: application/activity+json
+Accept: application/ld+json; profile="https://www.w3.org/ns/activitystreams", application/activity+json
 ```
 
 ## Authentication
 
-The ActivityPub spec leaves authentication open ([AP §B.1](https://www.w3.org/TR/activitypub/#authorization)), but in practice every major server requires inbox POSTs to be signed with HTTP Signatures — draft-cavage today, with [RFC 9421](https://www.rfc-editor.org/rfc/rfc9421.html) increasingly supported (Mastodon verifies it since 4.5):
+The ActivityPub spec leaves authentication open ([AP §B.1](https://www.w3.org/TR/activitypub/#authorization)), but in practice every major server requires inbox POSTs to be signed with HTTP Signatures — draft-cavage today, with [RFC 9421](https://www.rfc-editor.org/rfc/rfc9421.html) increasingly supported (Mastodon verifies it by default since 4.5, [CHANGELOG](https://github.com/mastodon/mastodon/blob/v4.7.3/CHANGELOG.md)):
 
 ```http
 Signature: keyId="https://server-a.com/users/alice#main-key",
@@ -114,7 +121,8 @@ When receiving an activity:
 ### 1. Verify Request
 
 ```javascript
-// verifyRequest, parseActivityFrom, authorizeActivity: /docs/security/verifying-requests
+// verifyRequest, parseActivityFrom, authorizeActivity, SignatureError, AuthorizationError:
+// examples/verify-requests (see /docs/security/verifying-requests)
 app.post('/users/:username/inbox', express.raw({ type: '*/*', limit: '1mb' }), async (req, res) => {
   let activity;
   try {
@@ -125,7 +133,11 @@ app.post('/users/:username/inbox', express.raw({ type: '*/*', limit: '1mb' }), a
     activity = parseActivityFrom(signer, req.body); // signer must be activity.actor
     authorizeActivity(activity);                    // origin rules (see below)
   } catch (error) {
-    return res.status(error instanceof SignatureError ? 401 : 403).json({ error: error.message });
+    // 401: bad signature; 403: origin rules; 503: couldn't fetch the key yet,
+    // so the sender retries later (as Mastodon does since 4.5.4)
+    const status = error instanceof SignatureError ? 401
+      : error instanceof AuthorizationError ? 403 : 503;
+    return res.status(status).json({ error: error.message });
   }
   await queue.add(activity); // process asynchronously
   res.status(202).send();
@@ -136,10 +148,11 @@ app.post('/users/:username/inbox', express.raw({ type: '*/*', limit: '1mb' }), a
 
 ```javascript
 function validateActivity(activity, signer) {
-  // Actor must match signer. (Forwarded activities — AP §7.1.2 — are
-  // signed by the forwarding server, not the actor: don't trust their
-  // body; re-fetch the activity from its origin by id instead.)
-  if (activity.actor !== signer.id) {
+  // Actor must match signer (parseActivityFrom already enforces this;
+  // signer is what verifyRequest returns). Forwarded activities — AP
+  // §7.1.2 — are signed by the forwarding server, not the actor: don't
+  // trust their body; re-fetch the activity from its origin by id instead.
+  if (activity.actor !== signer.actorId) {
     throw new Error('Actor does not match signer');
   }
 
@@ -208,7 +221,8 @@ async function processCreate(activity) {
 
   // Origin check: the object must live on the actor's server. Without
   // this, evil.example can overwrite objects "owned" by victim.example
-  // (the bug class behind Mastodon CVE-2024-23832).
+  // (the bug class behind Mastodon CVE-2024-23832; Mastodon now rejects
+  // these via non_matching_uri_hosts? in activity/create.rb).
   if (new URL(object.id).origin !== new URL(activity.actor).origin) {
     throw new Error('Object id is not on the actor\'s origin');
   }
@@ -268,7 +282,7 @@ async function acceptFollow(followActivity) {
   const accept = {
     '@context': 'https://www.w3.org/ns/activitystreams',
     type: 'Accept',
-    id: `https://example.com/activities/${uuid()}`,
+    id: `https://example.com/activities/${crypto.randomUUID()}`,
     actor: followActivity.object,
     object: followActivity
   };
@@ -319,20 +333,18 @@ async function processDelete(activity) {
 
 ```javascript
 async function processUndo(activity) {
-  const undone = activity.object;
-  const undoneId = typeof undone === 'string' ? undone : undone.id;
+  const undoneId = typeof activity.object === 'string' ? activity.object : activity.object?.id;
 
-  // Verify the actor owns the activity being undone
+  // Prefer our stored copy; an embedded object is only a claim. Either
+  // way the activity being undone must belong to the actor undoing it.
   const original = await db.activities.findOne({ id: undoneId });
-  if (original && original.actor !== activity.actor) {
+  const undone = original ?? (typeof activity.object === 'object' ? activity.object : null);
+  if (!undone) return; // nothing we know about
+  if (undone.actor !== activity.actor) {
     throw new Error('Cannot undo: not owner');
   }
 
-  const undoneType = typeof undone === 'string'
-    ? original?.type
-    : undone.type;
-
-  switch (undoneType) {
+  switch (undone.type) {
     case 'Follow':
       await db.followers.remove({
         actor: undone.object,
@@ -369,7 +381,7 @@ For efficiency, servers can use a shared inbox:
 }
 ```
 
-When delivering to multiple users on the same server, send once to the shared inbox.
+When delivering public or followers-addressed activities to several users on the same server, send once to the shared inbox ([AP §7.1.3](https://www.w3.org/TR/activitypub/#shared-inbox-delivery)).
 
 ### Handling Shared Inbox
 
@@ -385,7 +397,11 @@ app.post('/inbox', express.raw({ type: '*/*', limit: '1mb' }), async (req, res) 
     activity = parseActivityFrom(signer, req.body);
     authorizeActivity(activity);
   } catch (error) {
-    return res.status(error instanceof SignatureError ? 401 : 403).json({ error: error.message });
+    // 401: bad signature; 403: origin rules; 503: couldn't fetch the key yet,
+    // so the sender retries later (as Mastodon does since 4.5.4)
+    const status = error instanceof SignatureError ? 401
+      : error instanceof AuthorizationError ? 403 : 503;
+    return res.status(status).json({ error: error.message });
   }
 
   // Determine local recipients
@@ -414,7 +430,8 @@ async function resolveLocalRecipients(activity) {
     // The sender's own followers collection? Only honour the followers
     // collection of activity.actor itself — otherwise anyone could address
     // someone else's followers and land in their timelines. (Mastodon
-    // likewise only treats the author's own `followers` URL this way.)
+    // likewise only compares against the author's own followers URL —
+    // app/lib/activitypub/activity/create.rb, create_status.)
     const remote = await db.remoteActors.findOne({ followers: address });
     if (remote && remote.id === activity.actor) {
       for (const u of await db.users.find({ following: remote.id })) {
@@ -484,14 +501,10 @@ app.post('/users/:username/inbox', inboxLimiter, handleInbox);
 8. **Handle inbox forwarding**: when a reply arrives signed by a server other than the actor's (AP [§7.1.2](https://www.w3.org/TR/activitypub/#inbox-forwarding)), re-fetch it from its origin rather than rejecting or trusting it blindly
 
 ```javascript
-// Payload size limit. Note express.json() only parses application/json
-// by default — list the ActivityPub types, and keep the raw bytes for
-// Digest verification.
-app.use('/inbox', express.json({
-  limit: '1mb',
-  type: ['application/activity+json', 'application/ld+json'],
-  verify: (req, res, buf) => { req.rawBody = buf; }
-}));
+// Payload size limit. Keep the raw bytes (as the inbox handlers above do
+// with express.raw) — the digest is checked over them, and the JSON is
+// parsed only after verification.
+app.use('/inbox', express.raw({ type: '*/*', limit: '1mb' }));
 
 // Block check
 async function isBlocked(actorUrl) {

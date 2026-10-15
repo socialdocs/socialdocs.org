@@ -2,6 +2,8 @@
 sidebar_position: 8
 title: Delivery
 description: How ActivityPub servers deliver activities to recipients
+last_verified: 2026-10-15
+verified_against: "ActivityPub REC §6–§7.1.3, Mastodon v4.7.3 source (delivery_worker, json_ld_helper, delivery_failure_tracker, CHANGELOG), FEP-49eb, examples/verify-requests"
 ---
 
 # Activity Delivery
@@ -64,7 +66,7 @@ Delivery is the process of sending activities from your server to remote inboxes
 
 ## Step 1: Resolve Recipients
 
-Extract all recipients from the activity:
+Extract all recipients from the activity. AP requires the server to de-duplicate the final recipient list and to exclude the activity's own actor ([AP §7.1](https://www.w3.org/TR/activitypub/#delivery)):
 
 ```javascript
 function getRecipients(activity) {
@@ -87,7 +89,7 @@ function getRecipients(activity) {
 
 ### Expand Collections
 
-Resolve recipient URLs to actual actor inboxes.
+Resolve recipient URLs to actual actor inboxes. If a recipient is a collection, the server MUST dereference it and discover the inboxes of its members, and MUST limit how many layers of collections it follows — one is allowed ([AP §7.1](https://www.w3.org/TR/activitypub/#delivery)). In practice you deliver to your own followers from your database and only expand other collections you have a reason to trust.
 
 :::warning IRI Opacity
 Don't assume URL patterns like `/followers`. IRIs are opaque — always dereference and check the `type`. See [URIs, IRIs & Linked Data](/docs/concepts/uris-iris-linked-data) for details.
@@ -119,14 +121,13 @@ async function expandRecipients(recipients, sender) {
     }
 
     // Anything else: dereference it to determine what it is
-    // (use a signed, SSRF-safe fetch in production)
     const data = await fetchActivityPubObject(recipient);
     if (!data) continue;
 
     const type = Array.isArray(data.type) ? data.type[0] : data.type;
 
     if (type === 'OrderedCollection' || type === 'Collection') {
-      // It's a collection (e.g., followers) — expand its members
+      // It's a collection — expand one layer only (AP §7.1)
       const members = await expandCollection(data);
       for (const memberUrl of members) {
         const actor = await fetchActor(memberUrl);
@@ -173,14 +174,14 @@ async function expandCollection(collection) {
   return members.map(m => typeof m === 'string' ? m : m.id);
 }
 
-// Fetch an ActivityPub object with proper headers
+// Recipient URLs come from remote data: fetch them with the SSRF-safe
+// fetcher (scheme/private-address checks, size and time limits, both
+// ActivityPub Accept types). Pass signRequest for authorized-fetch servers.
+import { safeFetchJson } from './verify-requests/src/index.js';
+
 async function fetchActivityPubObject(url) {
   try {
-    const response = await fetch(url, {
-      headers: { 'Accept': 'application/activity+json' }
-    });
-    if (!response.ok) return null;
-    return await response.json();
+    return await safeFetchJson(url);
   } catch {
     return null;
   }
@@ -189,11 +190,11 @@ async function fetchActivityPubObject(url) {
 
 ## Step 2: Deduplicate Inboxes
 
-Use shared inboxes when multiple users are on the same server:
+Use shared inboxes when delivering public or followers-addressed activities to several users on the same server ([AP §7.1.3](https://www.w3.org/TR/activitypub/#shared-inbox-delivery)). For an activity addressed only to specific people, the personal `inbox` is always correct:
 
 ```javascript
 function getInbox(actor) {
-  // Prefer shared inbox for efficiency
+  // Shared inbox for public/followers deliveries
   if (actor.endpoints?.sharedInbox) {
     return actor.endpoints.sharedInbox;
   }
@@ -209,7 +210,7 @@ function deduplicateInboxes(inboxes) {
 
 ### Remove Private Addressing
 
-Strip `bto` and `bcc` before sending:
+The server MUST remove `bto` and `bcc` before delivery ([AP §6](https://www.w3.org/TR/activitypub/#remove-bto-bcc-before-delivery)), while still using them to pick recipients:
 
 ```javascript
 function prepareActivityForDelivery(activity) {
@@ -222,40 +223,19 @@ function prepareActivityForDelivery(activity) {
 
 ### Sign the Request
 
+Use the tested signer from [`examples/verify-requests`](https://github.com/socialdocs/socialdocs.org/tree/gh-pages/examples/verify-requests). `signCavage` signs `(request-target)` (including any query string), `host`, `date` and `digest`; `signRfc9421` produces RFC 9421 headers for servers that ask for them. Both take a Node `KeyObject`:
+
 ```javascript
-const crypto = require('crypto');
+import { createPrivateKey } from 'node:crypto';
+import { signCavage } from './verify-requests/src/index.js';
 
-function signRequest(privateKey, keyId, method, url, body) {
-  const urlObj = new URL(url);
-  const date = new Date().toUTCString();
-
-  // Create digest
-  const digest = `SHA-256=${crypto
-    .createHash('sha256')
-    .update(body)
-    .digest('base64')}`;
-
-  // Build signing string
-  const signedHeaders = '(request-target) host date digest';
-  const signingString = [
-    `(request-target): ${method.toLowerCase()} ${urlObj.pathname}`,
-    `host: ${urlObj.host}`,
-    `date: ${date}`,
-    `digest: ${digest}`
-  ].join('\n');
-
-  // Create signature
-  const signature = crypto
-    .sign('RSA-SHA256', Buffer.from(signingString), privateKey)
-    .toString('base64');
-
-  return {
-    date,
-    digest,
-    signature: `keyId="${keyId}",algorithm="rsa-sha256",headers="${signedHeaders}",signature="${signature}"`
-  };
-}
+const privateKey = createPrivateKey(actor.privateKeyPem);
+const body = JSON.stringify(activity);
+const headers = signCavage({ method: 'POST', url: inbox, body, keyId: actor.keyId, privateKey });
+// → { host, date, digest, signature }
 ```
+
+See [HTTP Signatures](/docs/specs/http-signatures/overview) for when to fall back to RFC 9421.
 
 ## Step 4: Send Activity
 
@@ -266,17 +246,20 @@ Inbox URLs come from remote actor documents, so treat them as untrusted: require
 ```javascript
 async function deliverToInbox(inbox, activity, privateKey, keyId) {
   const body = JSON.stringify(activity);
-  const headers = signRequest(privateKey, keyId, 'POST', inbox, body);
+  const signed = signCavage({ method: 'POST', url: inbox, body, keyId, privateKey });
 
   const response = await fetch(inbox, {
     method: 'POST',
     headers: {
+      // What Mastodon sends (delivery_worker.rb); AP §7 names
+      // application/ld+json; profile="https://www.w3.org/ns/activitystreams"
       'Content-Type': 'application/activity+json',
-      'Date': headers.date,
-      'Digest': headers.digest,
-      'Signature': headers.signature
+      'Date': signed.date,
+      'Digest': signed.digest,
+      'Signature': signed.signature
     },
-    body
+    body,
+    signal: AbortSignal.timeout(10_000),
   });
 
   if (!response.ok) {
@@ -329,7 +312,8 @@ async function deliverActivity(activity, actor) {
 
 The spec leaves retries to implementations. What matters for interoperability:
 
-- **Retry transient failures with growing delays, for days, not minutes.** Servers go down for maintenance and come back. Mastodon retries one delivery 16 times with a delay of n⁴ + 15 seconds plus jitter, about 2–3 days in total ([delivery_worker.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/workers/activitypub/delivery_worker.rb)).
+- **Retry asynchronously.** Delivery to other servers SHOULD be asynchronous and SHOULD be retried on network errors ([AP §7.1](https://www.w3.org/TR/activitypub/#delivery)).
+- **Retry transient failures with growing delays, for days, not minutes.** Servers go down for maintenance and come back. Mastodon retries one delivery 16 times with a delay of n⁴ + 15 seconds plus jitter, about 2–3 days in total ([delivery_worker.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/workers/activitypub/delivery_worker.rb#L11-L21)).
 - **Don't retry what can't succeed.** Mastodon gives up on 4xx other than 401, 408 and 429, and on 501; it retries 401, 408, 429, other 5xx and network errors ([json_ld_helper.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/helpers/json_ld_helper.rb)).
 - **Stop delivering to servers that are gone, and notice when they come back.** Mastodon marks a host unavailable after failures on 7 distinct days, and clears it on any successful delivery or any signed request from that host ([delivery_failure_tracker.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/delivery_failure_tracker.rb)). A rule like "dead after one bad day" drops servers that were only briefly down.
 
@@ -380,21 +364,12 @@ deliveryQueue.process(async (job) => {
 });
 ```
 
-### 2. Batch Deliveries
+### 2. Don't Batch Activities
 
-Group activities going to the same server:
-
-```javascript
-// Bad: One request per activity
-activities.forEach(a => deliverToInbox(inbox, a));
-
-// Better: queue them and let workers deliver one activity per request
-const queue = activities.map(a => ({ inbox, activity: a }));
-await processDeliveryQueue(queue);
-```
+Send one activity per request; save work by using shared inboxes, not by combining activities.
 
 :::note
-Don't POST a `Collection` of activities to an inbox. Mastodon 4.7 removed support for processing collections of activities in the inbox ([v4.7.0 release notes](https://github.com/mastodon/mastodon/releases/tag/v4.7.0)). Batched delivery is being explored in [FEP-49eb](https://codeberg.org/fediverse/fep/src/branch/main/fep/49eb/fep-49eb.md) (DRAFT), but nothing widely deployed supports it.
+Don't POST a `Collection` of activities to an inbox. Mastodon 4.7 removed support for processing collections of activities in the inbox ([CHANGELOG](https://github.com/mastodon/mastodon/blob/v4.7.3/CHANGELOG.md), #39932). Batched delivery is being explored in [FEP-49eb](https://codeberg.org/fediverse/fep/src/branch/main/fep/49eb/fep-49eb.md) (DRAFT), but nothing widely deployed supports it.
 :::
 
 ### 3. Respect Rate Limits
@@ -425,21 +400,7 @@ async function deliverToInbox(inbox, activity, privateKey, keyId) {
 
 ### 4. Set Timeouts
 
-Don't wait forever for slow servers:
-
-```javascript
-const controller = new AbortController();
-const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
-
-try {
-  const response = await fetch(inbox, {
-    signal: controller.signal,
-    // ...
-  });
-} finally {
-  clearTimeout(timeout);
-}
-```
+Don't wait forever for slow servers — `deliverToInbox` above passes `signal: AbortSignal.timeout(10_000)`.
 
 ### 5. Log Delivery Status
 
