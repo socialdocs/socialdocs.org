@@ -1,0 +1,35 @@
+---
+sidebar_position: 3
+title: Signature Inspector
+description: Paste a signed ActivityPub request to see the exact draft-cavage signing string or RFC 9421 signature base, check its digest, and verify it with a public key
+---
+
+import SignatureInspector from '@site/src/components/tools/SignatureInspector';
+
+# Signature Inspector
+
+Most "401 from Mastodon" bugs come down to the signer and the verifier building different strings. Paste a signed request exactly as it arrived (or as your code sends it) to see the string that was actually signed, whether the body digest matches, and whether the signature covers what Mastodon requires. Then paste the sender's public key to verify it.
+
+<SignatureInspector />
+
+## How it works
+
+The tool detects the scheme from the headers:
+
+| Header present | Scheme | What it builds |
+|----------------|--------|----------------|
+| `Signature-Input` | [RFC 9421](https://www.rfc-editor.org/rfc/rfc9421) | The signature base ([§2.5](https://www.rfc-editor.org/rfc/rfc9421#name-creating-the-signature-base)) for the first label: derived components (`@method`, `@target-uri`, `@authority`, `@scheme`, `@request-target`, `@path`, `@query`, `@query-param`) and header fields, then `@signature-params`. Checks `Content-Digest` ([RFC 9530](https://www.rfc-editor.org/rfc/rfc9530.html)) when it is covered. |
+| `Signature` only | [draft-cavage-12](https://datatracker.ietf.org/doc/html/draft-cavage-http-signatures-12#section-2.3) | The signing string from the `headers` parameter (default `date`), with `(request-target)` including the query string as Mastodon builds it. Checks the legacy `Digest` header. |
+
+The Mastodon checks are the exact conditions in [`signed_request.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/signed_request.rb#L55-L58) (Mastodon 4.7.3). For draft-cavage, the signature must cover `date` or `(created)`, `(request-target)` or `digest`, `host` on GET, and `digest` on POST. For RFC 9421, it must have `created` and `keyid` parameters and cover `@method` and `@target-uri`, plus `content-digest` on POST.
+
+Verification uses your browser's WebCrypto: RSA keys as RSASSA-PKCS1-v1_5 with SHA-256 (`rsa-sha256` / `rsa-v1_5-sha256`), and Ed25519. Ed25519 needs a current browser. RSA-PSS, ECDSA and HMAC aren't supported. The signature base logic is tested against the RFC 9421 Appendix B test vectors, including verifying the B.2.6 Ed25519 signature (tests in `tests/tools` in the [site repository](https://github.com/socialdocs/socialdocs.org)).
+
+:::tip Common mismatches the string shows immediately
+- A `Digest` computed over re-serialised JSON instead of the exact bytes sent
+- `(request-target)` missing the query string, or using the wrong case for the method
+- A header in the `headers` list that a proxy changed or dropped (often `host`)
+- `Date` in the wrong format, or too old. Mastodon accepts a signature for about an hour (5 minutes plus 1 hour of clock skew) unless an explicit expiry says otherwise.
+:::
+
+For how verification should work end to end, see [Verifying incoming requests](/docs/security/verifying-requests) and [HTTP signatures in 2026](/docs/specs/http-signatures/overview).

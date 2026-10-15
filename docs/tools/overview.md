@@ -1,12 +1,22 @@
 ---
 sidebar_position: 0
 title: Testing & Debugging Tools
-description: The external tools ActivityPub developers actually use to inspect, test and debug federation — and what the guides in this section cover
+description: Interactive tools on SocialDocs for linting objects, inspecting actors and checking HTTP signatures, plus the external tools ActivityPub developers use to test and debug federation
 ---
 
 # Testing & Debugging Tools
 
-The pages in this section are **guides**, not interactive tools: SocialDocs does not host a validator or signature tester. This page points you at the external tools that exist today, with their status as checked in October 2026.
+## Tools on this site
+
+These run in your browser; nothing you paste is sent to SocialDocs.
+
+| Tool | What it does |
+|------|--------------|
+| [Activity Linter](/docs/tools/activity-validator) | Checks an actor, activity or object against Activity Streams 2.0, ActivityPub and Mastodon's acceptance rules, with a source link for every finding |
+| [Actor Inspector](/docs/tools/actor-inspector) | Resolves a handle with WebFinger, fetches the actor from your browser and lints it (servers that block CORS or require signed fetch: paste the JSON instead) |
+| [Signature Inspector](/docs/tools/signature-inspector) | Shows the exact draft-cavage signing string or RFC 9421 signature base for a pasted request, checks the digest and Mastodon's required components, and verifies with a public key |
+
+The external tools below are the ones that exist today, with their status as checked in October 2026.
 
 ## Inspect remote objects
 
@@ -34,8 +44,9 @@ There is no maintained, official conformance suite. See [Test Suites](/docs/tool
 
 ## Guides in this section
 
-- [Validating activities](/docs/tools/activity-validator) — checking activities and objects by hand and in code
-- [Inspecting actors](/docs/tools/actor-inspector) — fetching and reading actor documents
+- [Activity Linter](/docs/tools/activity-validator) — the linter, plus checking activities and objects in code
+- [Actor Inspector](/docs/tools/actor-inspector) — the inspector, plus fetching and reading actor documents in code
+- [Signature Inspector](/docs/tools/signature-inspector) — signing strings and signature bases
 - [Testing WebFinger](/docs/guides/webfinger-implementation#lookup-tools) — checking discovery
 - [Working with JSON-LD](/docs/tools/json-ld-playground) — contexts and expansion
 - [Troubleshooting by symptom](/docs/guides/troubleshooting) — common federation failures

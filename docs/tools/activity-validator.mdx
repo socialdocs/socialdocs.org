@@ -1,25 +1,33 @@
 ---
 sidebar_position: 1
-title: Validating Activities
-description: Validate your ActivityPub activities against the spec
+title: Activity Linter
+description: Lint ActivityPub actors, activities and objects in your browser against the Activity Streams spec, ActivityPub and Mastodon's actual acceptance rules
 ---
 
-# Validating Activities
+import ObjectLinter from '@site/src/components/tools/ObjectLinter';
 
-:::info
-This is a guide, not an interactive tool. For hands-on tools see [Testing & Debugging Tools](/docs/tools/overview).
-:::
+# Activity Linter
 
-Use this tool to validate your ActivityStreams activities and objects against the specification.
+Paste an actor, activity or object to check it against the [Activity Streams 2.0](https://www.w3.org/TR/activitystreams-core/) and [ActivityPub](https://www.w3.org/TR/activitypub/) specs and against the rules [Mastodon](https://github.com/mastodon/mastodon/tree/v4.7.3) applies when it receives one. Every finding links the spec section or source line it comes from.
 
-## Online Tools
+<ObjectLinter />
 
-There is no maintained online ActivityPub validator. The closest practical options:
+## What it checks
 
-- [browser.pub](https://browser.pub/) — fetch and inspect any actor, object or collection the way a federated server sees it
-- [Fedify CLI](https://fedify.dev/cli) — `fedify lookup` fetches and parses objects from any server, surfacing malformed JSON-LD
+| Area | Checks | Sources |
+|------|--------|---------|
+| Context | `@context` present and includes `https://www.w3.org/ns/activitystreams` | [AS2 Core §2.1](https://www.w3.org/TR/activitystreams-core/#jsonld), [Mastodon](https://github.com/mastodon/mastodon/blob/v4.7.3/app/services/activitypub/fetch_remote_actor_service.rb#L31-L34) |
+| Identity | `id` present, absolute and HTTPS; `type` present and an Activity Vocabulary type (or a known extension) | [AP §3.1](https://www.w3.org/TR/activitypub/#x3-1-object-identifiers), [Vocabulary](https://www.w3.org/TR/activitystreams-vocabulary/#types) |
+| Actors | `inbox` and `outbox` (MUST), `followers`/`following` (SHOULD), `preferredUsername` or `webfinger`, a `publicKey` whose `owner` is the actor and whose PEM is SPKI | [AP §4.1](https://www.w3.org/TR/activitypub/#actor-objects), Mastodon [actor fetch](https://github.com/mastodon/mastodon/blob/v4.7.3/app/services/activitypub/fetch_remote_actor_service.rb#L31-L34) and [account processing](https://github.com/mastodon/mastodon/blob/v4.7.3/app/services/activitypub/process_account_service.rb#L24) |
+| Dates | `published`, `updated`, `startTime`, `endTime`, `deleted` are RFC 3339 with uppercase `T` and `Z` | [AS2 Core §2.3](https://www.w3.org/TR/activitystreams-core/#dates) |
+| Addressing | compacted `Public` forms, `bto`/`bcc` left in, direct messages without `Mention` tags (Mastodon treats them as "limited" and sends no notification) | [AP §5.6](https://www.w3.org/TR/activitypub/#public-addressing), [Mastodon docs](https://docs.joinmastodon.org/spec/activitypub/#Mention) |
+| Create | object embedded (not just a URI), of a type Mastodon turns into a status, on the actor's host, attributed to the actor | Mastodon [create.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/activity/create.rb#L18), [activity.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/activity.rb#L9-L10) |
 
-## Local Validation
+It does not check signatures (see the [Signature Inspector](/docs/tools/signature-inspector)), fetch anything, or expand JSON-LD; terms are matched by their compacted names, the way most implementations read them. The rules live in `src/components/tools/lib` and their tests in `tests/tools`, in the [site repository](https://github.com/socialdocs/socialdocs.org).
+
+To lint a live actor by handle, use the [Actor Inspector](/docs/tools/actor-inspector). Other tools that fetch and parse objects the way a server does: [BrowserPub](https://browser.pub/) and `fedify lookup` from the [Fedify CLI](https://fedify.dev/cli).
+
+## Validating in code
 
 ### Basic JSON Schema Validation
 
@@ -229,7 +237,8 @@ function validateByType(activity) {
 ### curl
 
 ```bash
-# Test your activity endpoint
+# Against your own development server only: real servers (Mastodon included)
+# reject unsigned POSTs to an inbox
 curl -X POST https://example.com/inbox \
   -H "Content-Type: application/activity+json" \
   -d '{
@@ -243,12 +252,9 @@ curl -X POST https://example.com/inbox \
   }'
 ```
 
-### Postman/Insomnia
-
-Import ActivityPub collections for testing.
-
 ## See Also
 
-- **[Actor Inspector](/docs/tools/actor-inspector)** - Inspect remote actors
+- **[Actor Inspector](/docs/tools/actor-inspector)** - Fetch and lint remote actors
+- **[Signature Inspector](/docs/tools/signature-inspector)** - See the exact string a signature covers
 - **[WebFinger Lookup](/docs/guides/webfinger-implementation#lookup-tools)** - Test discovery
 - **[Test Suites](/docs/tools/test-suites)** - Comprehensive testing

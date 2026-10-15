@@ -1,0 +1,58 @@
+name: Refresh homepage stats
+
+# Weekly: re-fetch FediDB counts and latest platform versions into
+# src/data/stats.json and open a PR if anything changed.
+#
+# Opening the PR needs Settings → Actions → General → "Allow GitHub Actions
+# to create and approve pull requests". Without it the branch is still
+# pushed and the job summary links to it. PRs opened with GITHUB_TOKEN don't
+# trigger other workflows, so the build check runs when the PR is merged.
+
+on:
+  schedule:
+    - cron: '41 5 * * 1'  # Mondays 05:41 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: stats
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: Fetch stats
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/generate-stats.mjs
+
+      - name: Open a PR if the numbers changed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if git diff --quiet -- src/data/stats.json; then
+            echo "No changes." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          branch="stats/$(date -u +%Y-%m-%d)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add src/data/stats.json
+          git commit -m "Refresh homepage stats ($(date -u +%Y-%m-%d))"
+          git push --force origin "$branch"
+          body="Weekly refresh of FediDB account counts and latest platform versions (scripts/generate-stats.mjs)."
+          if ! gh pr create --base gh-pages --head "$branch" --title "Refresh homepage stats" --body "$body"; then
+            echo "Could not open a PR (Actions may not be allowed to create PRs)." >> "$GITHUB_STEP_SUMMARY"
+            echo "Open it manually: ${{ github.server_url }}/${{ github.repository }}/compare/gh-pages...$branch" >> "$GITHUB_STEP_SUMMARY"
+          fi

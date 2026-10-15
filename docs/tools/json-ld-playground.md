@@ -7,7 +7,7 @@ description: Tools for testing and validating JSON-LD in ActivityPub
 # Working with JSON-LD
 
 :::info
-This is a guide, not an interactive tool. For hands-on tools see [Testing & Debugging Tools](/docs/tools/overview).
+This page is a guide. To check an object interactively, use the [Activity Linter](/docs/tools/activity-validator); for full JSON-LD processing, the [JSON-LD Playground](https://json-ld.org/playground/).
 :::
 
 ActivityPub uses JSON-LD for semantic data representation. Understanding JSON-LD helps debug context issues and ensure interoperability.

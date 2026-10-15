@@ -1,0 +1,30 @@
+name: Test interactive tools
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths:
+      - 'src/components/tools/**'
+      - 'tests/tools/**'
+      - '.github/workflows/tools.yml'
+  pull_request:
+    paths:
+      - 'src/components/tools/**'
+      - 'tests/tools/**'
+      - '.github/workflows/tools.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      # The tool logic is dependency-free, so no npm ci is needed
+      - run: node --test 'tests/tools/*.test.mjs'

@@ -6,6 +6,7 @@ import Layout from '@theme/Layout';
 import Heading from '@theme/Heading';
 
 import styles from './index.module.css';
+import stats from '@site/src/data/stats.json';
 
 type FeatureItem = {
   title: string;
@@ -174,12 +175,27 @@ function HomepageFeatures() {
   );
 }
 
+type PlatformName = keyof typeof stats.platforms;
+
 type PlatformItem = {
-  name: string;
+  name: PlatformName;
   color: string;
-  users: string;
   link: string;
 };
+
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+/** 8466403 -> "8.5M", 368880 -> "369K", 755 -> "755" */
+function formatCount(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+  if (n >= 1_000) return `${Math.round(n / 1_000)}K`;
+  return String(n);
+}
+
+function formatDate(iso: string): string {
+  const [year, month, day] = iso.split('-').map(Number);
+  return `${day} ${MONTHS[month - 1]} ${year}`;
+}
 
 // Simple icon paths for each platform (scaled for 48x48 viewBox, centered around 24,24)
 const platformIcons: Record<string, string> = {
@@ -202,14 +218,14 @@ const platformIcons: Record<string, string> = {
 };
 
 const platforms: PlatformItem[] = [
-  { name: 'Mastodon', color: '#6364FF', users: '8.4M', link: '/docs/ecosystem/mastodon' },
-  { name: 'Lemmy', color: '#00bc8c', users: '370K', link: '/docs/ecosystem/lemmy' },
-  { name: 'Pixelfed', color: '#e44a8d', users: '1.2M', link: '/docs/ecosystem/pixelfed' },
-  { name: 'PeerTube', color: '#f2690d', users: '560K', link: '/docs/ecosystem/peertube' },
-  { name: 'Misskey', color: '#96d04a', users: '1.25M', link: '/docs/ecosystem/misskey' },
-  { name: 'Pleroma', color: '#fba457', users: '53K', link: '/docs/ecosystem/pleroma' },
-  { name: 'GoToSocial', color: '#df8958', users: '<1K', link: '/docs/ecosystem/gotosocial' },
-  { name: 'Friendica', color: '#3f8dba', users: '18K', link: '/docs/ecosystem/other-servers#friendica' },
+  { name: 'Mastodon', color: '#6364FF', link: '/docs/ecosystem/mastodon' },
+  { name: 'Lemmy', color: '#00bc8c', link: '/docs/ecosystem/lemmy' },
+  { name: 'Pixelfed', color: '#e44a8d', link: '/docs/ecosystem/pixelfed' },
+  { name: 'PeerTube', color: '#f2690d', link: '/docs/ecosystem/peertube' },
+  { name: 'Misskey', color: '#96d04a', link: '/docs/ecosystem/misskey' },
+  { name: 'Pleroma', color: '#fba457', link: '/docs/ecosystem/pleroma' },
+  { name: 'GoToSocial', color: '#df8958', link: '/docs/ecosystem/gotosocial' },
+  { name: 'Friendica', color: '#3f8dba', link: '/docs/ecosystem/other-servers#friendica' },
 ];
 
 function PlatformLogo({ name, color }: { name: string; color: string }) {
@@ -242,18 +258,27 @@ function CompatibilitySection() {
       <div className="container">
         <Heading as="h2" className={styles.sectionTitle}>Platforms Covered</Heading>
         <p className={styles.sectionSubtitle}>
-          Build software that federates with ~13.8 million registered accounts (~1.37 million monthly active). Account counts per platform from FediDB, October 2026.
+          Build software that federates with ~{formatCount(stats.fediverse.accounts)} registered accounts
+          (~{formatCount(stats.fediverse.monthlyActive)} monthly active) on {stats.fediverse.instances.toLocaleString('en')} servers.
+          Account counts from <a href="https://fedidb.org/">FediDB</a>, latest stable versions from each project's releases,
+          as of {formatDate(stats.asOf)}.
         </p>
         <div className={styles.platformGrid}>
-          {platforms.map((platform) => (
-            <Link key={platform.name} to={platform.link} className={styles.platformCard}>
-              <PlatformLogo name={platform.name} color={platform.color} />
-              <div className={styles.platformInfo}>
-                <span className={styles.platformName}>{platform.name}</span>
-                <span className={styles.platformUsers}>{platform.users} users</span>
-              </div>
-            </Link>
-          ))}
+          {platforms.map((platform) => {
+            const data = stats.platforms[platform.name];
+            return (
+              <Link key={platform.name} to={platform.link} className={styles.platformCard}>
+                <PlatformLogo name={platform.name} color={platform.color} />
+                <div className={styles.platformInfo}>
+                  <span className={styles.platformName}>{platform.name}</span>
+                  <span className={styles.platformUsers}>
+                    {formatCount(data.accounts)} accounts
+                    {data.version && <> · {data.version}</>}
+                  </span>
+                </div>
+              </Link>
+            );
+          })}
         </div>
         <p className={styles.trustNote}>
           ActivityPub is a <a href="https://www.w3.org/TR/activitypub/">W3C Recommendation</a> — the open standard powering the decentralized social web.
