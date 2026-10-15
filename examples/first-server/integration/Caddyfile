@@ -1,0 +1,10 @@
+# TLS in front of Mastodon for the federation test (see compose-mastodon.yaml).
+{
+	auto_https disable_redirects
+	admin off
+}
+
+mastodon.test {
+	tls /certs/server.pem /certs/server.key
+	reverse_proxy web:3000
+}
