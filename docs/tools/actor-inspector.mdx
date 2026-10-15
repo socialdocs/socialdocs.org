@@ -2,6 +2,8 @@
 sidebar_position: 2
 title: Actor Inspector
 description: Look up a fediverse handle via WebFinger, fetch the actor from your browser, and lint it against ActivityPub and Mastodon's rules
+last_verified: 2026-10-15
+verified_against: "RFC 7033 §5, Mastodon v4.7.3 cors.rb, live actors on mastodon.social, lemmy.ml, pixelfed.social and framatube.org (2026-10-15), Lemmy 0.19.20 person.json fixture"
 ---
 
 import ActorInspector from '@site/src/components/tools/ActorInspector';
@@ -24,6 +26,10 @@ Inspecting ActivityPub actors helps debug federation issues and understand how d
 ## Fetching Actors
 
 ### Command Line
+
+:::note
+mastodon.social runs in secure mode, so these unsigned requests get `401` for the actor (its outbox still answers). Use them against your own server or one without secure mode, or let `fedify lookup @Gargron@mastodon.social` sign the request for you.
+:::
 
 ```bash
 # Fetch an actor with proper Accept header
@@ -235,13 +241,15 @@ inspector.report();
 
 | Property | Mastodon | Lemmy | Pixelfed | PeerTube |
 |----------|----------|-------|----------|----------|
-| type | Person | Person/Group | Person | Person/Group |
+| type | Person | Person (users), Group (communities) | Person | Person (accounts), Group (channels) |
 | preferredUsername | ✓ | ✓ | ✓ | ✓ |
 | name | Display name | Display name | Display name | Channel name |
 | summary | HTML bio | HTML bio | HTML bio | HTML description |
 | icon | Avatar | Avatar | Avatar | Avatar |
-| image | Header | Banner | - | Banner |
-| discoverable | ✓ | - | ✓ | - |
+| image | Header | Banner | not published | not observed |
+| discoverable | ✓ | — | — | ✓ |
+
+Observed on live actors (mastodon.social, lemmy.ml, pixelfed.social, framatube.org) on 2026-10-15; "not observed" means the sample didn't include it.
 
 ### Fetch Multiple Actors
 
@@ -329,9 +337,9 @@ Some endpoints require authentication:
 // Followers/following may be private
 ```
 
-### Different URL vs ID
+### `id` vs `url`
 
-Actor URL and ID should match:
+The `id` and the `url` are different things and usually differ:
 
 ```json
 {

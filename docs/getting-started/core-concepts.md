@@ -2,6 +2,8 @@
 sidebar_position: 2
 title: Core Concepts
 description: Understanding Actors, Activities, Objects, and Collections in ActivityPub
+last_verified: 2026-10-15
+verified_against: "W3C ActivityPub REC §3-5, Activity Streams 2.0 Core and Vocabulary, Mastodon v4.7.3 source (create.rb, status_parser.rb, context_helper.rb)"
 ---
 
 # Core Concepts
@@ -64,8 +66,8 @@ An **Actor** is any entity that can perform activities. In social networking ter
 |------|-------------|---------|
 | `Person` | A human user | `@alice@example.com` |
 | `Organization` | A company or group | `@acme-corp@example.com` |
-| `Application` | A bot or automated service | `@weather-bot@example.com` |
-| `Service` | A software service | `@relay@example.com` |
+| `Application` | A software application | Mastodon's server-wide "instance actor" |
+| `Service` | A service of any kind | `@weather-bot@example.com` — Mastodon publishes bot accounts as `Service` |
 | `Group` | A shared actor for communities | `@developers@example.com` |
 
 ### Actor Properties
@@ -95,20 +97,19 @@ Every actor has these essential properties:
 }
 ```
 
-### Required Actor Endpoints
+### Actor Endpoints
 
-| Endpoint | Purpose |
-|----------|---------|
-| `inbox` | Receives incoming activities from other servers |
-| `outbox` | Contains activities performed by this actor |
+[ActivityPub §4.1](https://www.w3.org/TR/activitypub/#actor-objects) says actors **MUST** have `inbox` and `outbox`, **SHOULD** have `followers` and `following`, and **MAY** have `liked`.
 
-### Optional Actor Endpoints
+| Endpoint | Requirement | Purpose |
+|----------|-------------|---------|
+| `inbox` | MUST | Receives incoming activities from other servers |
+| `outbox` | MUST | Contains activities performed by this actor |
+| `followers` | SHOULD | Collection of actors following this actor |
+| `following` | SHOULD | Collection of actors this actor follows |
+| `liked` | MAY | Collection of objects this actor has liked |
 
-| Endpoint | Purpose |
-|----------|---------|
-| `followers` | Collection of actors following this actor |
-| `following` | Collection of actors this actor follows |
-| `liked` | Collection of objects this actor has liked |
+In practice, Mastodon rejects an actor that has neither `preferredUsername` nor a FEP-2c59 `webfinger` property ([fetch_remote_actor_service.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/services/activitypub/fetch_remote_actor_service.rb#L34)), and it needs a public key to verify your signed requests.
 
 ## Activities
 
@@ -150,8 +151,9 @@ An **Activity** represents an action. When an actor does something — posts a m
 
 | Property | Required | Description |
 |----------|----------|-------------|
+| `id` | Yes, except for transient activities ([AP §3.1](https://www.w3.org/TR/activitypub/#obj-id)) | Globally unique URL |
 | `type` | Yes | The type of activity |
-| `actor` | Yes | Who performed the activity |
+| `actor` | Yes in practice — servers reject activities without one | Who performed the activity |
 | `object` | Usually | The target of the activity |
 | `to` | No | Primary recipients |
 | `cc` | No | Secondary recipients |
@@ -213,7 +215,7 @@ A **Collection** is an ordered or unordered set of objects or activities. Collec
 | Type | Description |
 |------|-------------|
 | `Collection` | Unordered set |
-| `OrderedCollection` | Ordered set (newest first) |
+| `OrderedCollection` | Ordered set. ActivityPub requires `inbox` and `outbox` to be in reverse chronological order ([§5.1](https://www.w3.org/TR/activitypub/#outbox), [§5.2](https://www.w3.org/TR/activitypub/#inbox)) |
 | `CollectionPage` | A page within a collection |
 | `OrderedCollectionPage` | An ordered page |
 
@@ -292,7 +294,7 @@ Only the Public collection is truly special. The followers collection is just th
 }
 ```
 
-Include a `Mention` tag for every addressed actor. Mastodon treats a post whose recipients are not all mentioned as *limited* rather than *direct* ([Mastodon docs](https://docs.joinmastodon.org/spec/activitypub/)).
+Include a `Mention` tag for every addressed actor. If Mastodon receives a non-public post addressed to someone who isn't tagged, it records a silent mention and downgrades the post from *direct* to *limited* ([create.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/activity/create.rb#L145-L150)).
 
 ## JSON-LD Context
 

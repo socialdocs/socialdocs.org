@@ -2,6 +2,8 @@
 sidebar_position: 5
 title: Authentication and Security
 description: HTTP Signatures, key management, and security best practices for ActivityPub
+last_verified: 2026-10-15
+verified_against: "draft-cavage-http-signatures-12, RFC 9421, FEP-521a, Mastodon v4.7.3 source (signed_request.rb, sanitize_config.rb)"
 ---
 
 # Authentication and Security
@@ -49,7 +51,7 @@ ActivityPub uses a **decentralized trust model**. There's no central authority �
 
 ## HTTP Signatures
 
-HTTP Signatures prove that a request came from a specific actor. They're required for all inbox deliveries.
+HTTP Signatures prove that a request came from a specific actor. The ActivityPub spec doesn't mandate them, but every major server requires them on inbox deliveries.
 
 ### How Signatures Work
 
@@ -186,7 +188,7 @@ Best practices:
 A single `publicKey` property can only hold one key, so "keeping the old key available" isn't possible with it. Instead:
 
 1. Generate a new key pair
-2. Publish it **alongside** the old one using [FEP-521a](https://codeberg.org/fediverse/fep/src/branch/main/fep/521a/fep-521a.md) `assertionMethod` (Multikey) entries; Mastodon 4.6+ accepts multiple keys per remote actor
+2. Publish it **alongside** the old one using [FEP-521a](https://codeberg.org/fediverse/fep/src/branch/main/fep/521a/fep-521a.md) `assertionMethod` (Multikey) entries; Mastodon 4.6+ accepts multiple keys per remote actor ([details](/docs/security/keys-and-identity))
 3. Send an `Update` of your actor to your followers so they refresh their cache
 4. Start signing with the new key; remove the old one once deliveries signed with it have drained
 
@@ -223,12 +225,13 @@ Which actor may create, update, delete or undo which objects is covered, with te
 
 ```javascript
 function checkFreshness(req) {
-  const date = new Date(req.headers.date);
-  const now = new Date();
-  const diff = Math.abs(now - date);
+  const date = Date.parse(req.headers.date);
+  // An unparseable Date gives NaN, and NaN > limit is false — reject it explicitly
+  if (Number.isNaN(date)) throw new Error('Invalid Date header');
 
-  // Reject if older than 5 minutes
-  if (diff > 5 * 60 * 1000) {
+  // Reject if more than 5 minutes off. Senders sign each attempt afresh,
+  // so legitimate deliveries carry a current Date.
+  if (Math.abs(Date.now() - date) > 5 * 60 * 1000) {
     throw new Error('Request too old');
   }
 }
@@ -239,8 +242,8 @@ function checkFreshness(req) {
 **Attack**: Sending activities with forged object IDs.
 
 **Defense**:
-- Verify object ID domains match actor domain
-- Fetch objects from original source when in doubt
+- Verify embedded object ids have the same **origin** (scheme, host and port) as the actor, not just a similar domain ([origin rules](/docs/security/origin-model))
+- Fetch objects from their own origin when in doubt
 - Don't trust embedded objects for deletion/updates
 
 ### Content Spoofing
@@ -253,7 +256,7 @@ function checkFreshness(req) {
 
 ## Rate Limiting
 
-Protect your server from abuse:
+Protect your server from abuse, but size the limits for real traffic: a large server can deliver bursts of activities to your shared inbox from one IP. Answer `429` when you throttle — Mastodon retries `429` responses instead of dropping them.
 
 ```javascript
 const rateLimit = require('express-rate-limit');
@@ -296,11 +299,9 @@ function validateActivity(activity) {
   if (!activity.type) throw new Error('Missing type');
   if (!activity.actor) throw new Error('Missing actor');
 
-  // Type validation
-  const validTypes = ['Create', 'Update', 'Delete', 'Follow', 'Accept', 'Reject', 'Like', 'Announce', 'Undo'];
-  if (!validTypes.includes(activity.type)) {
-    throw new Error('Invalid activity type');
-  }
+  // Unknown types (Block, Move, Flag, QuoteRequest, EmojiReact, …) are
+  // normal: accept the request and ignore what you don't handle, rather
+  // than returning an error.
 
   // URL validation
   if (typeof activity.actor === 'string') {
@@ -310,14 +311,11 @@ function validateActivity(activity) {
     }
   }
 
-  // Size limits
-  const size = JSON.stringify(activity).length;
-  if (size > 1024 * 1024) { // 1MB
-    throw new Error('Activity too large');
-  }
-
   return true;
 }
+
+// Limit the size of the raw body *before* parsing it, e.g. with Express:
+// app.use('/inbox', express.raw({ type: '*/*', limit: '1mb' }))
 ```
 
 ## Content Sanitization
@@ -333,6 +331,7 @@ const DOMPurify = createDOMPurify(window);
 
 // Keep only the class names fediverse markup needs, as Mastodon's
 // sanitize_config.rb does; arbitrary classes would pick up your site's CSS.
+// https://github.com/mastodon/mastodon/blob/v4.7.3/lib/sanitize_ext/sanitize_config.rb
 function allowedClass(c) {
   return /^(h|p|u|dt|e)-/.test(c)            // microformats
       || /^(mention|hashtag)$/.test(c)       // semantic
@@ -349,9 +348,12 @@ DOMPurify.addHook('uponSanitizeAttribute', (node, data) => {
 
 function sanitizeContent(html) {
   return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: ['p', 'br', 'a', 'span', 'strong', 'em', 'code', 'pre'],
+    // Mastodon's element list
+    ALLOWED_TAGS: ['p', 'br', 'span', 'a', 'del', 's', 'pre', 'blockquote', 'code',
+                   'b', 'strong', 'u', 'i', 'em', 'ul', 'ol', 'li', 'ruby', 'rt', 'rp'],
     ALLOWED_ATTR: ['href', 'class', 'rel'],
-    ALLOWED_URI_REGEXP: /^https?:/i, // no javascript:, data:, etc.
+    // http(s) only — stricter than Mastodon, which also allows e.g. gemini: and xmpp:
+    ALLOWED_URI_REGEXP: /^https?:/i,
     ALLOW_DATA_ATTR: false
   });
 }
@@ -373,7 +375,7 @@ function sanitizeContent(html) {
 
 - [ ] Monitor for unusual activity patterns
 - [ ] Keep dependencies updated
-- [ ] Review and rotate keys periodically
+- [ ] Have a key-rotation plan for compromise ([how](/docs/security/keys-and-identity))
 - [ ] Test signature verification regularly
 - [ ] Maintain block lists for bad actors
 

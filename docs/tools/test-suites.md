@@ -2,6 +2,8 @@
 sidebar_position: 2
 title: Test Suites
 description: Test suites and frameworks for validating ActivityPub implementations
+last_verified: 2026-10-15
+verified_against: "GitHub API (steve-bate/activitypub-testsuite, fediverse-devnet/feditest, go-fed/testsuite) on 2026-10-15, fedify.dev/cli, Express 5 req.accepts behaviour, examples/verify-requests"
 ---
 
 # Test Suites
@@ -92,7 +94,7 @@ ngrok http 3000
 | Create | Object is created and stored |
 | Follow | Follower is added, Accept/Reject sent |
 | Like | Like is recorded |
-| Announce | Boost is recorded and forwarded |
+| Announce | Boost is recorded |
 | Delete | Object is removed or tombstoned |
 | Undo | Previous activity is reversed |
 
@@ -113,7 +115,7 @@ Test: Complete Follow Flow
 ### Simple HTTP Test
 
 ```javascript
-const assert = require('assert');
+import assert from 'node:assert';
 
 async function testActorEndpoint(actorUrl) {
   const response = await fetch(actorUrl, {
@@ -137,19 +139,19 @@ async function testActorEndpoint(actorUrl) {
 
 ### Testing Signature Verification
 
+This uses `signCavage` from the site's tested [`examples/verify-requests`](https://github.com/socialdocs/socialdocs.org/tree/gh-pages/examples/verify-requests) module (`privateKey` is a Node `KeyObject`). Also test the failure cases — a tampered body, a signature that doesn't cover `digest`, a key owned by a different actor — and expect `401`; the module's own tests list the cases worth covering.
+
 ```javascript
+import assert from 'node:assert';
+import { signCavage } from './examples/verify-requests/src/index.js';
+
 async function testSignatureVerification(inboxUrl, activity, privateKey, keyId) {
   const body = JSON.stringify(activity);
-  const signature = createHttpSignature(privateKey, keyId, 'POST', inboxUrl, body);
+  const signed = signCavage({ method: 'POST', url: inboxUrl, body, keyId, privateKey });
 
   const response = await fetch(inboxUrl, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/activity+json',
-      'Date': signature.date,
-      'Digest': signature.digest,
-      'Signature': signature.signature
-    },
+    headers: { ...signed, 'content-type': 'application/activity+json' },
     body
   });
 
@@ -174,7 +176,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Start server
         run: |
@@ -203,27 +205,32 @@ jobs:
 
 **Problem**: HTML returned instead of JSON
 
-**Solution**: Ensure Accept header handling:
+**Solution**: Pick the best match from *all* the types you serve. Browsers send `*/*`, so `req.accepts('application/activity+json')` on its own is truthy for them too:
 ```javascript
-if (req.accepts('application/activity+json') ||
-    req.accepts('application/ld+json')) {
-  return res.type('application/activity+json').json(actor);
-}
-return res.send(renderProfilePage());
+res.vary('Accept');
+const type = req.accepts(['text/html', 'application/activity+json', 'application/ld+json']);
+if (type === 'text/html') return res.send(renderProfilePage());
+return res.type('application/activity+json').json(actor);
 ```
 
 ### Missing Required Fields
 
 **Problem**: Test expects fields your implementation doesn't provide
 
-**Solution**: Check the spec for required vs optional fields. Minimum actor:
+**Solution**: Check the spec for required vs optional fields. The spec minimum is `id`, `type`, `inbox` and `outbox` ([AP §4.1](https://www.w3.org/TR/activitypub/#actor-objects)); to federate with Mastodon you also need `preferredUsername` and a `publicKey`:
 ```json
 {
-  "@context": "https://www.w3.org/ns/activitystreams",
+  "@context": ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"],
   "type": "Person",
   "id": "https://example.com/users/alice",
+  "preferredUsername": "alice",
   "inbox": "https://example.com/users/alice/inbox",
-  "outbox": "https://example.com/users/alice/outbox"
+  "outbox": "https://example.com/users/alice/outbox",
+  "publicKey": {
+    "id": "https://example.com/users/alice#main-key",
+    "owner": "https://example.com/users/alice",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----"
+  }
 }
 ```
 

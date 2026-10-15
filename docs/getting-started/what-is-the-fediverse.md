@@ -2,6 +2,8 @@
 sidebar_position: 1
 title: What is the Fediverse?
 description: An introduction to the Fediverse, ActivityPub, and the decentralized social web
+last_verified: 2026-10-15
+verified_against: "W3C ActivityPub REC, RFC 7033, RFC 9421, draft-cavage-http-signatures-12, FediDB API (api.fedidb.org/v1/stats) on 2026-10-15"
 ---
 
 # What is the Fediverse?
@@ -79,7 +81,7 @@ Different software platforms can interact because they all speak the same protoc
 
 ## The Protocol Stack
 
-The Fediverse relies on a handful of open standards — ActivityPub and Activity Streams from the W3C, WebFinger (IETF RFC 7033), and HTTP Signatures (an IETF draft, now [RFC 9421](https://www.rfc-editor.org/rfc/rfc9421.html)):
+The Fediverse relies on a handful of open standards — ActivityPub and Activity Streams from the W3C, WebFinger (IETF RFC 7033), and HTTP Signatures. Most servers still sign with an older IETF draft ([draft-cavage-http-signatures](https://datatracker.ietf.org/doc/html/draft-cavage-http-signatures-12)); its standardized successor, [RFC 9421](https://www.rfc-editor.org/rfc/rfc9421.html), is being adopted alongside it ([details](/docs/specs/http-signatures/overview)):
 
 | Protocol | Purpose |
 |----------|---------|
@@ -104,24 +106,25 @@ The Fediverse relies on a handful of open standards — ActivityPub and Activity
 ## Why Build for the Fediverse?
 
 ### For Users
-- **Data ownership**: Users can move between servers or self-host
-- **No algorithmic manipulation**: Chronological feeds by default
-- **Community-driven moderation**: Each community sets its own rules
-- **Privacy**: No ads, no tracking, no data harvesting
+- **Choice of server**: Users can pick a server whose rules suit them, move to another, or self-host
+- **Timelines**: Most microblogging servers show the home timeline in chronological order
+- **Community-driven moderation**: Each server sets its own rules
+- **No single owner**: No one company controls the network, its data or its ranking
 
 ### For Developers
 - **Open standards**: Build on W3C recommendations
 - **Interoperability**: Your software works with the entire ecosystem
-- **No platform lock-in**: Users can migrate with their social graph
+- **Less platform lock-in**: Users can move accounts and take their followers with them (posts don't move automatically — see [Account Migration](/docs/guides/account-migration))
 - **Growing ecosystem**: Millions of users, thousands of servers
 
 ## Scale of the Fediverse
 
-As of October 2026 ([FediDB](https://fedidb.org/)), the Fediverse includes:
-- **13.8+ million** registered accounts (about 1.37 million monthly active)
-- **40,000+** independent servers
-- **100+** different software implementations
-- Growing daily with new users and platforms
+As of October 2026, [FediDB](https://fedidb.org/) counts:
+- **About 14 million** registered accounts, of which about 1.34 million were active in the last month
+- **Roughly 36,000–42,000** servers (FediDB's server count varies from day to day as servers come and go)
+- **Hundreds** of different software implementations
+
+These are lower bounds: FediDB only counts servers it can discover, and not every server publishes user counts.
 
 ## Next Steps
 

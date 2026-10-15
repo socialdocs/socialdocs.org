@@ -232,8 +232,12 @@ function lintActor(actor, at, add) {
     } else if (!key.owner) {
       add('warning', `${keyPath}.owner`, 'The key has no owner. Mastodon checks the owner when the key is fetched on its own.', SOURCES.mastoPublicKey);
     }
-    if (typeof key.publicKeyPem !== 'string' || !key.publicKeyPem.includes('-----BEGIN PUBLIC KEY-----')) {
-      add('error', `${keyPath}.publicKeyPem`, 'publicKeyPem must be a PEM-encoded SPKI public key ("-----BEGIN PUBLIC KEY-----").', SOURCES.mastoPublicKey);
+    if (typeof key.publicKeyPem !== 'string' || !/-----BEGIN (RSA )?PUBLIC KEY-----/.test(key.publicKeyPem)) {
+      add('error', `${keyPath}.publicKeyPem`, 'publicKeyPem must be a PEM-encoded public key ("-----BEGIN PUBLIC KEY-----").', SOURCES.mastoPublicKey);
+    } else if (key.publicKeyPem.includes('-----BEGIN RSA PUBLIC KEY-----')) {
+      // Mastodon parses PKCS#1 with OpenSSL, but WebCrypto (used by many JS
+      // servers) can only import SPKI keys.
+      add('warning', `${keyPath}.publicKeyPem`, 'This is a PKCS#1 key ("BEGIN RSA PUBLIC KEY"). Mastodon accepts it, but implementations using WebCrypto can only import SPKI ("BEGIN PUBLIC KEY"); publish SPKI.', SOURCES.mastoPublicKey);
     }
     if (typeof key.id === 'string' && actor.id && hostOf(key.id) !== hostOf(actor.id)) {
       add('warning', `${keyPath}.id`, 'The key id is on a different host from the actor. Most servers expect actor#main-key style ids on the same origin.', SOURCES.mastoPublicKey);
@@ -293,7 +297,7 @@ function lintAddressing(node, at, add, types) {
 function lintCreate(activity, at, add) {
   const object = activity.object;
   if (typeof object === 'string') {
-    add('warning', at('object'), 'Create carries only the object URI. Mastodon only processes a Create whose object is embedded.', SOURCES.mastoCreate);
+    add('info', at('object'), 'Create carries only the object URI. Mastodon fetches it (it must be on the actor\'s origin), which costs every receiver an extra request; embed the object instead.', SOURCES.mastoDereference);
     return;
   }
   if (!isObject(object)) {

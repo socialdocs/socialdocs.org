@@ -2,6 +2,8 @@
 sidebar_position: 1
 title: Contributing to SocialDocs
 description: How to contribute to this documentation project
+last_verified: 2026-10-15
+verified_against: "Repository contents, package.json, .github/workflows/checks.yml, CONTRIBUTING.md and LICENSE on gh-pages (2026-10-15)"
 ---
 
 # Contributing to SocialDocs
@@ -38,9 +40,9 @@ Want to add new documentation?
 
 Code examples can always be improved:
 
-- Add missing language examples
-- Fix outdated code
-- Add more comments
+- Fix outdated or broken code
+- Move security-relevant snippets into tested code under `examples/`
+- Add comments where the code isn't obvious
 
 ## Content Guidelines
 
@@ -58,6 +60,8 @@ Code examples can always be improved:
 sidebar_position: 1
 title: Your Page Title
 description: Brief description for SEO
+last_verified: 2026-10-15
+verified_against: "Mastodon 4.7.3 source, RFC 9421"
 ---
 
 # Your Page Title
@@ -66,92 +70,67 @@ Introduction paragraph.
 
 ## Main Section
 
-Content here.
+Content, with every MUST/SHOULD linked to its spec section and every
+platform claim linked to that platform's source or docs.
+```
 
-### Subsection
+Add `last_verified` and `verified_against` only after you have checked the page's claims against their sources; pages without them show a "not yet verified" notice. See [CONTRIBUTING.md](https://github.com/socialdocs/socialdocs.org/blob/gh-pages/CONTRIBUTING.md) for the full field list.
 
-More detailed content.
-
-## Code Examples
+### Code Examples
 
 Code samples are **JavaScript/TypeScript on Node.js 22+**. That is what most of the site already uses, and it keeps one tested code path instead of several untested ones.
 
 - **Security-critical code** (signature verification, signing, origin checks, safe fetching) lives in [`examples/`](https://github.com/socialdocs/socialdocs.org/tree/gh-pages/examples), has tests that run in CI, and is embedded into pages from there — never typed inline.
 - **Other languages**: don't add parallel samples. Point readers to a maintained library on the [ecosystem pages](/docs/ecosystem/libraries-overview), whose examples are checked against the real packages.
 - Snippets must use real APIs of real packages; CI checks that every package and repository named in the docs exists.
-
-\`\`\`javascript
-// Always include comments
-function example() {
-  return 'working code';
-}
-\`\`\`
-
-## Next Steps
-
-- Link to related pages
-- Suggest what to read next
-```
-
-### Code Examples
-
-- Include working, tested code
-- Use meaningful variable names
-- Add comments for complex logic
-- Show both success and error cases
-- Include multiple language tabs when useful
+- Use meaningful names, comment the non-obvious parts, and show error handling where it matters.
 
 ## Development Setup
 
 ### Prerequisites
 
 - Node.js 22+
-- npm or yarn
+- npm
 
 ### Local Development
 
 ```bash
-# Clone the repository
 git clone https://github.com/socialdocs/socialdocs.org.git
 cd socialdocs.org
-
-# Install dependencies
-npm install
-
-# Start dev server
+npm ci
 npm start
 ```
 
 The site will be available at `http://localhost:3000`.
 
-### Building
+### Checks
+
+These run in CI on every pull request; run them locally first:
 
 ```bash
-npm run build
+npm run build      # fails on broken internal links
+npm run typecheck
+node scripts/check-references.mjs   # every package and repo named in the docs must exist
+cd examples/verify-requests && npm ci && node --test   # tested security code
 ```
 
-### Testing Links
-
-```bash
-npm run build
-npm run serve
-```
+External links are checked with [lychee](https://github.com/lycheeverse/lychee) (config in `lychee.toml`).
 
 ## File Structure
 
 ```
 docs/
-├── getting-started/     # Beginner guides
-├── specs/              # Protocol specifications
-│   ├── activitypub/
-│   ├── activitystreams/
-│   ├── webfinger/
-│   └── http-signatures/
-├── guides/             # Implementation guides
-├── reference/          # API reference
-├── ecosystem/          # Software & libraries
-├── tools/              # Developer tools
-└── community/          # Community resources
+├── getting-started/   # Beginner guides
+├── concepts/          # Linked Data background
+├── specs/             # Protocol specifications
+├── guides/            # Implementation guides, by task
+├── security/          # Verification, origin rules, keys
+├── reference/         # Glossary and security reference
+├── ecosystem/         # Software & libraries
+├── tools/             # Testing & debugging tools
+└── community/         # Community resources
+examples/              # Tested code embedded in the docs
+scripts/               # CI checks and stats generation
 ```
 
 ## Pull Request Process
@@ -164,28 +143,21 @@ docs/
 
 ### PR Checklist
 
-- [ ] Content is accurate
-- [ ] Code examples work
-- [ ] Links are valid
-- [ ] Spelling/grammar checked
-- [ ] Follows style guide
+- [ ] Claims are checked against their sources, and linked
+- [ ] Code examples work (security code is tested in `examples/`)
+- [ ] CI checks pass (build, references, links)
+- [ ] `last_verified` / `verified_against` updated on pages you re-checked
 
 ## Getting Help
 
 - **Questions**: Open a GitHub issue
 - **Discussion**: Join [SocialHub](https://socialhub.activitypub.rocks/)
-- **Chat**: Find us on the Fediverse
 
-## Recognition
-
-Contributors are recognized in:
-
-- GitHub contributors list
-- Annual acknowledgments
+Contributors are listed on the repository's GitHub contributors page.
 
 ## Code of Conduct
 
-We follow the [Contributor Covenant](https://www.contributor-covenant.org/). Be respectful, inclusive, and constructive.
+Be respectful, inclusive and constructive — see the [Code of Conduct section of CONTRIBUTING.md](https://github.com/socialdocs/socialdocs.org/blob/gh-pages/CONTRIBUTING.md#code-of-conduct).
 
 ## License
 

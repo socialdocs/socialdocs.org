@@ -2,6 +2,8 @@
 sidebar_position: 1
 title: Activity Linter
 description: Lint ActivityPub actors, activities and objects in your browser against the Activity Streams spec, ActivityPub and Mastodon's actual acceptance rules
+last_verified: 2026-10-15
+verified_against: "AS2 Core and Vocabulary, ActivityPub REC, Mastodon v4.7.3 source (fetch_remote_actor_service.rb, process_account_service.rb, activity.rb, create.rb, json_ld_helper.rb, keypair.rb), ajv 8.20 / ajv-formats 3.0"
 ---
 
 import ObjectLinter from '@site/src/components/tools/ObjectLinter';
@@ -18,10 +20,10 @@ Paste an actor, activity or object to check it against the [Activity Streams 2.0
 |------|--------|---------|
 | Context | `@context` present and includes `https://www.w3.org/ns/activitystreams` | [AS2 Core §2.1](https://www.w3.org/TR/activitystreams-core/#jsonld), [Mastodon](https://github.com/mastodon/mastodon/blob/v4.7.3/app/services/activitypub/fetch_remote_actor_service.rb#L31-L34) |
 | Identity | `id` present, absolute and HTTPS; `type` present and an Activity Vocabulary type (or a known extension) | [AP §3.1](https://www.w3.org/TR/activitypub/#x3-1-object-identifiers), [Vocabulary](https://www.w3.org/TR/activitystreams-vocabulary/#types) |
-| Actors | `inbox` and `outbox` (MUST), `followers`/`following` (SHOULD), `preferredUsername` or `webfinger`, a `publicKey` whose `owner` is the actor and whose PEM is SPKI | [AP §4.1](https://www.w3.org/TR/activitypub/#actor-objects), Mastodon [actor fetch](https://github.com/mastodon/mastodon/blob/v4.7.3/app/services/activitypub/fetch_remote_actor_service.rb#L31-L34) and [account processing](https://github.com/mastodon/mastodon/blob/v4.7.3/app/services/activitypub/process_account_service.rb#L24) |
+| Actors | `inbox` and `outbox` (MUST), `followers`/`following` (SHOULD), `preferredUsername` or `webfinger`, a `publicKey` whose `owner` is the actor, with an SPKI PEM (PKCS#1 gets a warning: Mastodon accepts it, WebCrypto can't import it) | [AP §4.1](https://www.w3.org/TR/activitypub/#actor-objects), Mastodon [actor fetch](https://github.com/mastodon/mastodon/blob/v4.7.3/app/services/activitypub/fetch_remote_actor_service.rb#L31-L34) and [account processing](https://github.com/mastodon/mastodon/blob/v4.7.3/app/services/activitypub/process_account_service.rb#L24) |
 | Dates | `published`, `updated`, `startTime`, `endTime`, `deleted` are RFC 3339 with uppercase `T` and `Z` | [AS2 Core §2.3](https://www.w3.org/TR/activitystreams-core/#dates) |
 | Addressing | compacted `Public` forms, `bto`/`bcc` left in, direct messages without `Mention` tags (Mastodon treats them as "limited" and sends no notification) | [AP §5.6](https://www.w3.org/TR/activitypub/#public-addressing), [Mastodon docs](https://docs.joinmastodon.org/spec/activitypub/#Mention) |
-| Create | object embedded (not just a URI), of a type Mastodon turns into a status, on the actor's host, attributed to the actor | Mastodon [create.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/activity/create.rb#L18), [activity.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/activity.rb#L9-L10) |
+| Create | object of a type Mastodon turns into a status, on the actor's host, attributed to the actor; a bare object URI gets a hint (Mastodon fetches it, at the cost of an extra request) | Mastodon [create.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/activity/create.rb#L18), [activity.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/activity.rb#L9-L10), [dereference_object!](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/activity.rb#L125-L131) |
 
 It does not check signatures (see the [Signature Inspector](/docs/tools/signature-inspector)), fetch anything, or expand JSON-LD; terms are matched by their compacted names, the way most implementations read them. The rules live in `src/components/tools/lib` and their tests in `tests/tools`, in the [site repository](https://github.com/socialdocs/socialdocs.org).
 
@@ -33,7 +35,10 @@ To lint a live actor by handle, use the [Actor Inspector](/docs/tools/actor-insp
 
 ```javascript
 const Ajv = require('ajv');
+const addFormats = require('ajv-formats');
+
 const ajv = new Ajv();
+addFormats(ajv); // without this, Ajv 8 ignores "format": "uri"
 
 const activitySchema = {
   type: 'object',
@@ -54,13 +59,15 @@ const activitySchema = {
       ]
     },
     object: {},
-    to: { type: 'array', items: { type: 'string' } },
-    cc: { type: 'array', items: { type: 'string' } }
+    // AS2 allows a single value or an array
+    to: { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] },
+    cc: { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] }
   }
 };
 
+const validate = ajv.compile(activitySchema); // compile once
+
 function validateActivity(activity) {
-  const validate = ajv.compile(activitySchema);
   const valid = validate(activity);
 
   if (!valid) {
@@ -212,7 +219,7 @@ function validateByType(activity) {
 - [ ] Has valid `type`
 - [ ] Has `actor` as URL
 - [ ] Has unique `id`
-- [ ] `to`/`cc` are arrays of URLs
+- [ ] `to`/`cc` are URLs or arrays of URLs (AS2 allows either)
 
 ### For Create
 

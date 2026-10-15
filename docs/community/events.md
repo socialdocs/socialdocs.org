@@ -2,6 +2,8 @@
 sidebar_position: 3
 title: Events
 description: Fediverse conferences, unconferences, and standards meetings for ActivityPub developers
+last_verified: 2026-10-15
+verified_against: "w3.org/events/tpac/2026, fosdem.org/2027, fediforum.org events.ics, fedicon.ca, 2026.fossy.ca, SocialHub topics 77, 680 and 4709, socialwebfoundation.org (2026-10-15)"
 ---
 
 # Fediverse Events
