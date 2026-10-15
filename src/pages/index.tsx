@@ -75,11 +75,11 @@ const FeatureList: FeatureItem[] = [
     icon: '🛠️',
     description: (
       <>
-        Interactive validators, inspectors, and testing tools to help
-        you build and debug your ActivityPub implementation.
+        Checklists, debugging tips, and pointers to testing tools that
+        help you build and debug your ActivityPub implementation.
       </>
     ),
-    link: '/docs/tools/activity-validator',
+    link: '/docs/tools/debugging-tips',
   },
 ];
 
@@ -149,9 +149,9 @@ function QuickLinks() {
             <span className={styles.quickLinkIcon}>👥</span>
             <span>Fediverse Developers</span>
           </Link>
-          <Link to="/docs/tools/activity-validator" className={styles.quickLink}>
+          <Link to="/docs/tools/debugging-tips" className={styles.quickLink}>
             <span className={styles.quickLinkIcon}>✅</span>
-            <span>Validate Activities</span>
+            <span>Debugging Tips</span>
           </Link>
         </div>
       </div>
@@ -202,14 +202,14 @@ const platformIcons: Record<string, string> = {
 };
 
 const platforms: PlatformItem[] = [
-  { name: 'Mastodon', color: '#6364FF', users: '10M+', link: '/docs/ecosystem/mastodon' },
-  { name: 'Lemmy', color: '#00bc8c', users: '500K+', link: '/docs/ecosystem/lemmy' },
-  { name: 'Pixelfed', color: '#e44a8d', users: '300K+', link: '/docs/ecosystem/pixelfed' },
-  { name: 'PeerTube', color: '#f2690d', users: '400K+', link: '/docs/ecosystem/peertube' },
-  { name: 'Misskey', color: '#96d04a', users: '1M+', link: '/docs/ecosystem/misskey' },
-  { name: 'Pleroma', color: '#fba457', users: '100K+', link: '/docs/ecosystem/pleroma' },
-  { name: 'GoToSocial', color: '#df8958', users: '50K+', link: '/docs/ecosystem/gotosocial' },
-  { name: 'Friendica', color: '#3f8dba', users: '30K+', link: '/docs/ecosystem/mastodon' },
+  { name: 'Mastodon', color: '#6364FF', users: '8.4M', link: '/docs/ecosystem/mastodon' },
+  { name: 'Lemmy', color: '#00bc8c', users: '370K', link: '/docs/ecosystem/lemmy' },
+  { name: 'Pixelfed', color: '#e44a8d', users: '1.2M', link: '/docs/ecosystem/pixelfed' },
+  { name: 'PeerTube', color: '#f2690d', users: '560K', link: '/docs/ecosystem/peertube' },
+  { name: 'Misskey', color: '#96d04a', users: '1.25M', link: '/docs/ecosystem/misskey' },
+  { name: 'Pleroma', color: '#fba457', users: '53K', link: '/docs/ecosystem/pleroma' },
+  { name: 'GoToSocial', color: '#df8958', users: '<1K', link: '/docs/ecosystem/gotosocial' },
+  { name: 'Friendica', color: '#3f8dba', users: '18K', link: '/docs/ecosystem/other-servers#friendica' },
 ];
 
 function PlatformLogo({ name, color }: { name: string; color: string }) {
@@ -240,9 +240,9 @@ function CompatibilitySection() {
   return (
     <section className={styles.compatibility}>
       <div className="container">
-        <Heading as="h2" className={styles.sectionTitle}>Trusted Across the Fediverse</Heading>
+        <Heading as="h2" className={styles.sectionTitle}>Platforms Covered</Heading>
         <p className={styles.sectionSubtitle}>
-          Build software compatible with 13.8+ million users across these platforms
+          Build software that federates with ~13.8 million registered accounts (~1.37 million monthly active). Account counts per platform from FediDB, October 2026.
         </p>
         <div className={styles.platformGrid}>
           {platforms.map((platform) => (
