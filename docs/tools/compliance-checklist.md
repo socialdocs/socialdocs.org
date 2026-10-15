@@ -2,240 +2,118 @@
 sidebar_position: 6
 title: Compliance Checklist
 description: Complete ActivityPub compliance checklist for implementations
+last_verified: 2026-10-15
+verified_against: "W3C ActivityPub REC, AS2 Core, RFC 7033, Mastodon v4.7.3 source (fetch_remote_actor_service.rb, json_ld_helper.rb, signed_request.rb, create.rb)"
 ---
 
 # Compliance Checklist
 
 Use this checklist to verify your ActivityPub implementation meets the specification requirements and works with other Fediverse software.
 
-## Core Requirements
+## Discovery
 
-### WebFinger (Discovery)
+### WebFinger ([RFC 7033](https://www.rfc-editor.org/rfc/rfc7033))
 
-<svg viewBox="0 0 480 200" style={{maxWidth: '480px', width: '100%', height: 'auto'}}>
-  <defs>
-    <linearGradient id="wfcGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style={{stopColor: '#6364FF', stopOpacity: 0.12}}/>
-      <stop offset="100%" style={{stopColor: '#8b5cf6', stopOpacity: 0.12}}/>
-    </linearGradient>
-  </defs>
-  <rect x="5" y="5" width="470" height="190" rx="10" fill="none" stroke="#6364FF" strokeWidth="2"/>
-  <rect x="5" y="5" width="470" height="26" rx="10" fill="url(#wfcGrad)"/>
-  <text x="240" y="23" textAnchor="middle" fill="currentColor" fontSize="13" fontWeight="700">WEBFINGER</text>
+- [ ] `GET /.well-known/webfinger?resource=acct:user@domain` answers for your local users only
+- [ ] Response is `application/jrd+json`
+- [ ] `subject` matches the requested resource
+- [ ] A `rel="self"` link with `type="application/activity+json"` points to the actor
+- [ ] Sends `Access-Control-Allow-Origin` — a **MUST** in [RFC 7033 §5](https://www.rfc-editor.org/rfc/rfc7033#section-5)
 
-  <text x="25" y="50" fill="currentColor" fontSize="10">☐ /.well-known/webfinger endpoint exists</text>
-  <text x="25" y="68" fill="currentColor" fontSize="10">☐ Accepts ?resource=acct:user@domain parameter</text>
-  <text x="25" y="86" fill="currentColor" fontSize="10">☐ Returns application/jrd+json content type</text>
-  <text x="25" y="104" fill="currentColor" fontSize="10">☐ Response includes subject matching request</text>
-  <text x="25" y="122" fill="currentColor" fontSize="10">☐ Response includes self link</text>
-  <text x="25" y="140" fill="currentColor" fontSize="10">☐ Self link has type: application/activity+json</text>
-  <text x="25" y="158" fill="currentColor" fontSize="10">☐ Self link href points to actor</text>
-  <text x="25" y="176" fill="currentColor" fontSize="10">☐ CORS headers allow cross-origin requests</text>
-</svg>
+## Actor
 
-### Actor
+### Required
 
-<svg viewBox="0 0 520 320" style={{maxWidth: '520px', width: '100%', height: 'auto'}}>
-  <defs>
-    <linearGradient id="actcGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style={{stopColor: '#6364FF', stopOpacity: 0.12}}/>
-      <stop offset="100%" style={{stopColor: '#8b5cf6', stopOpacity: 0.12}}/>
-    </linearGradient>
-  </defs>
-  <rect x="5" y="5" width="510" height="310" rx="10" fill="none" stroke="#6364FF" strokeWidth="2"/>
-  <rect x="5" y="5" width="510" height="26" rx="10" fill="url(#actcGrad)"/>
-  <text x="260" y="23" textAnchor="middle" fill="currentColor" fontSize="13" fontWeight="700">ACTOR</text>
+- [ ] `id` — HTTPS URL that dereferences to this document ([AP §3.1](https://www.w3.org/TR/activitypub/#obj-id))
+- [ ] `type` — `Person`, `Group`, `Service`, `Application` or `Organization`
+- [ ] `inbox` and `outbox` — **MUST** ([AP §4.1](https://www.w3.org/TR/activitypub/#actor-objects)); Mastodon rejects an actor without an inbox
+- [ ] `preferredUsername` (or a [FEP-2c59](https://codeberg.org/fediverse/fep/src/branch/main/fep/2c59/fep-2c59.md) `webfinger` property) — Mastodon rejects the actor without one ([source](https://github.com/mastodon/mastodon/blob/v4.7.3/app/services/activitypub/fetch_remote_actor_service.rb#L34))
+- [ ] `publicKey` with `id`, `owner` equal to the actor `id`, and an SPKI `publicKeyPem` — without a key no one can verify your signatures
 
-  <text x="25" y="50" fill="#6364FF" fontSize="11" fontWeight="600">Required:</text>
-  <text x="25" y="68" fill="currentColor" fontSize="10">☐ id - HTTPS URL, dereferenceable</text>
-  <text x="25" y="84" fill="currentColor" fontSize="10">☐ type - Person, Group, Service, etc.</text>
-  <text x="25" y="100" fill="currentColor" fontSize="10">☐ inbox - URL for receiving activities</text>
-  <text x="25" y="116" fill="currentColor" fontSize="10">☐ outbox - URL for published activities</text>
+### Recommended
 
-  <text x="25" y="140" fill="#6364FF" fontSize="11" fontWeight="600">Recommended:</text>
-  <text x="25" y="158" fill="currentColor" fontSize="10">☐ preferredUsername - the @handle</text>
-  <text x="25" y="174" fill="currentColor" fontSize="10">☐ name - display name</text>
-  <text x="25" y="190" fill="currentColor" fontSize="10">☐ summary - bio (HTML)</text>
-  <text x="25" y="206" fill="currentColor" fontSize="10">☐ publicKey - for HTTP Signatures</text>
-  <text x="260" y="158" fill="currentColor" fontSize="10">☐ publicKey.id - key identifier</text>
-  <text x="260" y="174" fill="currentColor" fontSize="10">☐ publicKey.owner - matches actor id</text>
-  <text x="260" y="190" fill="currentColor" fontSize="10">☐ publicKey.publicKeyPem - PEM format</text>
-  <text x="260" y="206" fill="currentColor" fontSize="10">☐ followers/following - collection URLs</text>
-  <text x="260" y="222" fill="currentColor" fontSize="10">☐ endpoints.sharedInbox - efficient delivery</text>
+- [ ] `followers` and `following` — **SHOULD** ([AP §4.1](https://www.w3.org/TR/activitypub/#actor-objects))
+- [ ] `endpoints.sharedInbox` — lets servers deliver once per server
+- [ ] `name`, `summary` (HTML), `icon`, `image`, `url` (the human-readable profile page)
 
-  <text x="25" y="250" fill="#6364FF" fontSize="11" fontWeight="600">Optional:</text>
-  <text x="25" y="268" fill="currentColor" fontSize="10">☐ icon - avatar image</text>
-  <text x="25" y="284" fill="currentColor" fontSize="10">☐ image - header/banner image</text>
-  <text x="25" y="300" fill="currentColor" fontSize="10">☐ url - profile page URL</text>
-</svg>
+### Content negotiation
 
-### Content Negotiation
-
-```
-[ ] Actor URL returns JSON when Accept: application/activity+json
-[ ] Actor URL returns JSON when Accept: application/ld+json
-[ ] Actor URL returns HTML for browsers (optional but recommended)
-[ ] Content-Type header is application/activity+json
-```
+- [ ] Actor URL returns JSON for `Accept: application/activity+json`
+- [ ] Actor URL returns JSON for `Accept: application/ld+json; profile="https://www.w3.org/ns/activitystreams"`
+- [ ] Response `Content-Type` is `application/activity+json` (or `application/ld+json` with the Activity Streams profile) — Mastodon discards anything else ([source](https://github.com/mastodon/mastodon/blob/v4.7.3/app/helpers/json_ld_helper.rb#L351-L361))
+- [ ] Optional: HTML for browsers, with `Vary: Accept`
 
 ## Inbox
 
-### Receiving Activities
+### Receiving activities
 
-```
-┌────────────────────────────────────────────────────────────┐
-│                      INBOX                                 │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│  [ ] Accepts POST requests                                 │
-│  [ ] Accepts application/activity+json content             │
-│  [ ] Accepts application/ld+json content                   │
-│  [ ] Returns 202 Accepted for valid activities             │
-│  [ ] Returns 401/403 for invalid signatures                │
-│  [ ] Returns 400 for malformed JSON                        │
-│                                                            │
-│  Signature Verification:                                   │
-│  [ ] Parses Signature header                               │
-│  [ ] Fetches public key from keyId                         │
-│  [ ] Verifies signature against request                    │
-│  [ ] Time window like Mastodon's (5 min + 1 h skew)        │
-│  [ ] Requires Digest on POST, checked over the raw body    │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
-```
+- [ ] Accepts `POST` with `application/activity+json` or `application/ld+json`
+- [ ] Returns `202 Accepted` (or `200`) for activities it accepts, including types it ignores
+- [ ] Returns `401` for missing or invalid signatures
+- [ ] Returns `400` for malformed JSON
 
-### Activity Handling
+### Verifying requests ([tested code](/docs/security/verifying-requests))
 
-```
-[ ] Create - creates new content
-[ ] Update - updates existing content (check authorization)
-[ ] Delete - deletes content (check authorization)
-[ ] Follow - records follow request
-[ ] Accept - confirms follow
-[ ] Reject - denies follow
-[ ] Undo - reverses previous activity
-[ ] Like - records like
-[ ] Announce - records boost/share
-[ ] Block - handles block (optional)
-```
+- [ ] The signature covers `(request-target)`, `host`, `date` and `digest`
+- [ ] `Digest` is checked against the **raw** request body
+- [ ] `Date` is within a window (Mastodon: 5 minutes plus 1 hour of clock skew)
+- [ ] The key is fetched from `keyId` safely (no private addresses — SSRF) and is listed by its owner actor
+- [ ] The key's owner **is** `activity.actor`
+- [ ] Embedded objects come from the actor's origin ([origin rules](/docs/security/origin-model))
 
-## Outbox
+### Activity handling
 
-### Sending Activities
+- [ ] `Create` — store new content
+- [ ] `Update` — only from the object's owner
+- [ ] `Delete` — only from the object's owner ([Deletion](/docs/guides/deletion))
+- [ ] `Follow` → send `Accept` or `Reject`
+- [ ] `Accept` / `Reject` — only for a `Follow` you actually sent
+- [ ] `Undo` — reverses `Follow`, `Like`, `Announce`, `Block`
+- [ ] `Like`, `Announce`
+- [ ] `Block` — Mastodon sends it; stop delivering to the blocker
 
-```
-┌────────────────────────────────────────────────────────────┐
-│                     OUTBOX                                 │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│  [ ] GET returns OrderedCollection                         │
-│  [ ] Collection is paginated                               │
-│  [ ] Activities include required properties                │
-│  [ ] Activities have @context                              │
-│  [ ] Activities have unique id                             │
-│  [ ] Activities have actor                                 │
-│  [ ] Activities have type                                  │
-│                                                            │
-│  Delivery:                                                 │
-│  [ ] Delivers to recipient inboxes                         │
-│  [ ] Uses shared inbox when available                      │
-│  [ ] Signs requests with HTTP Signatures                   │
-│  [ ] Includes Digest header                                │
-│  [ ] Includes proper Date header                           │
-│  [ ] Retries on temporary failures                         │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
-```
+## Outbox and delivery
 
-## HTTP Signatures
-
-```
-┌────────────────────────────────────────────────────────────┐
-│                 HTTP SIGNATURES                            │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│  Generation:                                               │
-│  [ ] Uses RSA-SHA256 algorithm                             │
-│  [ ] Includes (request-target) pseudo-header               │
-│  [ ] Includes host header                                  │
-│  [ ] Includes date header                                  │
-│  [ ] Includes digest header                                │
-│  [ ] keyId points to actor's publicKey                     │
-│  [ ] Signature is base64 encoded                           │
-│                                                            │
-│  Verification:                                             │
-│  [ ] Parses Signature header correctly                     │
-│  [ ] Fetches key from keyId URL                            │
-│  [ ] Rebuilds signing string in correct order              │
-│  [ ] Uses correct algorithm                                │
-│  [ ] Validates date is recent                              │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
-```
+- [ ] `GET` returns an `OrderedCollection`, reverse chronological, paginated
+- [ ] Every activity has `@context`, a unique `id`, `type` and `actor`
+- [ ] Delivery goes to each recipient inbox, using `sharedInbox` when available
+- [ ] Requests are signed (draft-cavage `rsa-sha256` is what most servers verify; see [HTTP signatures in 2026](/docs/specs/http-signatures/overview))
+- [ ] `Digest` and `Date` headers are sent and signed
+- [ ] Failed deliveries are retried with backoff; `404`/`410` are final ([Delivery at Scale](/docs/guides/delivery-at-scale))
 
 ## Collections
 
-```
-[ ] Followers collection exists
-[ ] Following collection exists
-[ ] Collections return OrderedCollection or Collection
-[ ] Collections include totalItems
-[ ] Large collections are paginated
-[ ] Page navigation (first, next, prev) works
-[ ] Collection items are ordered (newest first typical)
-```
+- [ ] `followers` and `following` exist
+- [ ] They are `OrderedCollection` or `Collection`, with `totalItems`
+- [ ] Large collections are paginated (`first`, `next`)
 
 ## Objects
 
-### Notes/Posts
+### Notes and posts
 
-```
-[ ] type is Note (or Article, etc.)
-[ ] id is unique HTTPS URL
-[ ] attributedTo points to author
-[ ] content is HTML-formatted
-[ ] published is ISO 8601 datetime
-[ ] to/cc arrays for addressing
-[ ] inReplyTo for replies
-[ ] tag array for mentions/hashtags
-```
-
-### Activities
-
-```
-[ ] @context includes ActivityStreams
-[ ] type is valid activity type
-[ ] id is unique HTTPS URL
-[ ] actor is author's ID
-[ ] object is content or reference
-[ ] published is ISO 8601 datetime
-[ ] to/cc copied from object or set appropriately
-```
+- [ ] `type` is `Note` (or `Article`, `Question`, …)
+- [ ] `id` is a unique HTTPS URL on your server
+- [ ] `attributedTo` is the author
+- [ ] `content` is HTML
+- [ ] `published` is an RFC 3339 date-time, e.g. `2026-10-15T12:00:00Z` ([AS2 §2.3](https://www.w3.org/TR/activitystreams-core/#dates))
+- [ ] `to`/`cc` address the right audience (a single value or an array)
+- [ ] `inReplyTo` on replies; `tag` with `Mention` and `Hashtag` entries
 
 ## Interoperability
 
-### Mastodon Compatibility
+### Mastodon
 
-```
-[ ] Uses toot: namespace for extensions
-[ ] Includes blurhash for images
-[ ] Handles sensitive content flag
-[ ] Supports custom emoji
-[ ] Handles manuallyApprovesFollowers
-[ ] Supports discoverable flag
-```
+- [ ] Every addressed actor in a direct message has a `Mention` tag (otherwise Mastodon treats it as "limited")
+- [ ] `sensitive` and `summary` (content warning) are honoured
+- [ ] `manuallyApprovesFollowers` is respected for locked accounts
+- [ ] Optional Mastodon extensions from the `toot:` namespace — `Emoji`, `blurhash`, `discoverable`, `indexable` — only if you use them ([Mastodon's extensions](https://docs.joinmastodon.org/spec/activitypub/#contexts))
 
-### Federation Testing
+### Federation testing
 
-```
-[ ] Can follow Mastodon users
-[ ] Can be followed by Mastodon users
-[ ] Posts appear on Mastodon
-[ ] Receives posts from Mastodon
-[ ] Likes are received
-[ ] Boosts are received
-[ ] Replies thread correctly
-```
+- [ ] Can follow, and be followed by, a Mastodon account
+- [ ] Posts appear on Mastodon, and Mastodon posts arrive
+- [ ] Likes and boosts arrive
+- [ ] Replies thread correctly ([Threads](/docs/guides/threads-replies-and-backfill))
 
 ## Automated Testing
 
@@ -292,8 +170,10 @@ async function testWebFinger(domain, username) {
     return { success: false, error: 'Missing subject' };
   }
 
+  // Mastodon uses application/activity+json; some servers use the
+  // ld+json profile type instead, so accept both
   const selfLink = data.links?.find(l =>
-    l.rel === 'self' && l.type === 'application/activity+json'
+    l.rel === 'self' && /^application\/(activity\+json|ld\+json)/.test(l.type || '')
   );
 
   if (!selfLink) {
@@ -307,6 +187,7 @@ async function testActor(domain, username) {
   const wf = await testWebFinger(domain, username);
   if (!wf.success) return wf;
 
+  // Unsigned: servers in secure mode (e.g. mastodon.social) answer 401
   const res = await fetch(wf.actorUrl, {
     headers: { 'Accept': 'application/activity+json' }
   });
@@ -334,7 +215,7 @@ async function testActor(domain, username) {
 # ActivityPub Compliance Report
 
 **Server:** example.com
-**Date:** 2024-01-15
+**Date:** 2026-10-15
 **Tester:** [your name]
 
 ## Summary

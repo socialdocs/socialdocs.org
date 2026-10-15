@@ -51,6 +51,10 @@ export const SOURCES = {
     label: 'Mastodon activity/create.rb and activity.rb',
     url: `${MASTODON}/app/lib/activitypub/activity/create.rb#L18`,
   },
+  mastoDereference: {
+    label: 'Mastodon activity.rb (dereference_object!)',
+    url: `${MASTODON}/app/lib/activitypub/activity.rb#L125-L131`,
+  },
   mastoObjectTypes: {
     label: 'Mastodon activity.rb (supported and converted object types)',
     url: `${MASTODON}/app/lib/activitypub/activity.rb#L9-L10`,

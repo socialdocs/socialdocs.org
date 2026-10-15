@@ -2,6 +2,8 @@
 sidebar_position: 4
 title: Understanding Federation
 description: How ActivityPub servers discover and communicate with each other
+last_verified: 2026-10-15
+verified_against: "W3C ActivityPub REC §5-7, RFC 7033, draft-cavage-http-signatures-12, Mastodon v4.7.3 source (delivery_worker.rb, signed_request.rb, block.rb)"
 ---
 
 # Understanding Federation
@@ -290,22 +292,14 @@ When delivering to multiple users on the same server, use the shared inbox.
 
 ## Handling Failures
 
-Federation isn't always reliable. Servers implement retry logic:
+Federation isn't always reliable, so servers queue deliveries and retry them. As one real example, Mastodon retries a failed delivery up to 16 times with a delay of roughly *n*⁴ + 15 seconds plus jitter, which adds up to about 2–3 days before it gives up ([delivery_worker.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/workers/activitypub/delivery_worker.rb)). It doesn't retry most 4xx responses, and it stops delivering to a server altogether once deliveries have failed on 7 separate days.
 
-```
-Delivery attempt 1: Failed (timeout)
-Wait 1 minute
-Delivery attempt 2: Failed (503)
-Wait 5 minutes
-Delivery attempt 3: Failed (503)
-Wait 30 minutes
-Delivery attempt 4: Success!
-```
+The essentials:
+- **Persist the queue** so deliveries survive restarts
+- **Back off** between attempts, and stop on responses that will never succeed (e.g. 404, 410)
+- **Track dead servers** so they don't tie up your workers
 
-Common retry strategies:
-- **Exponential backoff**: 1min, 5min, 30min, 2hr, 12hr, 24hr
-- **Dead server detection**: Stop trying after many failures
-- **Retry queue**: Persist failed deliveries to retry later
+[Delivery at Scale](/docs/guides/delivery-at-scale) covers this in detail.
 
 ## Object Fetching
 
@@ -349,8 +343,8 @@ This allows servers to reconstruct conversation threads.
 
 ### What Stays Local
 
-- Block lists
 - Mute lists
+- Who you block, beyond the blocked account's own server — Mastodon sends a `Block` activity to the blocked account's server, so that server does learn about it ([block_service.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/services/block_service.rb))
 - Draft posts
 - User settings
 - Private notes
@@ -366,8 +360,8 @@ This allows servers to reconstruct conversation threads.
 
 **Solutions:**
 - Use NTP to sync server clocks
-- Verify key is valid RSA/PEM format
-- Use `rsa-sha256` algorithm
+- Verify the key is a valid PEM-encoded public key
+- Sign with `rsa-sha256` (Mastodon also accepts `hs2019`), and see [HTTP Signatures](/docs/specs/http-signatures/overview) for RFC 9421
 
 ### Delivery Failures
 
@@ -377,8 +371,8 @@ This allows servers to reconstruct conversation threads.
 - Rate limiting
 
 **Solutions:**
-- Implement retry with exponential backoff
-- Respect rate limits
+- Retry with backoff, and treat 404/410 as final
+- Respect `429` responses
 - Monitor delivery success rates
 
 ### Stale Data
@@ -388,7 +382,7 @@ This allows servers to reconstruct conversation threads.
 - Object references to deleted content
 
 **Solutions:**
-- Cache actors for reasonable time (24h)
+- Cache actors for a limited time and refetch when a signature fails to verify (the key may have rotated)
 - Respect HTTP cache headers
 - Handle 410 Gone responses
 

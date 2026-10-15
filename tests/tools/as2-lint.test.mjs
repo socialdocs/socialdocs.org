@@ -83,6 +83,14 @@ test('malformed PEM is an error', () => {
   assert.ok(paths(lintObject(actor), 'error').includes('publicKey.publicKeyPem'));
 });
 
+test('PKCS#1 public keys are a warning, not an error', () => {
+  const pem = '-----BEGIN RSA PUBLIC KEY-----\nMIIB...\n-----END RSA PUBLIC KEY-----';
+  const actor = {...goodActor, publicKey: {...goodActor.publicKey, publicKeyPem: pem}};
+  const result = lintObject(actor);
+  assert.ok(!paths(result, 'error').includes('publicKey.publicKeyPem'));
+  assert.ok(paths(result, 'warning').includes('publicKey.publicKeyPem'));
+});
+
 test('missing or foreign @context', () => {
   const {['@context']: _, ...noContext} = goodActor;
   assert.deepEqual(paths(lintObject(noContext), 'warning'), ['@context']);
@@ -129,8 +137,10 @@ test('direct message without Mention tags is limited on Mastodon', () => {
   assert.deepEqual(lintObject(tagged), []);
 });
 
-test('Create with a bare object URI or unsupported type', () => {
-  assert.ok(paths(lintObject({...goodCreate, object: `${ACTOR}/statuses/1`}), 'warning').includes('object'));
+test('Create with a bare object URI (info: Mastodon dereferences it) or unsupported type', () => {
+  const bare = lintObject({...goodCreate, object: `${ACTOR}/statuses/1`});
+  assert.ok(paths(bare, 'info').includes('object'));
+  assert.ok(!paths(bare, 'warning').includes('object'));
   const chat = lintObject({...goodCreate, object: {...goodCreate.object, type: 'Relationship'}});
   assert.ok(paths(chat, 'warning').includes('object.type'));
 });
@@ -151,3 +161,4 @@ test('Content-Type checks', () => {
   assert.deepEqual(paths(lintObject(goodActor, {contentType: 'application/json'}), 'error'), ['Content-Type']);
   assert.deepEqual(paths(lintObject(goodActor, {contentType: 'application/ld+json'}), 'error'), ['Content-Type']);
 });
+

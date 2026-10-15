@@ -2,6 +2,8 @@
 sidebar_position: 3
 title: Working with JSON-LD
 description: Tools for testing and validating JSON-LD in ActivityPub
+last_verified: 2026-10-15
+verified_against: "jsonld.js 8.x run against the live https://www.w3.org/ns/activitystreams context, JSON-LD 1.1, json-ld.org/playground, Mastodon v4.7.3 context_helper.rb"
 ---
 
 # Working with JSON-LD
@@ -21,10 +23,8 @@ The official tool for testing JSON-LD:
 **URL**: [json-ld.org/playground](https://json-ld.org/playground/)
 
 **Features:**
-- Expand, compact, flatten, frame operations
-- Multiple input formats
-- Real-time validation
-- Share examples via URL
+- Expand, compact, flatten and frame operations
+- Permalinks for sharing an example
 
 ### Using the Playground
 
@@ -225,16 +225,21 @@ console.log(results);
 
 ### Unknown Terms
 
+The Activity Streams context sets `"@vocab": "_:"`, so a term it doesn't define isn't dropped — it expands to a blank-node property:
+
 ```javascript
-// Terms not in context are dropped during compaction
 const object = {
   "@context": "https://www.w3.org/ns/activitystreams",
   "type": "Note",
-  "customField": "This will be lost"
+  "customField": "Not defined anywhere"
 };
 
-// After round-trip through JSON-LD processor, customField may be gone
+// jsonld.expand(object) gives "_:customField", and compacting brings back
+// "customField" — but "_:customField" has no global meaning, so another
+// server can't tell your customField from anyone else's.
 ```
+
+Define extension terms in your own context (as Mastodon does with `toot:`) so they expand to a real IRI. With a context that has no `@vocab`, undefined terms *are* dropped on expansion.
 
 ## Testing ActivityPub Objects
 
@@ -323,27 +328,30 @@ npm install jsonld
 ```javascript
 const jsonld = require('jsonld');
 
-// Custom document loader (for offline testing)
+// Custom document loader: serve known contexts from local copies.
+// Save the real documents first, e.g.
+//   curl -H 'Accept: application/ld+json' https://www.w3.org/ns/activitystreams > activitystreams.jsonld
+const { readFileSync } = require('fs');
+const load = (file) => JSON.parse(readFileSync(file, 'utf8'));
+
+const contexts = {
+  'https://www.w3.org/ns/activitystreams': load('./activitystreams.jsonld'),
+  'https://w3id.org/security/v1': load('./security-v1.jsonld'),
+};
+
 const customLoader = async (url) => {
-  const contexts = {
-    'https://www.w3.org/ns/activitystreams': {
-      // ActivityStreams context (cached)
-    }
-  };
-
   if (contexts[url]) {
-    return {
-      document: contexts[url],
-      documentUrl: url
-    };
+    return { contextUrl: null, document: contexts[url], documentUrl: url };
   }
-
-  // Fall back to default loader
-  return jsonld.documentLoaders.node()(url);
+  // Refuse anything else: fetching arbitrary context URLs from remote
+  // documents is an SSRF and DoS risk (see JSON-LD security)
+  throw new Error(`Context not allowed: ${url}`);
 };
 
 jsonld.documentLoader = customLoader;
 ```
+
+For a production allowlisted loader, see [JSON-LD security](/docs/reference/json-ld-security).
 
 ### Browser Setup
 

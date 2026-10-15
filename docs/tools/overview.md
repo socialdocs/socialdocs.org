@@ -2,6 +2,8 @@
 sidebar_position: 0
 title: Testing & Debugging Tools
 description: Interactive tools on SocialDocs for linting objects, inspecting actors and checking HTTP signatures, plus the external tools ActivityPub developers use to test and debug federation
+last_verified: 2026-10-15
+verified_against: "fedify.dev/cli (@fedify/cli 2.4.4), activitypub.academy /api/v1/instance (4.1.18), browser.pub, GitHub API for steve-bate/activitypub-testsuite, on 2026-10-15"
 ---
 
 # Testing & Debugging Tools

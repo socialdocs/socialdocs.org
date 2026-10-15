@@ -2,107 +2,20 @@
 sidebar_position: 4
 title: Resources
 description: Developer resources, libraries, and tools for building on ActivityPub
+last_verified: 2026-10-15
+verified_against: "Links and GitHub API repository status checked 2026-10-15; Mastodon v4.7.3 context_helper.rb; Matrix directory API; Stack Exchange API"
 ---
 
 # Developer Resources
 
 A collection of libraries, tools, and resources for building ActivityPub and Fediverse applications.
 
-## Libraries by Language
+## Libraries
 
-### JavaScript / TypeScript
+Library listings, with maintenance status taken from package registries and forges, live on the ecosystem pages:
 
-| Library | Description | License |
-|---------|-------------|---------|
-| [Fedify](https://fedify.dev/) | Full ActivityPub server framework | MIT |
-| [ActivityPub Express](https://github.com/immers-space/activitypub-express) | Express.js middleware for ActivityPub (unmaintained) | MIT |
-| [express-activitypub](https://github.com/dariusk/express-activitypub) | Simple reference implementation | MIT |
-| [http-signature](https://github.com/joyent/node-http-signature) | HTTP Signatures implementation | MIT |
-
-```javascript
-// Example: Using Fedify 2.x
-import { createFederation, MemoryKvStore } from '@fedify/fedify';
-
-const federation = createFederation({
-  kv: new MemoryKvStore(), // use a persistent store in production
-});
-
-federation.setActorDispatcher('/users/{identifier}', async (ctx, identifier) => {
-  // Return actor object
-});
-```
-
-### Python
-
-| Library | Description | License |
-|---------|-------------|---------|
-| [federation](https://codeberg.org/socialhome/federation) | Multi-protocol social web library | BSD-3 |
-| [little-boxes](https://github.com/tsileo/little-boxes) | Minimal ActivityPub framework (archived) | ISC |
-| [bovine](https://codeberg.org/bovine/bovine) | Fediverse application library | MIT |
-| [Takahē](https://github.com/jointakahe/takahe) | Multi-domain AP server | BSD-3 |
-
-```python
-# Example: Using federation library
-from federation.entities import base
-from federation.outbound import handle_create
-
-entity = base.Post(
-    raw_content="Hello from Python!",
-    id="https://example.com/posts/1"
-)
-```
-
-### Rust
-
-| Library | Description | License |
-|---------|-------------|---------|
-| [activitypub-federation](https://github.com/LemmyNet/activitypub-federation-rust) | High-level AP framework (from Lemmy) | AGPL-3.0 |
-| [activitystreams](https://github.com/asonix/activitystreams) | Traits and types for AS/AP | GPL-3.0 |
-| [megalodon-rs](https://github.com/h3poteto/megalodon-rs) | Mastodon/Pleroma API client | Apache-2.0 |
-
-```rust
-// Example: Using activitypub-federation
-use activitypub_federation::config::FederationConfig;
-
-let config = FederationConfig::builder()
-    .domain("example.com")
-    .app_data(data)
-    .build()?;
-```
-
-### Go
-
-| Library | Description | License |
-|---------|-------------|---------|
-| [go-fed/activity](https://github.com/go-fed/activity) | Full AS/AP implementation | BSD-3 |
-| [Hannibal](https://github.com/EmissarySocial/Hannibal) | ActivityPub library | Apache-2.0 |
-| [go-activitypub](https://github.com/go-ap/activitypub) | AP service implementation | ISC |
-
-```go
-// Example: Using go-fed/activity
-import "github.com/go-fed/activity/streams"
-
-note := streams.NewActivityStreamsNote()
-note.GetActivityStreamsContent().Set(/* ... */)
-```
-
-### PHP
-
-| Library | Description | License |
-|---------|-------------|---------|
-
-### Ruby
-
-| Library | Description | License |
-|---------|-------------|---------|
-| [activitypub](https://github.com/mastodon/mastodon) | Reference (Mastodon codebase) | AGPL-3.0 |
-
-### Elixir
-
-| Library | Description | License |
-|---------|-------------|---------|
-| [activity_pub](https://github.com/bonfire-networks/activity_pub) | ActivityPub library | AGPL-3.0 |
-| [Pleroma](https://git.pleroma.social/pleroma/pleroma) | Full implementation reference | AGPL-3.0 |
+- [Libraries overview](/docs/ecosystem/libraries-overview) — what to pick, by language
+- [Fedify](/docs/ecosystem/fedify) (TypeScript), [JavaScript](/docs/ecosystem/javascript-libraries), [Python](/docs/ecosystem/python-libraries), [Go](/docs/ecosystem/go-libraries), [Rust](/docs/ecosystem/rust-libraries), [Ruby](/docs/ecosystem/ruby-libraries), [PHP](/docs/ecosystem/php-libraries), [other languages](/docs/ecosystem/other-libraries)
 
 ## Tools
 
@@ -119,47 +32,24 @@ note.GetActivityStreamsContent().Set(/* ... */)
 | [JSON-LD Playground](https://json-ld.org/playground/) | Test JSON-LD processing |
 | [WebFinger Tester](https://webfinger.net/lookup/) | Test WebFinger discovery |
 
-### Instance Management
-
-| Tool | Description |
-|------|-------------|
-
 ## Reference Implementations
 
 ### Full Servers
 
-```
-┌────────────────────────────────────────────────────────────┐
-│              REFERENCE IMPLEMENTATIONS                     │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│  Microblogging                                             │
-│  ├── Mastodon (Ruby)    - mastodon/mastodon               │
-│  ├── Pleroma (Elixir)   - pleroma/pleroma                 │
-│  └── Misskey (TS)       - misskey-dev/misskey             │
-│                                                            │
-│  Link Aggregation                                          │
-│  └── Lemmy (Rust)       - LemmyNet/lemmy                  │
-│                                                            │
-│  Photo Sharing                                             │
-│  └── Pixelfed (PHP)     - pixelfed/pixelfed               │
-│                                                            │
-│  Video                                                     │
-│  └── PeerTube (TS)      - Chocobozzz/PeerTube             │
-│                                                            │
-│  Blogging                                                  │
-│  ├── WriteFreely (Go)   - writefreely/writefreely         │
-│  └── Plume (Rust)       - Plume-org/Plume                 │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
-```
+Widely deployed servers whose source is worth reading (see [Server Software](/docs/ecosystem/server-software) for the full list):
+
+- **Microblogging:** [Mastodon](https://github.com/mastodon/mastodon) (Ruby), [Pleroma](https://git.pleroma.social/pleroma/pleroma) (Elixir), [Misskey](https://github.com/misskey-dev/misskey) (TypeScript), [GoToSocial](https://codeberg.org/superseriousbusiness/gotosocial) (Go)
+- **Link aggregation:** [Lemmy](https://github.com/LemmyNet/lemmy) (Rust)
+- **Photos:** [Pixelfed](https://github.com/pixelfed/pixelfed) (PHP)
+- **Video:** [PeerTube](https://github.com/Chocobozzz/PeerTube) (TypeScript)
+- **Blogging:** [WriteFreely](https://github.com/writefreely/writefreely) (Go); [Plume](https://github.com/Plume-org/Plume) (Rust, little activity since April 2025)
 
 ### Minimal Examples
 
 | Project | Language | Purpose |
 |---------|----------|---------|
-| [express-activitypub](https://github.com/dariusk/express-activitypub) | Node.js | Reference implementation |
-| [microblog.pub](https://github.com/tsileo/microblog.pub) | Python | Single-user server |
+| [express-activitypub](https://github.com/dariusk/express-activitypub) | Node.js | Small single-user server by Darius Kazemi — readable, but not a security reference |
+| [microblog.pub](https://github.com/tsileo/microblog.pub) | Python | Single-user server (no GitHub activity since 2023) |
 
 ## Specifications
 
@@ -177,7 +67,7 @@ note.GetActivityStreamsContent().Set(/* ... */)
 
 | Specification | Documentation |
 |--------------|---------------|
-| HTTP Signatures | [docs.joinmastodon.org/spec/security](https://docs.joinmastodon.org/spec/security/) |
+| HTTP Signatures | [draft-cavage-12](https://datatracker.ietf.org/doc/html/draft-cavage-http-signatures-12), [RFC 9421](https://www.rfc-editor.org/rfc/rfc9421), [SWICG report](https://www.w3.org/community/reports/socialcg/CG-FINAL-apsig-20240607/), [Mastodon's profile](https://docs.joinmastodon.org/spec/security/) |
 | NodeInfo | [nodeinfo.diaspora.software](http://nodeinfo.diaspora.software/) |
 | Mastodon Extensions | [docs.joinmastodon.org](https://docs.joinmastodon.org/) |
 
@@ -251,30 +141,13 @@ note.GetActivityStreamsContent().Set(/* ... */)
 
 ### Essential URLs
 
-```
-┌────────────────────────────────────────────────────────────┐
-│                  ESSENTIAL URLS                            │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│  Specifications                                            │
-│  ├── w3.org/TR/activitypub                                │
-│  ├── w3.org/TR/activitystreams-core                       │
-│  └── w3.org/TR/activitystreams-vocabulary                 │
-│                                                            │
-│  Community                                                 │
-│  ├── socialhub.activitypub.rocks                          │
-│  ├── activitypub.rocks                                    │
-│  └── codeberg.org/fediverse/fep                           │
-│                                                            │
-│  Tools                                                     │
-│  ├── json-ld.org/playground                               │
-│  ├── webfinger.net/lookup                                 │
-│  └── fedidb.org                                           │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
-```
+- **Specifications:** [w3.org/TR/activitypub](https://www.w3.org/TR/activitypub/), [w3.org/TR/activitystreams-core](https://www.w3.org/TR/activitystreams-core/), [w3.org/TR/activitystreams-vocabulary](https://www.w3.org/TR/activitystreams-vocabulary/)
+- **Community:** [socialhub.activitypub.rocks](https://socialhub.activitypub.rocks/), [activitypub.rocks](https://activitypub.rocks/), [codeberg.org/fediverse/fep](https://codeberg.org/fediverse/fep)
+- **Tools:** [json-ld.org/playground](https://json-ld.org/playground/), [webfinger.net/lookup](https://webfinger.net/lookup/), [fedidb.org](https://fedidb.org/)
 
 ### Common Namespaces
+
+Mastodon's context, including the `schema:` terms it uses for profile fields ([context_helper.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/helpers/context_helper.rb)):
 
 ```json
 {
@@ -298,17 +171,17 @@ note.GetActivityStreamsContent().Set(/* ... */)
 1. **SocialHub Forum** - Best for implementation questions
 2. **Matrix Rooms** - Real-time help
 3. **GitHub Issues** - Library-specific questions
-4. **Stack Overflow** - Tag with `activitypub`
+4. **Stack Overflow** - the `activitypub` tag exists but sees little traffic; SocialHub is usually faster
 
 ### Debugging Tips
 
 ```javascript
-// Log incoming activities
-app.post('/inbox', (req, res) => {
-  console.log('Received activity:', JSON.stringify(req.body, null, 2));
-  // Process activity...
+// Log incoming activities while debugging (never log secrets in production)
+app.post('/inbox', express.raw({ type: '*/*', limit: '1mb' }), (req, res) => {
+  console.log('Received activity:', req.body.toString());
+  // Verify, then process...
+  res.sendStatus(202);
 });
-
 ```
 
 To check signatures, don't hand-roll a verifier: see [Verifying incoming requests](/docs/security/verifying-requests) for tested code, or use your framework's built-in verification.

@@ -2,6 +2,8 @@
 sidebar_position: 1
 title: Fediverse Enhancement Proposals
 description: The FEP process for extending ActivityPub and improving fediverse interoperability
+last_verified: 2026-10-15
+verified_against: "codeberg.org/fediverse/fep front matter and Implementations sections (2026-10-15), fep-xxxx-template.md, README.md, Mitra and Streams FEDERATION.md"
 ---
 
 # Fediverse Enhancement Proposals (FEPs)
@@ -71,7 +73,7 @@ The official FEP repository is hosted on Codeberg:
 |-----|-------|--------|
 | FEP-a4ed | The Fediverse Enhancement Proposal Process | FINAL |
 | FEP-67ff | FEDERATION.md | FINAL |
-| FEP-d9ad | Test Cases for FEPs | DRAFT |
+| FEP-d9ad | Create Conformance Tests for Fediverse Enhancement Proposals | DRAFT |
 
 ### Federation & Discovery
 
@@ -80,8 +82,8 @@ The official FEP repository is hosted on Codeberg:
 | FEP-d556 | Server-Level Actor Discovery Using WebFinger | FINAL |
 | FEP-0151 | NodeInfo in Fediverse Software (2025 edition) | FINAL (March 2026) |
 | FEP-f1d5 | NodeInfo in Fediverse Software | FINAL (superseded by FEP-0151) |
-| FEP-8fcf | Followers Collection Synchronization | FINAL |
-| FEP-ae0c | Fediverse Relay Protocols | FINAL |
+| FEP-8fcf | Followers collection synchronization across servers | FINAL |
+| FEP-ae0c | Fediverse Relay Protocols: Mastodon and LitePub | FINAL |
 | FEP-7628 | Move Actor | FINAL (August 2026) |
 
 ### Groups & Collections
@@ -106,15 +108,15 @@ These are still DRAFT status but already shape real-world interop (as of October
 |-----|-------|-------------------|
 | [FEP-044f](https://codeberg.org/fediverse/fep/src/branch/main/fep/044f/fep-044f.md) | Consent-respecting quote posts (`QuoteRequest`/`QuoteAuthorization`, `canQuote`) | Mastodon 4.5+. GoToSocial (0.22.2) publishes a self-only `canQuote` but does not support quotes |
 | [FEP-dd4b](https://codeberg.org/fediverse/fep/src/branch/main/fep/dd4b/fep-dd4b.md) | Quote Posts — alternative `Announce`-based approach | Proposal stage |
-| [FEP-8b32](https://codeberg.org/fediverse/fep/src/branch/main/fep/8b32/fep-8b32.md) | Object Integrity Proofs — self-authenticating activities | Mitra, Streams, Mastodon 4.7+ (verification) |
-| [FEP-7888](https://codeberg.org/fediverse/fep/src/branch/main/fep/7888/fep-7888.md) | Demystifying the `context` property — conversation grouping | NodeBB, Streams, Mitra |
-| [FEP-171b](https://codeberg.org/fediverse/fep/src/branch/main/fep/171b/fep-171b.md) | Conversation Containers — moderated conversation collections | Streams |
-| [FEP-7aa9](https://codeberg.org/fediverse/fep/src/branch/main/fep/7aa9/fep-7aa9.md) | Featured Collections — curated, opt-in account collections | Mastodon 4.6+ |
-| [FEP-8967](https://codeberg.org/fediverse/fep/src/branch/main/fep/8967/fep-8967.md) | `Link` objects in `attachment` | Mastodon 4.7+ |
-| [FEP-ef61](https://codeberg.org/fediverse/fep/src/branch/main/fep/ef61/fep-ef61.md) | Portable Objects — server-independent IDs for nomadic identity | Mitra, Streams lineage |
+| [FEP-8b32](https://codeberg.org/fediverse/fep/src/branch/main/fep/8b32/fep-8b32.md) | Object Integrity Proofs — self-authenticating activities | Mitra, Streams, Vervis, Hubzilla; Mastodon 4.7+ (verification) |
+| [FEP-7888](https://codeberg.org/fediverse/fep/src/branch/main/fep/7888/fep-7888.md) | Demystifying the `context` property — conversation grouping | NodeBB, Streams |
+| [FEP-171b](https://codeberg.org/fediverse/fep/src/branch/main/fep/171b/fep-171b.md) | Conversation Containers — moderated conversation collections | Streams, Forte, Hubzilla, Mitra (private conversations) |
+| [FEP-7aa9](https://codeberg.org/fediverse/fep/src/branch/main/fep/7aa9/fep-7aa9.md) | Featuring recommendations using a dedicated collection (Mastodon's "Collections") — curated, opt-in account collections | Mastodon 4.6+ |
+| [FEP-8967](https://codeberg.org/fediverse/fep/src/branch/main/fep/8967/fep-8967.md) | Generating link previews for attached links (`Link` objects in `attachment`) | Mastodon 4.7+ |
+| [FEP-ef61](https://codeberg.org/fediverse/fep/src/branch/main/fep/ef61/fep-ef61.md) | Portable Objects — server-independent IDs for nomadic identity | Streams, Forte, Mitra (gateway only) |
 
 :::note Vendor drafts
-Some FEPs start life in a vendor's own repository — FEP-7aa9 (Featured Collections) was first published by Mastodon and submitted to the canonical FEP repo in June 2026. Check the [FEP repository](https://codeberg.org/fediverse/fep) for current status.
+Some FEPs start life in a vendor's own repository — FEP-7aa9 (Mastodon's Collections) was first published by Mastodon and submitted to the canonical FEP repo in June 2026. Check the [FEP repository](https://codeberg.org/fediverse/fep) for current status.
 :::
 
 ## FEP Identifiers
@@ -133,14 +135,14 @@ This ensures unique, deterministic identifiers while avoiding manual numbering c
 
 ### 1. Draft Your Proposal
 
-Create a markdown file following this template:
+Start from the repository's [`fep-xxxx-template.md`](https://codeberg.org/fediverse/fep/src/branch/main/fep-xxxx-template.md). Its outline looks like this:
 
 ```markdown
 ---
 slug: "xxxx"
 authors: Your Name <your@email.example>
 status: DRAFT
-dateReceived: 2024-01-15
+dateReceived: 2026-10-15
 discussionsTo: https://socialhub.activitypub.rocks/t/your-topic
 ---
 
@@ -174,49 +176,43 @@ List of implementations supporting this FEP...
 
 ### 2. Submit a Pull Request
 
+Fork [fediverse/fep](https://codeberg.org/fediverse/fep) on Codeberg, then:
+
 ```bash
-# Fork the repository
 git clone https://codeberg.org/your-username/fep
 cd fep
 
-# Create your FEP directory
+# Your id is the first 4 hex digits of sha256(title)
 mkdir fep/xxxx
-cp template.md fep/xxxx/fep-xxxx.md
+cp fep-xxxx-template.md fep/xxxx/fep-xxxx.md
 
-# Submit pull request
-git add .
+git checkout -b fep-xxxx
+git add fep/xxxx
 git commit -m "Add FEP-xxxx: Your Proposal Title"
-git push origin main
+git push origin fep-xxxx
+# then open a pull request on Codeberg
 ```
 
 ### 3. Discussion Period
 
-Once submitted:
-1. Create a discussion topic on [SocialHub](https://socialhub.activitypub.rocks/c/standards/fep/54)
-2. Engage with community feedback
-3. Update the FEP based on discussions
+Within seven days a facilitator reviews the submission. If accepted it gets status `DRAFT`, a tracking issue and a `trackingIssue` attribute. While it is a draft:
+1. Start a discussion (usually on [SocialHub](https://socialhub.activitypub.rocks/c/standards/fep/54)) and collect feedback
+2. Submit updates; changes from non-authors need an author's approval
 
 ### 4. Finalization
 
-After sufficient discussion and implementation:
-1. Request status change to FINAL
-2. Facilitators review and merge
-3. FEP becomes a stable specification
+After **at least 60 days**, the authors may request final comments. If there are no community objections within **14 days** and the authors have built enough awareness and discussion, a facilitator sets the status to `FINAL`. A FINAL FEP can only receive minor corrections; substantial changes need a new FEP with a `replaces` attribute. Drafts with no updates for 2 years are set to `WITHDRAWN`. ([FEP-a4ed](https://codeberg.org/fediverse/fep/src/branch/main/fep/a4ed/fep-a4ed.md))
 
 ## FEP Governance
 
 ### Facilitators
 
-The FEP process is managed by facilitators listed in `FACILITATORS.md`. Their role is:
-- Merge pull requests
-- Create tracking issues
-- Remain neutral on proposals
-- Ensure process compliance
+The FEP process is managed by facilitators listed in [`FACILITATORS.md`](https://codeberg.org/fediverse/fep/src/branch/main/FACILITATORS.md) — "neutral custodians of the FEP process, who merge PR's and create tracking issues".
 
 ### DoOcracy
 
-The FEP community operates as a "DoOcracy":
-> Pick up any task you want, and steer it to completion.
+The FEP README describes the SocialHub developer community as a "DoOcracy":
+> pick up any task you want, and then steer it to completion
 
 This means anyone can:
 - Propose new FEPs
@@ -230,7 +226,7 @@ This means anyone can:
 
 - **DRAFT**: Work in progress, may change significantly
 - **FINAL**: Stable specification, suitable for implementation
-- **WITHDRAWN**: No longer maintained (may be replaced)
+- **WITHDRAWN**: Withdrawn by its authors, or inactive for 2 years; can be resubmitted
 
 ### Implementation Notes
 

@@ -2,6 +2,8 @@
 sidebar_position: 2
 title: Social Web Community Group
 description: The W3C SocialCG and Social Web Working Group — who maintains ActivityPub, how to participate, and current task forces
+last_verified: 2026-10-15
+verified_against: "w3.org/groups/wg/social and /groups/cg/socialcg, swicg/meetings DELIVERABLES-TASKFORCES.md, w3c/socialwg 2026-10-02 minutes, W3C CG report URLs (2026-10-15)"
 ---
 
 # Social Web Community Group (SocialCG)
