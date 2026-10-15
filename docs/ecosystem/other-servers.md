@@ -67,7 +67,7 @@ Minimalist ActivityPub server.
 |----------|-------|
 | Language | Go |
 | License | ISC |
-| Repository | [humungus.tedunangst.com/r/honk](https://humungus.tedunangst.com/r/honk) |
+| Repository | humungus.tedunangst.com/r/honk (unreachable as of October 2026) |
 
 Features:
 - Single user focus

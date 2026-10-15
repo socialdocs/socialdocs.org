@@ -116,7 +116,6 @@ note.GetActivityStreamsContent().Set(/* ... */)
 
 | Tool | Description |
 |------|-------------|
-| [HTTP Signature Tester](https://httpsig-test.examples.webfist.org/) | Verify signature implementation |
 | [JSON-LD Playground](https://json-ld.org/playground/) | Test JSON-LD processing |
 | [WebFinger Tester](https://webfinger.net/lookup/) | Test WebFinger discovery |
 
@@ -211,7 +210,7 @@ note.GetActivityStreamsContent().Set(/* ... */)
 | Resource | Description |
 |----------|-------------|
 | [SocialHub](https://socialhub.activitypub.rocks/) | Developer community forum |
-| [Lemmy Communities](https://lemmy.world/c/fediverse) | Fediverse discussions |
+| [Lemmy Communities](https://lemmy.ml/c/fediverse) | Fediverse discussions |
 | [#fediverse:matrix.org](https://matrix.to/#/#fediverse:matrix.org) | Matrix chat room |
 
 ### News & Updates

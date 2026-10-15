@@ -211,7 +211,6 @@ Both are widely supported. Implement 2.1 and optionally 2.0 for compatibility.
 NodeInfo is used by:
 
 - [FediDB](https://fedidb.org/) - Statistics
-- [The-Federation.info](https://the-federation.info/) - Network stats
 - Instance pickers and directories
 
 ## Metadata Extensions

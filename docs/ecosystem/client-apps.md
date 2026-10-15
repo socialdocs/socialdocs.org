@@ -53,7 +53,6 @@ Third-party apps for accessing Fediverse platforms.
 |--------|----------|-------------|
 | [Elk](https://elk.zone/) | Mastodon | Modern web client |
 | [Phanpy](https://phanpy.social/) | Mastodon | Minimalist |
-| [Semaphore](https://semaphore.social/) | Mastodon | Pinafore successor |
 | [Photon](https://phtn.app/) | Lemmy | Modern UI |
 
 ## Platform-Specific
