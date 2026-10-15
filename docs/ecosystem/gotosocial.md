@@ -15,7 +15,7 @@ GoToSocial is a lightweight, privacy-focused ActivityPub server written in Go.
 | Language | Go |
 | Database | SQLite/PostgreSQL |
 | License | AGPL-3.0 |
-| Repository | [github.com/superseriousbusiness/gotosocial](https://github.com/superseriousbusiness/gotosocial) |
+| Repository | [codeberg.org/superseriousbusiness/gotosocial](https://codeberg.org/superseriousbusiness/gotosocial) |
 | Documentation | [docs.gotosocial.org](https://docs.gotosocial.org/) |
 
 ## Key Features

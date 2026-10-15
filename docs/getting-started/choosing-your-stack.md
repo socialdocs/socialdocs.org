@@ -114,7 +114,7 @@ def actor(username):
 **Popular libraries:**
 - [go-fed/activity](https://github.com/go-fed/activity) - Complete implementation
 - [go-ap](https://github.com/go-ap) - ActivityPub packages
-- [gotosocial internals](https://github.com/superseriousbusiness/gotosocial) - Reference implementation
+- [gotosocial internals](https://codeberg.org/superseriousbusiness/gotosocial) - Reference implementation
 
 ```go
 // Example with go-fed
