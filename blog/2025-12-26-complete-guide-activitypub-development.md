@@ -14,7 +14,7 @@ ActivityPub has become the backbone of the decentralized social web. With over 1
 
 This guide provides everything you need to start building with ActivityPub — from core concepts to production deployment.
 
-<!-- truncate -->
+{/* truncate */}
 
 ## What is ActivityPub?
 
