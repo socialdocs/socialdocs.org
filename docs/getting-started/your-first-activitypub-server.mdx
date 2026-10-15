@@ -3,7 +3,7 @@ sidebar_position: 3
 title: Your First ActivityPub Server
 description: Build a small, secure ActivityPub server in Node.js whose code is tested in CI against a real GoToSocial instance.
 last_verified: 2026-10-15
-verified_against: "GoToSocial 0.22.2 (federation test in CI), Node.js 24; code tested in examples/first-server"
+verified_against: "GoToSocial 0.22.2 and Mastodon 4.7.3 (federation tests in CI), Node.js 24; code tested in examples/first-server"
 ---
 
 import CodeBlock from '@theme/CodeBlock';
@@ -25,7 +25,7 @@ This tutorial walks through a small ActivityPub server with one account. By the 
 - accepts followers, and delivers posts to them with signed requests
 
 :::tip This code is tested against a real server
-Every code block on this page is imported from [`examples/first-server`](https://github.com/socialdocs/socialdocs.org/tree/gh-pages/examples/first-server). Its unit tests run on every change, and a [federation test](#test-it-against-a-real-server) starts **GoToSocial 0.22.2** in Docker, follows this server from it, publishes a post and checks that the post arrives in the follower's home timeline. The test runs on changes to the code and weekly ([workflow](https://github.com/socialdocs/socialdocs.org/blob/gh-pages/.github/workflows/tutorial.yml)). It is not yet tested against Mastodon.
+Every code block on this page is imported from [`examples/first-server`](https://github.com/socialdocs/socialdocs.org/tree/gh-pages/examples/first-server). Its unit tests run on every change, and a [federation test](#test-it-against-a-real-server) starts **GoToSocial 0.22.2** in Docker, follows this server from it, publishes a post and checks that the post arrives in the follower's home timeline. A second test does the same with **Mastodon 4.7.3**. Both run on changes to the code and weekly ([workflow](https://github.com/socialdocs/socialdocs.org/blob/gh-pages/.github/workflows/tutorial.yml)).
 :::
 
 It is teaching code, written to be read. For a production server, start from a maintained framework such as [Fedify](/docs/ecosystem/fedify) and use this page to understand what it does for you.
@@ -141,6 +141,8 @@ Two settings make this work on a private network, and both are for testing only:
 
 Never enable either on a server reachable from the internet.
 
+The Mastodon test (`integration/run-mastodon.sh` in the same [directory](https://github.com/socialdocs/socialdocs.org/tree/gh-pages/examples/first-server/integration)) runs the same steps against Mastodon 4.7.3: web and Sidekiq from the official image, with Postgres and Redis, behind Caddy for TLS. It creates the user with `tootctl accounts create` and mints an API token with `rails runner`. It also marks the user as signed in, because Mastodon only fans posts out to home feeds of users active in the last 7 days (`USER_ACTIVE_DAYS`). On the private network it sets `ALLOWED_PRIVATE_ADDRESSES` to the test subnet and points `SSL_CERT_FILE` at the throwaway CA — again, test-only settings.
+
 ## Common problems
 
 **Other servers can't find you.** Check that WebFinger answers for the exact `acct:` you searched for, and that the actor is served with `Content-Type: application/activity+json` over https on port 443.
@@ -157,7 +159,7 @@ This server is deliberately small. A real one also needs:
 - handling for incoming Create, Update, Delete, Like and Announce (see [Handling incoming activities](/docs/guides/handling-incoming-activities))
 - followers and outbox collections with paging
 - rate limiting, and a plan for key rotation
-- checks against [Mastodon](/docs/guides/mastodon-compatibility) as well as GoToSocial
+- checks against more servers than GoToSocial and Mastodon (see [Mastodon compatibility](/docs/guides/mastodon-compatibility) and the other platform guides)
 
 ## Next steps
 
