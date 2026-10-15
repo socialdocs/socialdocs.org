@@ -53,6 +53,35 @@ const config: Config = {
     ],
   ],
 
+  plugins: [
+    [
+      '@docusaurus/plugin-client-redirects',
+      {
+        // Pages removed or merged in the October 2026 cleanup
+        redirects: [
+          {from: '/docs/reference/object-types', to: '/docs/specs/activitystreams/object-types'},
+          {from: '/docs/reference/activity-types', to: '/docs/specs/activitystreams/activity-types'},
+          {from: '/docs/reference/actor-types', to: '/docs/specs/activitystreams/actor-types'},
+          {from: '/docs/reference/collection-types', to: '/docs/specs/activitypub/collections'},
+          {from: '/docs/reference/common-properties', to: '/docs/specs/activitystreams/properties'},
+          {from: '/docs/reference/object-properties', to: '/docs/specs/activitystreams/properties'},
+          {from: '/docs/reference/activity-properties', to: '/docs/specs/activitystreams/properties'},
+          {from: '/docs/reference/actor-properties', to: '/docs/specs/activitystreams/properties'},
+          {from: '/docs/reference/endpoints-overview', to: '/docs/specs/activitypub/overview'},
+          {from: '/docs/reference/inbox-endpoint', to: '/docs/specs/activitypub/server-to-server'},
+          {from: '/docs/reference/outbox-endpoint', to: '/docs/specs/activitypub/collections'},
+          {from: '/docs/reference/followers-following', to: '/docs/specs/activitypub/collections'},
+          {from: '/docs/reference/webfinger-endpoint', to: '/docs/specs/webfinger/overview'},
+          {from: '/docs/reference/nodeinfo-endpoint', to: '/docs/specs/nodeinfo/overview'},
+          {from: '/docs/tools/webfinger-lookup', to: '/docs/guides/webfinger-implementation'},
+          {from: '/docs/reference/http-signatures-reference', to: '/docs/specs/http-signatures/overview'},
+          {from: '/docs/tools/signature-tester', to: '/docs/specs/http-signatures/overview'},
+          {from: '/blog/welcome', to: '/blog'},
+        ],
+      },
+    ],
+  ],
+
   themes: [
     [
       require.resolve('@easyops-cn/docusaurus-search-local'),

@@ -2,6 +2,8 @@
 sidebar_position: 17
 title: Other Libraries
 description: ActivityPub libraries for other programming languages
+last_verified: 2026-10-15
+verified_against: "Package registries and forge APIs (npm, PyPI, crates.io, RubyGems, Packagist, Go proxy, GitHub, Codeberg) on 2026-10-15; @fedify/* 2.4.4"
 ---
 
 # Other Libraries
