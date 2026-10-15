@@ -15,7 +15,7 @@ const idOf = (v) => (typeof v === 'string' ? v : v && v.id);
 
 const B58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 
-function base58btcDecode(str) {
+export function base58btcDecode(str) {
   let n = 0n;
   for (const ch of str) {
     const i = B58.indexOf(ch);

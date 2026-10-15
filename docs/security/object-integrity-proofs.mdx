@@ -1,0 +1,146 @@
+---
+sidebar_position: 5
+title: Object integrity proofs
+description: FEP-8b32 Object Integrity Proofs with eddsa-jcs-2022 and mldsa44-jcs-2024, how Mastodon 4.7 verifies them, and why Linked Data Signatures are deprecated after the May 2026 JSON-LD bypasses.
+last_verified: 2026-10-15
+verified_against: "FEP-8b32 (codeberg, 2026-10-15); W3C vc-di-eddsa (eddsa-jcs-2022 test vector), VC Data Integrity 1.0, Quantum-Resistant Cryptosuites WD 2026-06-16; Mastodon v4.7.3 source and docs; GitHub advisories; code tested in examples/verify-requests"
+---
+
+import CodeBlock from '@theme/CodeBlock';
+import proofSrc from '!!raw-loader!@site/examples/verify-requests/src/proof.js';
+
+# Object integrity proofs
+
+An HTTP signature proves who **delivered** a request. It says nothing about an object that arrives through someone else: a relay, [inbox forwarding](/docs/security/origin-model), or a copy embedded in another server's activity. For those cases you can either refetch the object from its origin, or check a signature that **travels with the object**.
+
+[FEP-8b32: Object Integrity Proofs](https://codeberg.org/fediverse/fep/src/branch/main/fep/8b32/fep-8b32.md) defines that signature. It is still a **DRAFT**, but Mastodon 4.7 verifies it, and the FEP lists Mitra, Fedify, Hubzilla, Streams, Vervis, tootik and others as implementations.
+
+## What a proof looks like
+
+The proof is a `DataIntegrityProof` object under `proof`, as defined by [Verifiable Credential Data Integrity 1.0](https://www.w3.org/TR/vc-data-integrity/). This is the FEP's own example:
+
+```json
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/data-integrity/v2"
+  ],
+  "id": "https://server.example/objects/1",
+  "type": "Note",
+  "attributedTo": "https://server.example/users/alice",
+  "content": "Hello world",
+  "proof": {
+    "@context": [
+      "https://www.w3.org/ns/activitystreams",
+      "https://w3id.org/security/data-integrity/v2"
+    ],
+    "type": "DataIntegrityProof",
+    "cryptosuite": "eddsa-jcs-2022",
+    "verificationMethod": "https://server.example/users/alice#ed25519-key",
+    "proofPurpose": "assertionMethod",
+    "proofValue": "...",
+    "created": "2023-02-24T23:36:38Z"
+  }
+}
+```
+
+The FEP's rules:
+
+- `type` **MUST** be `DataIntegrityProof` and `proofPurpose` **MUST** be `assertionMethod`.
+- `verificationMethod` points at a key in the signer's `assertionMethod`, published as a [FEP-521a Multikey](/docs/security/keys-and-identity#fep-521a-multikey-in-assertionmethod).
+- The actor that controls the key **MUST** be the object's **owner** under [FEP-fe34](/docs/security/origin-model): the `actor` of an activity, the `attributedTo` of an object.
+- Objects identified by fragment ids **SHOULD NOT** carry proofs, and an object **SHOULD NOT** carry more than one.
+- If the key can't be resolved, the cryptosuite isn't supported, or the proof has `expires` in the past, **ignore the proof** and authenticate some other way (an HTTP signature, or a refetch).
+- For a delivered activity, a top-level proof **MUST** take precedence over the HTTP signature.
+
+## Cryptosuites
+
+### `eddsa-jcs-2022` (recommended)
+
+FEP-8b32 recommends [`eddsa-jcs-2022`](https://www.w3.org/TR/vc-di-eddsa/#eddsa-jcs-2022):
+
+- **Canonicalization:** the [JSON Canonicalization Scheme (RFC 8785)](https://www.rfc-editor.org/rfc/rfc8785). Sort object keys, serialize numbers and strings exactly as JavaScript's `JSON.stringify` does.
+- **Hashing:** SHA-256 of the canonical proof options (the proof without `proofValue`), followed by SHA-256 of the canonical document (without `proof`). The signature covers those 64 bytes.
+- **Signature:** Ed25519. `proofValue` is the 64-byte signature, base58btc multibase (`z…`).
+
+One subtlety in [verification](https://www.w3.org/TR/vc-di-eddsa/#verify-proof-eddsa-jcs-2022): if the proof has an `@context`, the document's `@context` must **start with** it, and the proof's `@context` then replaces the document's before hashing.
+
+JCS signs the **JSON you received**, not an RDF graph. That makes it simple and fast. It also means the proof does not survive JSON-LD expansion, compaction or framing, as [Mastodon's docs](https://docs.joinmastodon.org/spec/security/#fep-8b32) point out. Verify the JSON exactly as received, then process **that same JSON**.
+
+### `mldsa44-jcs-2024` (post-quantum)
+
+FEP-8b32 notes that `eddsa-jcs-2022` is not secure against quantum computers. Quantum-resistant suites are being standardized in the W3C [Quantum-Resistant Cryptosuites v1.0](https://www.w3.org/TR/2026/WD-vc-di-quantum-resistant-1.0-20260616/) Working Draft (2026-06-16). `mldsa44-jcs-2024` uses the same JCS canonicalization with an ML-DSA-44 signature.
+
+The two suites build the proof configuration differently. For `mldsa44-jcs-2024` the proof options take the document's `@context`, and there is no prefix check. Mastodon's source flags this as "inconsistent with eddsa-jcs-2022 but described in" the Working Draft ([object_integrity_proof.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/object_integrity_proof.rb)). Since that spec is still a draft, check it again before relying on this detail.
+
+## What Mastodon 4.7 does
+
+Mastodon 4.7.0 (2026-08-20) added verification of FEP-8b32 proofs for both suites. `mldsa44-jcs-2024` needs OpenSSL 3.5 or later. The same release added support for `expires` on proofs ([CHANGELOG](https://github.com/mastodon/mastodon/blob/v4.7.3/CHANGELOG.md), [#39530](https://github.com/mastodon/mastodon/pull/39530)). It **verifies** proofs but doesn't create them.
+
+When Mastodon checks a proof, from [process_activity_service.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/services/activitypub/process_activity_service.rb):
+
+- **Only for relayed activities.** A proof is checked only when the HTTP signer is not the activity's `actor`. Otherwise the HTTP signature already authenticates it.
+- **After LD Signatures.** Mastodon "currently prefers Linked Data Signatures and will only attempt to verify an Object Integrity Proof if the Linked Data Signature is absent or unverifiable" ([Mastodon docs](https://docs.joinmastodon.org/spec/security/#fep-8b32)). This differs from FEP-8b32, which gives a top-level proof precedence.
+- **Proof-only activities aren't forwarded.** A source comment says extending the forwarding rules to them "is not worth it right now since FEP-8b32 is not widely supported".
+- **Keys:** `eddsa-jcs-2022` needs an Ed25519 key and `mldsa44-jcs-2024` an ML-DSA-44 key. Both are fetched as FEP-521a keys, and a revoked or expired key is refused.
+
+So proofs are worth **adding** to the activities you send, especially ones that get relayed or forwarded. Just don't drop HTTP signatures in favour of them.
+
+## Why not Linked Data Signatures
+
+Before FEP-8b32, the way to sign an object was a Linked Data Signature: `signature` with `type: "RsaSignature2017"`. Mastodon still sends and accepts these, for relays and for `tootctl self-destruct` deletes. Its documentation is blunt: the implementation is "outdated", the spec "has been superseded by the Verifiable Credential Data Integrity 1.0 specification", and "it is not advised to implement support for LD Signatures" ([Mastodon docs](https://docs.joinmastodon.org/spec/security/#ld)).
+
+The deeper problem showed up in May 2026. An LD Signature signs the canonical **RDF graph**, and JSON-LD offers many ways to write the same graph. Attackers could rearrange a signed document so that ActivityPub software, which reads the JSON tree, sees something different, while the signature still verifies. The Fedify advisory describes moving the top-level activity into `@graph` and promoting its embedded `object`, and using `@reverse` or `@included` to the same effect:
+
+| Advisory | Project | Published | Impact | Fixed in |
+|---|---|---|---|---|
+| [CVE-2026-46349](https://github.com/mastodon/mastodon/security/advisories/GHSA-chgx-jx3p-rf73) | Mastodon | 2026-05-20 | Rearranging a third party's signed activity. For Mastodon-issued activities, "limited to re-issuing retracted boosts" | 4.5.10, 4.4.17, 4.3.23 |
+| [CVE-2026-48028](https://github.com/mastodon/mastodon/security/advisories/GHSA-53m7-2wrh-q839) | Mastodon | 2026-05-20 | Removing JSON entries from a third party's signed activity, so parts of it can be hidden | 4.5.10, 4.4.17, 4.3.23 |
+| [CVE-2026-42462](https://github.com/fedify-dev/fedify/security/advisories/GHSA-9rfg-v8g9-9367) | Fedify | 2026-05-20 | The same named-graph restructuring, rated high | 1.9.11, 1.10.10, 2.0.18, 2.1.14, 2.2.3 |
+
+The attacker needs a copy of the original signed activity. Inbox forwarding and relays provide one.
+
+The lesson for any signature scheme: **what you verify must be exactly what you process.** JCS-based proofs give you that if you verify the received JSON and then use it without re-shaping it.
+
+If you still want legacy compatibility, FEP-8b32 says to add the integrity proof **before** the LD signature, and to remove `signature` before verifying the proof.
+
+## The code
+
+Tested in [`examples/verify-requests`](https://github.com/socialdocs/socialdocs.org/tree/gh-pages/examples/verify-requests). It reuses the key resolution from [Verifying incoming requests](/docs/security/verifying-requests), so the key must be listed in its controller's actor document, and that document must be served from its own origin.
+
+```js
+import { verifyObjectProof, safeFetchJson } from './index.js';
+
+// An activity arrived through a relay: the HTTP signer is the relay,
+// not activity.actor. Check the proof instead.
+const { owner } = await verifyObjectProof(activity, (url) => safeFetchJson(url));
+// owner === activity.actor is guaranteed here; verifyObjectProof throws
+// ProofError (or KeyResolutionError) otherwise. Embedded objects owned by
+// someone else still go through the origin checks.
+```
+
+<CodeBlock language="js" title="src/proof.js">{proofSrc}</CodeBlock>
+
+The tests (`test/proof.test.js`) check:
+
+- the JCS output against the hashes published in the [W3C eddsa-jcs-2022 test vector](https://www.w3.org/TR/vc-di-eddsa/#representation-eddsa-jcs-2022)
+- that the W3C vector's proof verifies, and fails once the document is modified
+- that a proof `@context` which isn't a prefix of the document's is rejected
+- a signed `Note`, and a signed `Create` relayed by someone else
+- that a legacy LD `signature` next to the proof is ignored
+
+and that these are rejected:
+
+- a modified object
+- a key the actor doesn't list
+- a valid proof by an actor who doesn't own the object
+- an expired proof
+- the wrong `proofPurpose`
+
+Only `eddsa-jcs-2022` is implemented here. Node.js can verify ML-DSA where its OpenSSL supports it, but this module doesn't attempt `mldsa44-jcs-2024` while its spec is a Working Draft.
+
+## See also
+
+- [Keys and identity](/docs/security/keys-and-identity): publishing Ed25519 keys with FEP-521a
+- [Origin-based security](/docs/security/origin-model): what an authenticated owner is allowed to do
+- [Known vulnerability classes](/docs/security/known-vulnerability-classes)
