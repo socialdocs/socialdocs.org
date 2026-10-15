@@ -1,110 +1,52 @@
 ---
 sidebar_position: 25
 title: Adding ActivityPub to Your Homepage
-description: Use Fedbox to federate your existing static profile
+description: Put a federated account next to your existing homepage with Fedbox, and what Mastodon requires for that to work
+last_verified: 2026-10-15
+verified_against: "Fedbox main branch (micro-fed/fedbox lib/server.js, bin/cli.js, October 2026); Mastodon v4.7.3 source (json_ld_helper.rb, process_account_service.rb, webfinger.rb, fetch_resource_service.rb); RFC 7033"
 ---
 
 # Adding ActivityPub to Your Homepage
 
-Already have a Solid profile or personal homepage? This guide shows how to add ActivityPub federation using Fedbox, allowing your existing WebID to participate in the Fediverse.
+Already have a personal homepage or a Solid profile? This guide puts a federated account next to it, using [Fedbox](/docs/ecosystem/fedbox) to handle ActivityPub, so people on Mastodon and elsewhere can follow you.
 
-The goal is to **unify Solid and ActivityPub with minimal bridging** — your identity lives in one place, and Fedbox handles federation.
+:::caution Fedbox is experimental
+Fedbox is a small, early project by this site's maintainer. Read the [Fedbox page](/docs/ecosystem/fedbox) first: the inbox signature fix from October 2026 is on its main branch but not yet in a published npm release.
+:::
 
-## Overview
+## What Mastodon requires
+
+Whatever software you use, Mastodon only accepts an account when all of these hold (Mastodon v4.7.3):
+
+1. **WebFinger** for `acct:you@your.domain` returns a `self` link to the actor ([`webfinger.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/webfinger.rb)).
+2. **The actor URL returns JSON** with `Content-Type: application/activity+json` (or `application/ld+json` with the ActivityStreams profile). An HTML page with an embedded JSON-LD `<script>` is not accepted ([`json_ld_helper.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/helpers/json_ld_helper.rb)).
+3. **The actor's `id` is exactly the URL that was fetched.** Mastodon compares strings; a relative `"id": "#me"` is never equal to `https://your.domain/you#me` ([`json_ld_helper.rb` `fetch_resource`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/helpers/json_ld_helper.rb)).
+4. **The WebFinger `self` link loops back** to that same `id` ([`process_account_service.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/services/activitypub/process_account_service.rb)).
+5. **The key that signs your requests** is published in that actor under the `keyId` you sign with.
+
+A static homepage can usually satisfy 1 (WebFinger can be a static file: Mastodon does not check its Content-Type) but not 2 and 3: static hosts serve one file per URL with a fixed Content-Type. So the actor itself has to be served by something dynamic. That is Fedbox's job.
+
+## Recommended setup: Fedbox on your homepage's domain
+
+Run Fedbox behind the web server that already serves your homepage, and route only the ActivityPub paths to it. Your handle is then `@you@you.example.com`, and your homepage stays exactly as it is.
 
 ```
-Your Homepage (static)              Fedbox Server
-────────────────────               ──────────────
-https://you.example.com            https://ap.example.com
-    /                                  /you/inbox
-    /#me  ◄──── identity               /you/outbox
-                                       /you/followers
+https://you.example.com/                    your homepage (unchanged, static)
+https://you.example.com/you                 Fedbox: profile page (HTML) and actor (JSON)
+https://you.example.com/you#me              your actor id
+https://you.example.com/you/inbox, /outbox, /followers, /following, /posts/…
+https://you.example.com/inbox               Fedbox: shared inbox
+https://you.example.com/.well-known/webfinger, /.well-known/nodeinfo, /nodeinfo/2.1
 ```
 
-Your homepage hosts your identity. Fedbox handles ActivityPub federation. A single Fedbox instance can handle multiple users.
-
-## URI Fragment Identifiers
-
-Both Solid and this approach use **URI fragment identifiers** (`#me`) for identity:
-
-- `https://you.example.com/` — The profile document
-- `https://you.example.com/#me` — The WebID (the Person)
-
-This is the Solid convention: the document and the thing it describes are distinct. The fragment `#me` identifies the person *within* the document. This allows the same URL to serve both HTML (for browsers) and JSON-LD (for machines) via content negotiation.
-
-The `id` can be relative — just `"#me"` — and resolves against the document URL.
-
-## Step 1: Add JSON-LD to Your Homepage
-
-Add a data island to your existing HTML:
-
-```html
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Your Name</title>
-  <script type="application/ld+json">
-  {
-    "@context": [
-      "https://www.w3.org/ns/activitystreams",
-      "https://w3id.org/security/v1"
-    ],
-    "type": "Person",
-    "id": "#me",
-    "url": "./",
-    "preferredUsername": "you",
-    "name": "Your Name",
-    "summary": "<p>Your bio here</p>",
-    "inbox": "https://ap.example.com/you/inbox",
-    "outbox": "https://ap.example.com/you/outbox",
-    "followers": "https://ap.example.com/you/followers",
-    "following": "https://ap.example.com/you/following",
-    "publicKey": {
-      "id": "#main-key",
-      "owner": "#me",
-      "publicKeyPem": "-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----"
-    }
-  }
-  </script>
-</head>
-<body>
-  <!-- Your existing homepage content -->
-</body>
-</html>
-```
-
-Key points:
-- `id` uses relative `#me` — resolves to `https://you.example.com/#me`
-- Fragment IDs are Solid-compatible WebIDs
-- `inbox`, `outbox`, `followers` point to your Fedbox server
-- `publicKey` must match your Fedbox keypair
-
-## Step 2: Set Up Fedbox
-
-### Deployment Options
-
-**Dedicated server** (e.g., `ap.example.com`):
-- Point DNS A record to your server
-- Fedbox listens directly, or use a reverse proxy for TLS
-- Simplest setup — no path routing needed
-
-**Shared server** (behind existing web server):
-- Add reverse proxy rules to route AP endpoints to Fedbox
-- See [Reverse Proxy Configuration](#reverse-proxy-configuration) for nginx, Caddy, and HAProxy examples
-
-### Installation
-
-On your server (VPS, cloud instance, etc.):
+### Step 1: Install and initialise Fedbox
 
 ```bash
-# Install
 npm install -g fedbox
-
-# Initialize
-fedbox init
+fedbox init      # asks for username, display name, bio and port; generates a key pair
 ```
 
-Edit `fedbox.json`:
+`fedbox init` writes `fedbox.json`. Add your domain to it; with `domain` set, Fedbox builds `https://` URLs on that domain:
 
 ```json
 {
@@ -112,89 +54,94 @@ Edit `fedbox.json`:
   "displayName": "Your Name",
   "summary": "Your bio",
   "port": 3000,
-  "domain": "ap.example.com",
-  "profileUrl": "https://you.example.com/",
+  "domain": "you.example.com",
   "publicKey": "-----BEGIN PUBLIC KEY-----...",
   "privateKey": "-----BEGIN PRIVATE KEY-----..."
 }
 ```
 
-The `profileUrl` tells Fedbox to fetch your identity from your homepage.
+Keep `fedbox.json` private: it contains your private key. Don't set `profileUrl` (see [below](#the-profileurl-option)).
 
-## Step 3: Copy Your Public Key
+### Step 2: Route the ActivityPub paths to Fedbox
 
-Get your public key from Fedbox:
+Fedbox listens on plain HTTP on `port`; your web server terminates TLS. With nginx:
 
-```bash
-cat fedbox.json | grep -A 10 publicKey
-```
+```nginx
+server {
+    listen 443 ssl;
+    server_name you.example.com;
+    root /var/www/homepage;            # your existing homepage
 
-Copy this into your homepage's JSON-LD `publicKeyPem` field.
-
-## Step 4: Add WebFinger
-
-For people to find you as `@you@you.example.com`, add WebFinger to your homepage.
-
-Create `/.well-known/webfinger` (or configure your server to respond):
-
-```json
-{
-  "subject": "acct:you@you.example.com",
-  "links": [
-    {
-      "rel": "self",
-      "type": "application/activity+json",
-      "href": "https://you.example.com/#me"
+    # Fedbox: discovery, the actor and its collections, the inboxes
+    location ~ ^/(\.well-known/(webfinger|nodeinfo)|nodeinfo/|inbox$|you(/|$)) {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
-  ]
 }
 ```
 
-For static hosts like GitHub Pages, create `.well-known/webfinger` as a file (no extension).
+Replace `you` with your username. If you set an `avatar` in `fedbox.json`, Fedbox serves it from `/public/…`; route that path to Fedbox too, or host the image yourself. With Caddy:
 
-## Step 5: Start Fedbox
+```caddy
+you.example.com {
+    root * /var/www/homepage
+    @fedbox path /.well-known/webfinger /.well-known/nodeinfo /nodeinfo/* /inbox /you /you/*
+    reverse_proxy @fedbox 127.0.0.1:3000
+    file_server
+}
+```
+
+### Step 3: Start Fedbox
 
 ```bash
 fedbox start
 ```
 
-Fedbox will:
-1. Fetch your homepage
-2. Extract the JSON-LD data island
-3. Merge with local AP endpoints
-4. Serve with proper content negotiation
+### Step 4: Link your homepage to your account
 
-## Step 6: Test Discovery
+Add these to your homepage's `<head>`:
 
-From Mastodon, search for `@you@you.example.com`. You should see your profile with your homepage identity.
-
-## How It Works
-
-```
-Mastodon                    Your Homepage              Fedbox
-────────                    ─────────────              ──────
-
-GET webfinger ────────────► returns actor href
-
-GET actor ─────────────────► returns JSON-LD ─────────► (or Fedbox serves it)
-                            with AP endpoints
-
-POST inbox ──────────────────────────────────────────► receives activities
-
-GET outbox ──────────────────────────────────────────► returns your posts
+```html
+<!-- Pasting your homepage URL into Mastodon's search finds your account -->
+<link rel="alternate" type="application/activity+json" href="https://you.example.com/you">
+<!-- IndieWeb convention: "this account is also me" -->
+<link rel="me" href="https://you.example.com/you">
 ```
 
-## Optional: Link Nostr Identity
+Mastodon follows a `<link rel="alternate" type="application/activity+json">` when someone searches for a page URL ([`fetch_resource_service.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/services/fetch_resource_service.rb)). Fedbox's own profile page already includes one.
 
-Add your Nostr pubkey to the JSON-LD:
+### Step 5: Test
 
-```json
-{
-  "alsoKnownAs": ["did:nostr:your64charhexpubkey"]
-}
+```bash
+curl -s "https://you.example.com/.well-known/webfinger?resource=acct:you@you.example.com"
+curl -si -H 'Accept: application/activity+json' https://you.example.com/you
+npx @fedify/cli lookup @you@you.example.com
 ```
 
-And in `fedbox.json`:
+Then search for `@you@you.example.com` from a Mastodon account. If it isn't found, see [Troubleshooting by Symptom](/docs/guides/troubleshooting).
+
+## Alternative: Fedbox on a subdomain
+
+If you can't proxy paths on your homepage's server, run Fedbox on its own host (for example `ap.example.com`, with `"domain": "ap.example.com"`) and point DNS and TLS at it. Your handle is then `@you@ap.example.com`; link to it from your homepage as in Step 4.
+
+A handle on your homepage's domain with the actor on another host ("split-domain" WebFinger) needs WebFinger on **both** hosts to agree, or the FEP-2c59 `webfinger` property on the actor; Fedbox does not set that up for you. See [Keys and Identity](/docs/security/keys-and-identity) for how Mastodon resolves split domains.
+
+## The `profileUrl` option
+
+Fedbox has an experimental `profileUrl` setting: it fetches your homepage, extracts the first `<script type="application/ld+json">` block, and serves that data as your actor with Fedbox's inbox, outbox and collection URLs merged in ([`buildActorFromProfile` in `lib/server.js`](https://github.com/micro-fed/fedbox/blob/gh-pages/lib/server.js)).
+
+As of October 2026 this does **not** produce an account Mastodon accepts:
+
+- The served actor keeps the homepage's `id` (for example `"#me"` or `https://you.example.com/#me`), but Mastodon fetches the actor from the URL in Fedbox's WebFinger answer, `https://<fedbox domain>/you#me`, and requires the `id` to equal it.
+- The served actor keeps the homepage's `publicKey` if it has one, while Fedbox signs its requests with the key id `https://<fedbox domain>/you#main-key`. Receivers can't find that key in the actor.
+
+Use the recommended setup above until this changes.
+
+## Optional: link a Nostr identity
+
+Fedbox adds `alsoKnownAs: ["did:nostr:<pubkey>"]` to your actor when `fedbox.json` has a `nostrPubkey` (64 hex characters):
 
 ```json
 {
@@ -202,164 +149,26 @@ And in `fedbox.json`:
 }
 ```
 
+Mastodon only uses `alsoKnownAs` for account migration; other software may ignore a `did:nostr` entry.
+
 ## Troubleshooting
 
-### "Could not fetch remote profile"
+### Mastodon can't find `@you@you.example.com`
 
-- Check that your homepage is accessible
-- Verify the JSON-LD is valid (use jsonlint.com)
-- Ensure `<script type="application/ld+json">` is present
+- `curl` the WebFinger URL from Step 5: it must return JSON with a `self` link to `https://you.example.com/you#me`.
+- `curl` the actor with the `Accept` header: it must return `Content-Type: application/activity+json` and an `id` of exactly `https://you.example.com/you#me`. If you get your homepage's HTML, the proxy isn't routing `/you` to Fedbox.
 
 ### "Signature verification failed"
 
-- The public key in your homepage must match Fedbox's keypair
-- Copy the exact key from `fedbox.json`
+- Fedbox signs with the key in `fedbox.json`; the actor it serves publishes the matching public key. Don't edit one without the other, and don't use `profileUrl` with a `publicKey` in your homepage's JSON-LD.
 
-### "WebFinger not found"
+### WebFinger works locally but not from Mastodon
 
-- Ensure `.well-known/webfinger` is accessible
-- Check CORS headers if on a different domain
-- Some static hosts require special configuration for dotfiles
-
-### Content Negotiation Issues
-
-The standards-compliant approach is **content negotiation**: the same URL serves different representations based on the `Accept` header.
-
-```
-GET /alice
-Accept: text/html           →  HTML page
-Accept: application/ld+json →  JSON-LD actor
-```
-
-**The problem:** Static hosts can't do content negotiation — they serve the same file regardless of headers. And some ActivityPub implementations expect JSON when they request `application/activity+json`, even though JSON-LD data islands in HTML are valid per the JSON-LD spec.
-
-**How Fedbox solves this:** Fedbox fetches your static HTML profile, extracts the JSON-LD data island, and serves it with proper content negotiation:
-
-```
-Mastodon                        Fedbox                      Your Homepage
-────────                        ──────                      ─────────────
-GET actor (Accept: JSON) ──────► extracts data island ◄──── static HTML
-                          ◄───── returns JSON-LD
-```
-
-Your homepage stays static, but Fedbox provides the content negotiation layer.
-
-**Alternative:** Use a reverse proxy for content negotiation (see below).
-
-## Reverse Proxy Configuration
-
-### Proxying to Fedbox
-
-#### Nginx
-
-```nginx
-upstream fedbox {
-    server 127.0.0.1:3000;
-}
-
-server {
-    listen 443 ssl;
-    server_name ap.example.com;
-
-    # ActivityPub endpoints
-    location ~ ^/(inbox|nodeinfo|\.well-known) {
-        proxy_pass http://fedbox;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location ~ ^/(\w+)/(inbox|outbox|followers|following|posts) {
-        proxy_pass http://fedbox;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-#### Caddy
-
-```caddy
-ap.example.com {
-    reverse_proxy /inbox* localhost:3000
-    reverse_proxy /nodeinfo* localhost:3000
-    reverse_proxy /.well-known/* localhost:3000
-    reverse_proxy /*/inbox localhost:3000
-    reverse_proxy /*/outbox localhost:3000
-    reverse_proxy /*/followers localhost:3000
-    reverse_proxy /*/following localhost:3000
-    reverse_proxy /*/posts/* localhost:3000
-}
-```
-
-#### HAProxy
-
-```haproxy
-frontend https
-    bind *:443 ssl crt /etc/ssl/certs/ap.example.com.pem
-    acl is_ap path_beg /inbox /.well-known /nodeinfo
-    acl is_ap_user path_reg ^/\w+/(inbox|outbox|followers|following|posts)
-    use_backend fedbox if is_ap or is_ap_user
-
-backend fedbox
-    server fedbox1 127.0.0.1:3000 check
-```
-
-### Content Negotiation via Proxy
-
-If you want to serve both HTML and JSON-LD from the same URL without Fedbox:
-
-#### Nginx
-
-```nginx
-location /alice {
-    if ($http_accept ~* "application/(activity\+json|ld\+json)") {
-        rewrite ^ /alice.jsonld last;
-    }
-    try_files /alice.html =404;
-}
-
-location /alice.jsonld {
-    default_type application/activity+json;
-}
-```
-
-#### Caddy
-
-```caddy
-example.com {
-    @activitypub {
-        header Accept *activity+json*
-    }
-    @activitypub_ld {
-        header Accept *ld+json*
-    }
-    rewrite @activitypub /alice.jsonld
-    rewrite @activitypub_ld /alice.jsonld
-
-    header /alice.jsonld Content-Type application/activity+json
-    file_server
-}
-```
-
-#### HAProxy
-
-```haproxy
-frontend https
-    bind *:443 ssl crt /etc/ssl/certs/example.com.pem
-    acl accept_json req.hdr(Accept) -m sub activity+json
-    acl accept_json req.hdr(Accept) -m sub ld+json
-
-    http-request set-path %[path].jsonld if accept_json { path /alice }
-    default_backend static
-
-backend static
-    server web1 127.0.0.1:8080 check
-```
+- WebFinger must be reachable over HTTPS on port 443 of the exact domain in your handle (RFC 7033 §4).
+- Some static hosts don't serve dot-directories such as `.well-known` without extra configuration; with the recommended setup Fedbox answers it instead.
 
 ## See Also
 
-- **[Fedbox Documentation](/docs/ecosystem/fedbox)** - Full reference
-- **[Building an Actor](/docs/guides/building-an-actor)** - Actor structure details
-- **[WebFinger Implementation](/docs/guides/webfinger-implementation)** - WebFinger deep dive
+- **[Fedbox](/docs/ecosystem/fedbox)** - Project page, status and caveats
+- **[Building an Actor](/docs/guides/building-an-actor)** - What an actor must contain
+- **[WebFinger Implementation](/docs/guides/webfinger-implementation)** - WebFinger in depth

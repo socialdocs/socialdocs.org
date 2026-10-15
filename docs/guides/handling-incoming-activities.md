@@ -2,6 +2,8 @@
 sidebar_position: 2
 title: Handling Incoming Activities
 description: Processing activities received in your inbox
+last_verified: 2026-10-15
+verified_against: "ActivityPub REC §7; FEP-fe34; Mastodon v4.7.3 source (status_parser.rb, accept.rb, follow.rb, tag_manager.rb); code paths match examples/verify-requests and examples/first-server/src/inbox.js"
 ---
 
 # Handling Incoming Activities
@@ -59,39 +61,52 @@ When other servers send activities to your inbox, you need to verify them and pr
 
 ## Setting Up the Inbox
 
+The order matters: verify the signature over the **raw** body, require that the signer **is** `activity.actor`, apply the origin rules, answer, and only then do the work. This is the same sequence as the tested inbox in [`examples/first-server/src/inbox.js`](https://github.com/socialdocs/socialdocs.org/blob/gh-pages/examples/first-server/src/inbox.js), written for Express:
+
 ```javascript
-import { verifyRequest, parseActivityFrom, authorizeActivity,
-         SignatureError, AuthorizationError } from './verify-requests/src/index.js';
+import express from 'express';
+import {
+  verifyRequest, parseActivityFrom, authorizeActivity,
+  SignatureError, KeyResolutionError, AuthorizationError, UnsafeUrlError,
+} from './verify-requests/src/index.js';
 // keyStore: see /docs/security/verifying-requests
 
+// Don't let a global express.json() parse the inbox first: the digest is
+// over the raw bytes, so this route needs express.raw().
 app.post('/users/:username/inbox',
-  express.raw({ type: '*/*', limit: '1mb' }), // keep the raw bytes: the digest is over them
+  express.raw({ type: '*/*', limit: '1mb' }),
   async (req, res) => {
-    let activity;
+    let activity, decision;
     try {
       const signer = await verifyRequest({
         method: req.method,
-        url: `https://${DOMAIN}${req.originalUrl}`,
+        url: `https://${DOMAIN}${req.originalUrl}`, // full URL, query string included
         headers: req.headers,
         rawBody: req.body,
       }, { keyStore });
       activity = parseActivityFrom(signer, req.body); // the signer MUST be activity.actor
-      authorizeActivity(activity);                    // same-origin rules for Create/Update/Delete/Undo
+      decision = authorizeActivity(activity);         // FEP-fe34 origin rules
     } catch (error) {
-      const status = error instanceof SignatureError ? 401
-        : error instanceof AuthorizationError ? 403 : 503;
-      return res.status(status).json({ error: error.message });
+      if (error instanceof SignatureError || error instanceof KeyResolutionError ||
+          error instanceof UnsafeUrlError || error instanceof SyntaxError) {
+        return res.status(401).json({ error: error.message });
+      }
+      if (error instanceof AuthorizationError) {
+        return res.status(403).json({ error: error.message });
+      }
+      // Couldn't reach the sender's key (network, 5xx): ask them to retry later.
+      return res.status(503).json({ error: 'Temporarily unable to verify' });
     }
-    try {
-      await processActivity(activity, req.params.username);
-      res.status(202).send('Accepted');
-    } catch (error) {
-      console.error('Inbox error:', error);
-      res.status(500).json({ error: 'Processing failed' });
-    }
+
+    // Answer first, then process. A slow or failing handler must not make the
+    // sender retry (and re-deliver) an activity you already accepted.
+    res.status(202).end();
+    queue.add({ activity, trustEmbedded: decision.trustEmbedded, username: req.params.username });
   }
 );
 ```
+
+`authorizeActivity` returns `{ trustEmbedded }`. When it is `false`, the embedded object came from another origin (or wasn't embedded at all): **fetch the object from its own `id`** with an SSRF-safe fetcher instead of trusting the copy in the activity. Mastodon also processes inbox deliveries in a background job after answering `202` ([Troubleshooting](/docs/guides/troubleshooting)).
 
 :::tip Use the tested verifier
 Request verification has its own page with tested code: **[Verifying incoming requests](/docs/security/verifying-requests)**. It covers draft-cavage and RFC 9421, the digest over the raw body, the required signed headers, binding the key owner to `activity.actor`, and SSRF-safe key fetching.
@@ -101,38 +116,31 @@ Activities that were **forwarded** by another server are signed by the forwarder
 
 ## Activity Validation
 
+Properties in ActivityStreams can be a single value **or** an array, and references can be a URL string **or** an embedded object. Normalise before you look at them:
+
 ```javascript
+const asArray = (v) => (v == null ? [] : Array.isArray(v) ? v : [v]);
+const idOf = (v) => (typeof v === 'string' ? v : v?.id);
+
 function validateActivity(activity) {
-  // Required fields
-  if (!activity.type) throw new Error('Missing type');
-  if (!activity.actor) throw new Error('Missing actor');
-  if (!activity.id) throw new Error('Missing id');
-
-  // Actor must be a URL
-  if (typeof activity.actor !== 'string' ||
-      !activity.actor.startsWith('https://')) {
-    throw new Error('Invalid actor');
-  }
-
-  // Check size limits
-  const size = JSON.stringify(activity).length;
-  if (size > 1024 * 1024) { // 1MB
-    throw new Error('Activity too large');
-  }
-
+  if (typeof activity.type !== 'string') throw new Error('Missing type');
+  if (typeof activity.id !== 'string') throw new Error('Missing id');
+  // parseActivityFrom already tied activity.actor to the signer
   return true;
 }
 ```
 
+The body-size limit belongs on the raw request (`express.raw({ limit })`), before parsing.
+
 ## Processing by Type
 
 ```javascript
-async function processActivity(activity, targetUsername) {
+async function processActivity(activity, targetUsername, decision) {
   validateActivity(activity);
 
   switch (activity.type) {
     case 'Create':
-      return handleCreate(activity, targetUsername);
+      return handleCreate(activity, targetUsername, decision);
     case 'Update':
       return handleUpdate(activity, targetUsername);
     case 'Delete':
@@ -162,25 +170,21 @@ async function processActivity(activity, targetUsername) {
 ## Handling Create
 
 ```javascript
-async function handleCreate(activity, targetUsername) {
-  // authorizeActivity() (see "Setting Up the Inbox") has already rejected a
-  // Create whose object id is on a different origin from the actor. Without
-  // that check, the upsert below would let evil.example overwrite objects
+async function handleCreate(activity, targetUsername, { trustEmbedded }) {
+  // authorizeActivity() has already rejected a Create whose embedded object
+  // is attributed to someone else or lives on another origin. Without that
+  // check, the upsert below would let evil.example overwrite objects
   // belonging to other servers (the CVE-2024-23832 bug class).
-  const object = activity.object;
+  const object = trustEmbedded
+    ? activity.object
+    : (await safeFetchJson(idOf(activity.object))).json; // only a URL, or not trustworthy: fetch it
 
-  // Verify attribution
-  const attributedTo = typeof object.attributedTo === 'string'
-    ? object.attributedTo
-    : object.attributedTo?.id;
-
-  if (attributedTo !== activity.actor) {
+  if (idOf(object.attributedTo) !== activity.actor) {
     throw new Error('Attribution mismatch');
   }
 
   // Check if we should receive this
-  const isAddressedToUs = isRecipient(activity, targetUsername);
-  if (!isAddressedToUs) {
+  if (!(await isRecipient(activity, targetUsername))) {
     return; // Not for us
   }
 
@@ -193,10 +197,10 @@ async function handleCreate(activity, targetUsername) {
     receivedAt: new Date()
   });
 
-  // Create notification for mentions
+  // Create notification for mentions (tag may be one object or an array)
   if (object.tag) {
     const ourActorUrl = `https://${DOMAIN}/users/${targetUsername}`;
-    const mention = object.tag.find(t =>
+    const mention = asArray(object.tag).find(t =>
       t.type === 'Mention' && t.href === ourActorUrl
     );
 
@@ -210,12 +214,12 @@ async function handleCreate(activity, targetUsername) {
 
   // If it's a reply to our content, notify
   if (object.inReplyTo) {
-    const parent = await db.objects.findOne({ id: object.inReplyTo });
+    const parent = await db.objects.findOne({ id: idOf(object.inReplyTo) });
     if (parent && parent.actor === `https://${DOMAIN}/users/${targetUsername}`) {
       await createNotification(targetUsername, 'reply', {
         actor: activity.actor,
         object: object.id,
-        parent: object.inReplyTo
+        parent: idOf(object.inReplyTo)
       });
     }
   }
@@ -229,7 +233,7 @@ async function handleFollow(activity, targetUsername) {
   const targetActor = `https://${DOMAIN}/users/${targetUsername}`;
 
   // Verify the follow is for this user
-  if (activity.object !== targetActor) {
+  if (idOf(activity.object) !== targetActor) {
     return;
   }
 
@@ -287,10 +291,15 @@ async function sendAccept(username, followActivity) {
     object: followActivity
   };
 
-  const followerInfo = await fetchActor(followActivity.actor);
-  await sendActivity(followerInfo.inbox, accept, username);
+  // Fetch the follower ourselves (SSRF-safe) and check its id: never take an
+  // inbox URL from the activity itself.
+  const { json: follower } = await safeFetchJson(followActivity.actor);
+  if (follower.id !== followActivity.actor || !follower.inbox) return;
+  await deliver(follower.inbox, accept); // signed delivery, see Sending Activities
 }
 ```
+
+Mastodon behaves the same way: a repeated Follow from an existing follower is answered with another Accept, and a Follow from an account (or domain) the target blocks, or to an account that has moved, gets a `Reject` ([`follow.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/activity/follow.rb)).
 
 ## Handling Accept
 
@@ -318,21 +327,22 @@ async function handleAccept(activity, targetUsername) {
   await db.following.upsert({
     actor: localActor,
     following: activity.actor,
+    // stored when we sent the Follow; isRecipient() needs it to accept
+    // followers-only posts from this account
+    followersCollection: pending.targetFollowers,
     createdAt: new Date()
   });
   await db.pendingFollows.remove({ id: followId });
 }
 ```
 
-When you send a Follow, store it in `pendingFollows` with its `id`, your actor and the target actor, so the Accept can be matched against it. Mastodon does the same: it matches the Accept's object id against its own pending follow requests, and only when that fails and a `Follow` is embedded does it fall back to the pending request between the local account and the accepting actor ([accept.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/activity/accept.rb)). Either way, a pending Follow must already exist.
+When you send a Follow, store it in `pendingFollows` with its `id`, your actor, the target actor and the target's `followers` collection URL, so the Accept can be matched against it. Mastodon does the same: it matches the Accept's object id against its own pending follow requests, and only when that fails and a `Follow` is embedded does it fall back to the pending request between the local account and the accepting actor ([accept.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/activity/accept.rb)). Either way, a pending Follow must already exist.
 
 ## Handling Like
 
 ```javascript
 async function handleLike(activity, targetUsername) {
-  const objectId = typeof activity.object === 'string'
-    ? activity.object
-    : activity.object.id;
+  const objectId = idOf(activity.object);
 
   // Check if it's our content
   const object = await db.objects.findOne({ id: objectId });
@@ -362,11 +372,11 @@ async function handleLike(activity, targetUsername) {
 
 ```javascript
 async function handleAnnounce(activity, targetUsername) {
-  const objectId = typeof activity.object === 'string'
-    ? activity.object
-    : activity.object.id;
+  const objectId = idOf(activity.object);
 
-  // Check if it's our content
+  // Boosts of our content become notifications. (Boosts by accounts you
+  // follow of anyone's content also belong in your home timeline: fetch the
+  // boosted object from its own id before showing it.)
   const object = await db.objects.findOne({ id: objectId });
   if (!object) return;
 
@@ -394,18 +404,15 @@ async function handleAnnounce(activity, targetUsername) {
 
 ```javascript
 async function handleUndo(activity, targetUsername) {
-  const undone = activity.object;
+  // authorizeActivity() already rejected an embedded activity whose actor is
+  // someone else. If only an id was sent, look up what we stored for it.
+  const stored = typeof activity.object === 'string'
+    ? await db.activities.findOne({ id: activity.object, actor: activity.actor })
+    : null;
+  const undone = stored || activity.object;
+  if (!undone || idOf(undone.actor) !== activity.actor) return;
 
-  // Verify the actor owns the original activity
-  if (typeof undone === 'object' && undone.actor !== activity.actor) {
-    throw new Error('Cannot undo activity you do not own');
-  }
-
-  const undoneType = typeof undone === 'string'
-    ? (await db.activities.findOne({ id: undone }))?.type
-    : undone.type;
-
-  switch (undoneType) {
+  switch (undone.type) {
     case 'Follow':
       await db.followers.remove({
         follower: activity.actor,
@@ -414,17 +421,11 @@ async function handleUndo(activity, targetUsername) {
       break;
 
     case 'Like':
-      await db.likes.remove({
-        actor: activity.actor,
-        object: undone.object
-      });
+      await db.likes.remove({ actor: activity.actor, object: idOf(undone.object) });
       break;
 
     case 'Announce':
-      await db.announces.remove({
-        actor: activity.actor,
-        object: undone.object
-      });
+      await db.announces.remove({ actor: activity.actor, object: idOf(undone.object) });
       break;
   }
 }
@@ -432,11 +433,11 @@ async function handleUndo(activity, targetUsername) {
 
 ## Handling Delete
 
+See **[Deletion](/docs/guides/deletion)** for account deletion, Delete-before-Create and 404 vs 410. The core of it:
+
 ```javascript
 async function handleDelete(activity, targetUsername) {
-  const objectId = typeof activity.object === 'string'
-    ? activity.object
-    : activity.object.id;
+  const objectId = idOf(activity.object);
 
   // Verify actor owns the object
   const object = await db.objects.findOne({ id: objectId });
@@ -465,22 +466,24 @@ async function handleDelete(activity, targetUsername) {
 ## Helper Functions
 
 ```javascript
-function isRecipient(activity, username) {
+// Mastodon treats all three spellings of the public address as Public
+// (TagManager#public_collection?).
+const PUBLIC = new Set([
+  'https://www.w3.org/ns/activitystreams#Public', 'as:Public', 'Public',
+]);
+
+async function isRecipient(activity, username) {
   const ourActor = `https://${DOMAIN}/users/${username}`;
-  const ourFollowers = `${ourActor}/followers`;
-  const publicAddress = 'https://www.w3.org/ns/activitystreams#Public';
-
   const recipients = [
-    ...(activity.to || []),
-    ...(activity.cc || []),
-    ...(activity.audience || [])
-  ];
+    ...asArray(activity.to), ...asArray(activity.cc), ...asArray(activity.audience),
+  ].map(idOf);
 
-  return recipients.some(r =>
-    r === ourActor ||
-    r === ourFollowers ||
-    r === publicAddress
-  );
+  if (recipients.some((r) => r === ourActor || PUBLIC.has(r))) return true;
+
+  // Followers-only posts are addressed to the SENDER's followers collection.
+  // Accept them if we follow the sender and that collection is addressed.
+  const follow = await db.following.findOne({ actor: ourActor, following: activity.actor });
+  return Boolean(follow) && recipients.includes(follow.followersCollection);
 }
 
 async function createNotification(username, type, data) {
@@ -496,27 +499,17 @@ async function createNotification(username, type, data) {
 
 ## Idempotency
 
-Make sure processing is idempotent:
+Senders retry, and the same activity can arrive at several of your inboxes. Claim the activity id **atomically** before processing, so two concurrent deliveries can't both pass a "have we seen it?" check:
 
 ```javascript
 async function handleActivityIdempotent(activity) {
-  // Check if already processed
-  const existing = await db.processedActivities.findOne({
-    id: activity.id
-  });
+  // Unique index on processedActivities.id: the second insert fails.
+  const claimed = await db.processedActivities
+    .insertOne({ _id: activity.id, processedAt: new Date() })
+    .then(() => true, (err) => (err.code === 11000 ? false : Promise.reject(err)));
+  if (!claimed) return; // already processed (or being processed)
 
-  if (existing) {
-    return; // Already processed
-  }
-
-  // Process activity
   await processActivity(activity);
-
-  // Mark as processed
-  await db.processedActivities.insert({
-    id: activity.id,
-    processedAt: new Date()
-  });
 }
 ```
 

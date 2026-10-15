@@ -1,0 +1,335 @@
+---
+sidebar_position: 3
+title: Sending Activities
+description: Building, addressing, signing and delivering activities to other ActivityPub servers
+last_verified: 2026-10-15
+verified_against: "ActivityPub REC §6 and §7.1; Mastodon v4.7.3 source (status_parser.rb, create.rb, json_ld_helper.rb, delivery_worker.rb, request.rb) and docs.joinmastodon.org/spec/activitypub; signing code tested in examples/first-server and examples/verify-requests"
+---
+
+import CodeBlock from '@theme/CodeBlock';
+import deliverSrc from '!!raw-loader!@site/examples/first-server/src/deliver.js';
+
+# Sending Activities
+
+This guide covers how to build activities, address them, and deliver them as signed requests that Mastodon and other servers accept.
+
+## Creating Activities
+
+### Basic Activity Structure
+
+```javascript
+import crypto from 'node:crypto';
+
+function createActivity(type, actor, object, { to = [], cc = [] } = {}) {
+  return {
+    '@context': 'https://www.w3.org/ns/activitystreams',
+    type,
+    id: `https://${DOMAIN}/activities/${crypto.randomUUID()}`,
+    actor,
+    object,
+    published: new Date().toISOString(),
+    to,
+    cc
+  };
+}
+```
+
+Every `id` must be an `https` URL on your own domain. Receivers following the [origin model](/docs/security/origin-model) (FEP-fe34) reject an activity whose `id` is on a different origin from its `actor`.
+
+### Creating a Post
+
+```javascript
+async function createPost(username, content, options = {}) {
+  const actor = `https://${DOMAIN}/users/${username}`;
+
+  // The Note: addressing and tags decide who sees it (see Addressing below)
+  const note = {
+    id: `https://${DOMAIN}/notes/${crypto.randomUUID()}`,
+    type: 'Note',
+    attributedTo: actor,
+    content: sanitizeHtml(content), // see Posts and Replies
+    published: new Date().toISOString(),
+    to: options.to || ['https://www.w3.org/ns/activitystreams#Public'],
+    cc: options.cc || [`${actor}/followers`],
+    ...(options.inReplyTo && { inReplyTo: options.inReplyTo }),
+    ...(options.contentWarning && { summary: options.contentWarning, sensitive: true }),
+    tag: options.tags || [],
+    attachment: options.attachments || []
+  };
+
+  // The Create mirrors the Note's addressing
+  const activity = createActivity('Create', actor, note, { to: note.to, cc: note.cc });
+
+  await db.objects.insert(note);
+  await db.activities.insert(activity);
+  await deliverActivity(activity, username);
+
+  return { activity, object: note };
+}
+```
+
+`sensitive` is not in the core ActivityStreams context; Mastodon declares it as `as:sensitive` in its own `@context` ([`context_helper.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/helpers/context_helper.rb)). Add the same entry to yours if you use it.
+
+## Addressing
+
+Mastodon derives a post's visibility from its addressing, in this order ([`status_parser.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/parser/status_parser.rb)):
+
+| If… | Mastodon shows it as |
+|---|---|
+| `to` contains the public address | Public |
+| `cc` contains the public address | Unlisted |
+| `to` contains the author's `followers` collection | Followers-only |
+| anything else | Direct, or "limited" (see below) |
+
+The public address may be written `https://www.w3.org/ns/activitystreams#Public`, `as:Public` or `Public`; Mastodon accepts all three ([`tag_manager.rb`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/tag_manager.rb)).
+
+### Public Post
+
+```javascript
+const publicRecipients = {
+  to: ['https://www.w3.org/ns/activitystreams#Public'],
+  cc: [`https://${DOMAIN}/users/${username}/followers`]
+};
+```
+
+### Unlisted
+
+```javascript
+const unlistedRecipients = {
+  to: [`https://${DOMAIN}/users/${username}/followers`],
+  cc: ['https://www.w3.org/ns/activitystreams#Public']
+};
+```
+
+### Followers Only
+
+The followers collection must be in `to`:
+
+```javascript
+const followersRecipients = {
+  to: [`https://${DOMAIN}/users/${username}/followers`],
+  cc: []
+};
+```
+
+### Direct Message
+
+Address each recipient **and** tag each one with a `Mention`. If an addressed account is not also mentioned, Mastodon downgrades the post from direct to "limited" visibility ([`create.rb` `process_audience`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/activitypub/activity/create.rb)). Mastodon only notifies accounts that are mentioned.
+
+```javascript
+const directRecipients = {
+  to: ['https://remote.example/users/bob'],
+  cc: []
+};
+const tags = [
+  { type: 'Mention', href: 'https://remote.example/users/bob', name: '@bob@remote.example' }
+];
+```
+
+### With Mentions
+
+Mentioned accounts go into the addressing **and** into `tag`:
+
+```javascript
+function withMentions(base, mentions) {
+  // mentions: [{ href: actorUrl, name: '@bob@remote.example' }]
+  return {
+    to: base.to,
+    cc: [...base.cc, ...mentions.map((m) => m.href)],
+    tag: mentions.map((m) => ({ type: 'Mention', href: m.href, name: m.name }))
+  };
+}
+```
+
+## Delivery Pipeline
+
+[ActivityPub §7.1](https://www.w3.org/TR/activitypub/#delivery) says how to turn addressing into inboxes: look up each target's `inbox`, dereference addressed collections (limiting how deep you go; one layer is enough), **de-duplicate**, and **exclude the sending actor**. [§6](https://www.w3.org/TR/activitypub/#client-to-server-interactions) adds that `bto` and `bcc` are used for delivery but removed before sending.
+
+```javascript
+const PUBLIC = new Set(['https://www.w3.org/ns/activitystreams#Public', 'as:Public', 'Public']);
+const asArray = (v) => (v == null ? [] : Array.isArray(v) ? v : [v]);
+
+async function deliverActivity(activity, username) {
+  const self = `https://${DOMAIN}/users/${username}`;
+  const recipients = ['to', 'cc', 'bto', 'bcc', 'audience']
+    .flatMap((k) => [...asArray(activity[k]), ...asArray(activity.object?.[k])])
+    .filter((r) => !PUBLIC.has(r) && r !== self);
+
+  const inboxes = new Set(await resolveInboxes([...new Set(recipients)], self));
+
+  // Strip private addressing from the activity AND the embedded object
+  const { bto, bcc, ...deliverable } = activity;
+  if (deliverable.object && typeof deliverable.object === 'object') {
+    const { bto: _b, bcc: _c, ...object } = deliverable.object;
+    deliverable.object = object;
+  }
+
+  for (const inbox of inboxes) {
+    await queue.add({ inbox, activity: deliverable }); // deliver asynchronously (§7.1)
+  }
+}
+```
+
+## Resolving Inboxes
+
+```javascript
+async function resolveInboxes(recipients, self) {
+  const inboxes = [];
+
+  for (const recipient of recipients) {
+    if (recipient === `${self}/followers`) {
+      // Our own followers: from the database, not by fetching the collection
+      for (const f of await db.followers.find({ actor: self })) {
+        inboxes.push(f.sharedInbox || f.inbox); // stored when they followed us
+      }
+      continue;
+    }
+
+    // An individual actor. Fetch it SSRF-safely; it may be on any server.
+    try {
+      const { json: actor } = await safeFetchJson(recipient);
+      if (actor.id === recipient && actor.inbox) {
+        inboxes.push(actor.endpoints?.sharedInbox || actor.inbox);
+      }
+    } catch {
+      // unreachable or not an actor (e.g. someone else's collection): skip
+    }
+  }
+
+  return inboxes;
+}
+```
+
+Use a server's shared inbox when the actor lists one: one POST then reaches every recipient on that server. Mastodon itself delivers to each follower's shared inbox when it has one, once per server, skipping servers it has marked unavailable ([`account.rb` `inboxes`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/models/account.rb); see [Delivery at Scale](/docs/guides/delivery-at-scale)).
+
+## Signing and Sending
+
+Every POST to an inbox must carry an HTTP signature made with the key in your actor's `publicKey`. This is the tested delivery code from [`examples/first-server`](https://github.com/socialdocs/socialdocs.org/tree/gh-pages/examples/first-server), which a CI job uses to federate with a real GoToSocial server:
+
+<CodeBlock language="js" title="src/deliver.js">{deliverSrc}</CodeBlock>
+
+What it does, and why:
+
+- **draft-cavage first, RFC 9421 on `400`/`401`.** Most servers still verify the draft-cavage `Signature` header; Mastodon 4.7 signs that way first and retries with RFC 9421 when rejected ("double-knocking"). See [HTTP Signatures](/docs/specs/http-signatures/overview).
+- **The digest covers the exact bytes sent**, and the signature covers `(request-target)` with the query string, `host`, `date` and `digest`.
+- **Inbox URLs come from other servers**, so it resolves the host, refuses private addresses and connects to the address it checked.
+- **`application/activity+json`** as the `Content-Type`.
+
+Use it like this:
+
+```javascript
+import { makeDeliver } from './deliver.js';
+
+const deliver = makeDeliver({ keyId: `${actorUrl}#main-key`, privateKey }); // privateKey: a node:crypto KeyObject
+const status = await deliver('https://remote.example/inbox', activity);
+```
+
+## Reliable Delivery
+
+Deliver from a job queue, never inside the request that created the post, and retry failures. Decide which failures are worth retrying the way Mastodon does: a `4xx` is final **except** `401`, `408` and `429`, and `501` is final; everything else (timeouts, other `5xx`) is retried ([`json_ld_helper.rb` `response_error_unsalvageable?`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/helpers/json_ld_helper.rb)).
+
+```javascript
+// Mastodon's rule for "don't retry this"
+const isFinal = (status) =>
+  status === 501 || (status >= 400 && status < 500 && ![401, 408, 429].includes(status));
+
+async function deliveryJob({ inbox, activity }) {
+  const status = await deliver(inbox, activity);
+  if (status >= 200 && status < 300) return;
+  if (isFinal(status)) return; // log it; retrying won't help
+  throw new Error(`HTTP ${status}`); // let the queue retry with backoff
+}
+```
+
+Mastodon retries a delivery 16 times with growing delays (about two to three days in total) and stops delivering to a domain that has failed on 7 different days. The details, and how to track unavailable servers, are in **[Delivery at Scale](/docs/guides/delivery-at-scale)**.
+
+## Common Activities
+
+### Follow Someone
+
+```javascript
+async function followActor(username, targetActorUrl) {
+  const actor = `https://${DOMAIN}/users/${username}`;
+  const { json: target } = await safeFetchJson(targetActorUrl);
+  if (target.id !== targetActorUrl) throw new Error('Actor id mismatch');
+
+  const activity = createActivity('Follow', actor, target.id, { to: [target.id] });
+
+  // Store the pending Follow BEFORE delivering: the Accept can arrive
+  // before deliver() returns. Handling Incoming Activities matches the
+  // Accept against this record.
+  await db.pendingFollows.insert({
+    id: activity.id,
+    actor,
+    target: target.id,
+    targetFollowers: target.followers, // to recognise their followers-only posts later
+    createdAt: new Date()
+  });
+
+  await deliver(target.inbox, activity);
+}
+```
+
+### Like a Post
+
+```javascript
+async function likeObject(username, objectUrl) {
+  const actor = `https://${DOMAIN}/users/${username}`;
+  const { json: object } = await safeFetchJson(objectUrl);
+  const author = typeof object.attributedTo === 'string' ? object.attributedTo : object.attributedTo?.id;
+
+  const activity = createActivity('Like', actor, object.id, { to: [author] });
+  await db.likes.insert({ actor, object: object.id, activityId: activity.id });
+
+  const { json: authorActor } = await safeFetchJson(author);
+  await deliver(authorActor.inbox, activity);
+}
+```
+
+### Boost a Post
+
+An `Announce` goes to your followers and to the original author, addressed publicly:
+
+```javascript
+async function announceObject(username, objectUrl, authorUrl) {
+  const actor = `https://${DOMAIN}/users/${username}`;
+
+  const activity = createActivity('Announce', actor, objectUrl, {
+    to: ['https://www.w3.org/ns/activitystreams#Public'],
+    cc: [`${actor}/followers`, authorUrl]
+  });
+
+  await db.announces.insert({ actor, object: objectUrl, activityId: activity.id });
+  await deliverActivity(activity, username);
+}
+```
+
+### Undo an Activity
+
+Embed the original activity and send the Undo to the same audience:
+
+```javascript
+async function undoActivity(username, originalActivityId) {
+  const actor = `https://${DOMAIN}/users/${username}`;
+  const original = await db.activities.findOne({ id: originalActivityId });
+
+  if (!original || original.actor !== actor) {
+    throw new Error('Cannot undo this activity');
+  }
+
+  const activity = createActivity('Undo', actor, original, {
+    to: original.to,
+    cc: original.cc
+  });
+
+  await deliverActivity(activity, username);
+  await db.activities.remove({ id: originalActivityId });
+}
+```
+
+## Next Steps
+
+- **[Following and Followers](/docs/guides/following-and-followers)** - Manage relationships
+- **[Posts and Replies](/docs/guides/posts-and-replies)** - Create content
+- **[Delivery at Scale](/docs/guides/delivery-at-scale)** - Retries, shared inboxes, unavailable servers
+- **[Delivery Reference](/docs/specs/activitypub/delivery)** - Delivery spec
