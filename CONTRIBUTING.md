@@ -72,6 +72,12 @@ blog/YYYY-MM-DD-slug.md
 - **Link liberally** — Reference specs, other docs, external resources
 
 ### Code Examples
+Code samples are **JavaScript/TypeScript on Node.js 22+**. That is what most of the site already uses, and it keeps one tested code path instead of several untested ones.
+
+- **Security-critical code** (signature verification, signing, origin checks, safe fetching) lives in [`examples/`](https://github.com/socialdocs/socialdocs.org/tree/gh-pages/examples), has tests that run in CI, and is embedded into pages from there — never typed inline.
+- **Other languages**: don't add parallel samples. Point readers to a maintained library on the [ecosystem pages](https://socialdocs.org/docs/ecosystem/libraries-overview), whose examples are checked against the real packages.
+- Snippets must use real APIs of real packages; CI checks that every package and repository named in the docs exists.
+
 - Use realistic, working examples
 - Include the language identifier in code blocks
 - Add comments for non-obvious parts

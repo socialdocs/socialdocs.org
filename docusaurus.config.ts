@@ -181,7 +181,7 @@ const config: Config = {
           items: [
             {label: 'Getting Started', to: '/docs/getting-started/what-is-the-fediverse'},
             {label: 'ActivityPub Spec', to: '/docs/specs/activitypub/overview'},
-            {label: 'Implementation Guides', to: '/docs/guides/building-an-actor'},
+            {label: 'Guides by Task', to: '/docs/guides'},
           ],
         },
         {
