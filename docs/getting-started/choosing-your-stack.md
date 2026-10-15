@@ -38,7 +38,6 @@ Consider these factors when choosing your stack:
 
 **Popular libraries:**
 - [@fedify/fedify](https://fedify.dev/) - Modern TypeScript framework
-- [ActivityPub.js](https://github.com/nicksellen/activitypub) - General-purpose library
 - [activitypub-express](https://github.com/immers-space/activitypub-express) - Express middleware (unmaintained)
 
 ```typescript
@@ -156,7 +155,6 @@ func main() {
 
 **Popular libraries:**
 - [activitypub-federation](https://github.com/LemmyNet/activitypub-federation-rust) - Lemmy's library
-- [actix-activitypub](https://github.com/rust-activitypub/actix-activitypub) - Actix integration
 
 ```rust
 // Example with activitypub-federation

@@ -104,7 +104,7 @@ Object
 │   ├── Like
 │   ├── Announce
 │   └── ... (more)
-├── Actor
+├── Actor types (no shared superclass — each extends Object directly)
 │   ├── Person
 │   ├── Organization
 │   ├── Application

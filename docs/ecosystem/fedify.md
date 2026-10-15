@@ -232,19 +232,7 @@ import {
 
 ## Testing
 
-Fedify includes testing utilities:
-
-```typescript
-import { createFederatedServer } from "@fedify/fedify/testing";
-
-// Spin up a test server
-const server = await createFederatedServer(federation);
-
-// Make test requests
-const response = await server.handle(
-  new Request("https://example.com/users/alice"),
-);
-```
+See the [Fedify testing manual](https://fedify.dev/manual/test) for the current testing utilities and recommended workflow.
 
 ## CLI Tools
 
@@ -252,15 +240,17 @@ const response = await server.handle(
 # Install CLI
 npm install -g @fedify/cli
 
-# Lookup an actor
+# Lookup an actor or object
 fedify lookup @user@example.com
 
-# Validate an activity
-fedify validate activity.json
+# Ephemeral inbox that logs incoming activities
+fedify inbox
 
-# Start development server with live reload
-fedify dev
+# Expose a local server over public HTTPS
+fedify tunnel 3000
 ```
+
+See the [CLI documentation](https://fedify.dev/cli) for all commands.
 
 ## Comparison with Other Libraries
 

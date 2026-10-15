@@ -15,7 +15,6 @@ This page provides an overview of ActivityPub libraries available for different 
 | Library | Description | Status |
 |---------|-------------|--------|
 | [Fedify](https://fedify.dev/) | Modern TypeScript framework | Active |
-| [ActivityPub.js](https://github.com/nicksellen/activitypub) | General-purpose library | Maintenance |
 | [activitypub-express](https://github.com/immers-space/activitypub-express) | Express.js middleware | Unmaintained |
 
 [More JavaScript libraries →](/docs/ecosystem/javascript-libraries)
@@ -36,7 +35,6 @@ This page provides an overview of ActivityPub libraries available for different 
 |---------|-------------|--------|
 | [go-fed/activity](https://github.com/go-fed/activity) | Complete implementation | Active |
 | [go-ap](https://github.com/go-ap) | ActivityPub packages | Active |
-| [pub](https://github.com/writeas/pub) | WriteFreely's library | Maintenance |
 
 [More Go libraries →](/docs/ecosystem/go-libraries)
 

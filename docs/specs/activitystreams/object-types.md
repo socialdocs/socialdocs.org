@@ -79,8 +79,7 @@ A scheduled event or activity.
   "endTime": "2024-02-01T21:00:00Z",
   "location": {
     "type": "Place",
-    "name": "Tech Hub",
-    "address": "123 Main Street"
+    "name": "Tech Hub"
   },
   "attributedTo": "https://example.com/users/alice"
 }
@@ -185,8 +184,7 @@ A physical location.
   "type": "Place",
   "name": "San Francisco",
   "latitude": 37.7749,
-  "longitude": -122.4194,
-  "address": "San Francisco, CA, USA"
+  "longitude": -122.4194
 }
 ```
 

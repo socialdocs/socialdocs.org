@@ -66,7 +66,6 @@ Lemmy communities are represented as Group actors:
     "https://w3id.org/security/v1",
     {
       "lemmy": "https://join-lemmy.org/ns#",
-      "moderators": "lemmy:moderators",
       "postingRestrictedToMods": "lemmy:postingRestrictedToMods"
     }
   ],
@@ -83,7 +82,7 @@ Lemmy communities are represented as Group actors:
     "owner": "https://lemmy.example/c/technology",
     "publicKeyPem": "-----BEGIN PUBLIC KEY-----\n..."
   },
-  "moderators": "https://lemmy.example/c/technology/moderators",
+  "attributedTo": "https://lemmy.example/c/technology/moderators",
   "postingRestrictedToMods": false,
   "endpoints": {
     "sharedInbox": "https://lemmy.example/inbox"
@@ -95,9 +94,8 @@ Lemmy communities are represented as Group actors:
 
 | Property | Description |
 |----------|-------------|
-| `moderators` | Collection of community moderators |
+| `attributedTo` | URL of the community's moderators collection |
 | `postingRestrictedToMods` | Whether only mods can post |
-| `attributedTo` | Array of moderator actor IDs |
 
 ## Posts (Page Objects)
 

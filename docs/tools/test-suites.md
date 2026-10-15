@@ -31,52 +31,13 @@ A robust suite offering comprehensive testing tools for validating ActivityPub i
 - Activity delivery validation
 - Collection pagination tests
 
-### Fediverse Test Framework
+### FediTest
 
-A project aimed at providing a comprehensive framework for testing Fediverse technologies.
+A framework for running scripted interoperability tests between real Fediverse implementations.
 
-- **URL**: [codeberg.org/fediverse/fediverse-test-framework](https://codeberg.org/fediverse/fediverse-test-framework)
-- **Focus**: End-to-end Fediverse testing
-
-**Features:**
-- Multi-platform testing support
-- Federation flow validation
-- Interoperability checks between implementations
-
-### FEP Testing
-
-Feature files written in Gherkin syntax for testing Fediverse Enhancement Proposals and core functionality.
-
-- **URL**: [codeberg.org/fediverse/fep-testing](https://codeberg.org/fediverse/fep-testing)
-- **Language**: Gherkin/Cucumber
-- **Focus**: Behavior-driven testing
-
-**Features:**
-- Human-readable test scenarios
-- FEP compliance validation
-- Easy to extend with new test cases
-
-```gherkin
-Feature: Follow Activity
-  Scenario: User follows another user
-    Given actor "alice@server-a.com" exists
-    And actor "bob@server-b.com" exists
-    When alice sends a Follow activity to bob
-    Then bob's server should receive the Follow
-    And bob's server should respond with Accept
-```
-
-### rocks-testsuite
-
-An ActivityPub test suite designed to validate and assess compliance with the protocol, originally from activitypub.rocks.
-
-- **URL**: [github.com/go-fed/testsuite](https://github.com/go-fed/testsuite)
-- **Focus**: Compliance validation
-
-**Features:**
-- Server-to-server tests
-- Client-to-server tests
-- Detailed compliance reports
+- **URL**: [github.com/fediverse-devnet/feditest](https://github.com/fediverse-devnet/feditest)
+- **Language**: Python
+- **Status**: Little activity since December 2024
 
 ### go-fed Testsuite
 
@@ -297,9 +258,7 @@ return res.html(profilePage);
 
 ## Resources
 
-- [ActivityPub Test Report](https://activitypub.rocks/implementation-report/) - Implementation reports
 - [Fediverse Enhancement Proposals](https://codeberg.org/fediverse/fep) - FEP specifications to test against
-- [W3C ActivityPub Test Cases](https://www.w3.org/wiki/ActivityPub_Testsuite) - Official test documentation
 
 ## Next Steps
 

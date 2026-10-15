@@ -48,65 +48,11 @@ defmodule Pleroma.Signature do
 end
 ```
 
-## C# / .NET
+## C# / .NET, Java / Kotlin, Swift
 
-### FediNet
+There is no widely used, maintained general-purpose ActivityPub library for these languages that we can recommend. Start from the patterns in [Building Your Own](#building-your-own) below and test against real servers.
 
-ActivityPub library for .NET.
-
-| Property | Value |
-|----------|-------|
-| Repository | [github.com/rytmis/FediNet](https://github.com/rytmis/FediNet) |
-| NuGet | `FediNet` |
-| Status | Experimental |
-
-### Example
-
-```csharp
-using FediNet.ActivityStreams;
-
-var note = new Note
-{
-    Id = new Uri("https://example.com/notes/123"),
-    Content = "Hello from .NET!",
-    AttributedTo = new Uri("https://example.com/users/alice")
-};
-```
-
-## Java / Kotlin
-
-### jActivityPub
-
-Java ActivityPub implementation.
-
-| Property | Value |
-|----------|-------|
-| Repository | [github.com/ibm-research/jActivityPub](https://github.com/ibm-research/jActivityPub) |
-| Status | Experimental |
-
-### Example
-
-```java
-import org.w3c.activitystreams.*;
-
-Note note = new Note.Builder()
-    .id("https://example.com/notes/123")
-    .content("Hello from Java!")
-    .attributedTo("https://example.com/users/alice")
-    .build();
-```
-
-## Swift
-
-### ActivityPubSwift
-
-Swift ActivityPub library.
-
-| Property | Value |
-|----------|-------|
-| Status | Various experimental projects |
-
-### Example Pattern
+### Example Pattern (Swift)
 
 ```swift
 struct Note: Codable {
@@ -148,13 +94,7 @@ instance ToJSON Activity where
 
 ## Dart / Flutter
 
-### flutter_activitypub
-
-Experimental Flutter client.
-
-| Property | Value |
-|----------|-------|
-| Status | Experimental |
+No maintained ActivityPub library is known. A minimal actor model:
 
 ### Pattern
 

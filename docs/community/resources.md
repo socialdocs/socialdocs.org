@@ -17,9 +17,7 @@ A comprehensive collection of libraries, tools, and resources for building Activ
 | [Fedify](https://fedify.dev/) | Full ActivityPub server framework | MIT |
 | [ActivityPub Express](https://github.com/immers-space/activitypub-express) | Express.js middleware for ActivityPub (unmaintained) | MIT |
 | [express-activitypub](https://github.com/dariusk/express-activitypub) | Simple reference implementation | MIT |
-| [activitystreams-2](https://github.com/activitea/activitystreams-2) | ActivityStreams 2.0 library | Apache-2.0 |
 | [http-signature](https://github.com/joyent/node-http-signature) | HTTP Signatures implementation | MIT |
-| [one-page-pub](https://github.com/nicksellen/one-page-pub) | Minimal ActivityPub server | Apache-2.0 |
 
 ```javascript
 // Example: Using Fedify
@@ -41,7 +39,6 @@ federation.setActorDispatcher('/users/{handle}', async (ctx, handle) => {
 | [federation](https://github.com/jaywink/federation) | Multi-protocol social web library | BSD-3 |
 | [little-boxes](https://github.com/tsileo/little-boxes) | Minimal ActivityPub framework | ISC |
 | [bovine](https://codeberg.org/bovine/bovine) | Fediverse application library | MIT |
-| [pyfed](https://github.com/AmaseCocworking/pyfed) | Type-safe ActivityPub library | MIT |
 | [Takahē](https://github.com/jointakahe/takahe) | Multi-domain AP server | BSD-3 |
 
 ```python
@@ -78,7 +75,6 @@ let config = FederationConfig::builder()
 | Library | Description | License |
 |---------|-------------|---------|
 | [go-fed/activity](https://github.com/go-fed/activity) | Full AS/AP implementation | BSD-3 |
-| [astreams](https://github.com/brandonsides/astreams) | ActivityStreams 2.0 library | AGPL-3.0 |
 | [Hannibal](https://github.com/EmissarySocial/Hannibal) | ActivityPub library | Apache-2.0 |
 | [go-activitypub](https://github.com/go-ap/activitypub) | AP service implementation | ISC |
 
@@ -94,8 +90,6 @@ note.GetActivityStreamsContent().Set(/* ... */)
 
 | Library | Description | License |
 |---------|-------------|---------|
-| [ActivityPub-PHP](https://github.com/assemblee-virtuelle/ActivityPub-PHP) | ActivityPub implementation | MIT |
-| [FediText](https://github.com/Mastodonte-de/FediText) | Text processing for Fediverse | MIT |
 
 ### Ruby
 
@@ -116,7 +110,6 @@ note.GetActivityStreamsContent().Set(/* ... */)
 
 | Tool | Description |
 |------|-------------|
-| [activitypub-testsuite](https://github.com/w3c/activitypub-testsuite) | W3C conformance tests |
 | [FediDB](https://fedidb.org/) | Fediverse network statistics |
 
 ### Development Utilities
@@ -168,7 +161,6 @@ note.GetActivityStreamsContent().Set(/* ... */)
 
 | Project | Language | Purpose |
 |---------|----------|---------|
-| [one-page-pub](https://github.com/nicksellen/one-page-pub) | Node.js | Single-file AP server |
 | [express-activitypub](https://github.com/dariusk/express-activitypub) | Node.js | Reference implementation |
 | [microblog.pub](https://github.com/tsileo/microblog.pub) | Python | Single-user server |
 

@@ -149,14 +149,14 @@ WebFinger client library.
 
 | Property | Value |
 |----------|-------|
-| Repository | [github.com/writeas/webfinger](https://github.com/writeas/webfinger) |
+| Repository | [github.com/webfinger/go-webfinger](https://github.com/webfinger/go-webfinger) |
 | License | MIT |
-| Status | Stable |
+| Status | Unmaintained (last commit December 2022), but small and functional |
 
 ### Example
 
 ```go
-import "github.com/writeas/go-webfinger"
+import "webfinger.net/go/webfinger"
 
 client := webfinger.NewClient(nil)
 

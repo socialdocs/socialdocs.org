@@ -28,31 +28,14 @@ mastodon/
 │   ├── linked_data_signature.rb # LD Signatures
 │   └── tag_manager.rb           # Object references
 ├── app/services/
-│   ├── activitypub/
-│   │   ├── process_account_service.rb
-│   │   ├── process_collection_service.rb
-│   │   └── fetch_remote_status_service.rb
-│   └── delivery_service.rb
+│   └── activitypub/
+│       ├── process_account_service.rb
+│       └── fetch_remote_status_service.rb
 ```
 
 ### HTTP Signatures
 
-```ruby
-# From Mastodon's request.rb
-class Request
-  def perform
-    http_client.headers(
-      'Signature' => signature_header,
-      'Digest' => digest_header,
-      'Date' => Time.now.utc.httpdate
-    ).public_send(@verb, @url.to_s, body: @body)
-  end
-
-  def signature_header
-    SignatureGenerator.new(@account, @verb, @url, @body).generate
-  end
-end
-```
+Outgoing requests are signed in [`app/lib/request.rb`](https://github.com/mastodon/mastodon/blob/main/app/lib/request.rb). Mastodon first signs with draft-cavage HTTP Signatures (`perform_cavage_signed_request`); if the remote server rejects that, it retries ("double-knocks") with RFC 9421 HTTP Message Signatures (`perform_rfc9421_signed_request`). Read that file for the exact headers and fallback rules rather than relying on a summary.
 
 ## http_signatures gem
 

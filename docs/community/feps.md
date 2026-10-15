@@ -234,27 +234,7 @@ This means anyone can:
 
 ### Implementation Notes
 
-When implementing a FEP:
-
-```javascript
-// Check if an activity uses a FEP extension
-function supportsFEP(object, fepId) {
-  const context = object['@context'];
-
-  if (Array.isArray(context)) {
-    return context.some(ctx =>
-      typeof ctx === 'object' && ctx.fep === `https://w3id.org/fep/${fepId}`
-    );
-  }
-
-  return false;
-}
-
-// Example: Check for FEP-e232 Object Links
-if (supportsFEP(activity, 'e232')) {
-  // Process object links according to FEP-e232
-}
-```
+There is no general way to detect from an object's `@context` which FEPs it follows. Each FEP defines its own properties (and sometimes context terms); detect support by checking for those properties — e.g. a `tag` entry of type `Link` with `mediaType` set to the ActivityStreams type for FEP-e232 Object Links — and fall back gracefully when they are absent. Servers can advertise implemented FEPs in a `FEDERATION.md` file ([FEP-67ff](https://codeberg.org/fediverse/fep/src/branch/main/fep/67ff/fep-67ff.md)).
 
 ## Notable Draft FEPs
 
