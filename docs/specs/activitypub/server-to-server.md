@@ -510,3 +510,4 @@ async function isBlocked(actorUrl) {
 - **[Delivery](/docs/specs/activitypub/delivery)** - How to send activities
 - **[HTTP Signatures](/docs/specs/http-signatures/overview)** - Signing details
 - **[Handling Activities](/docs/guides/handling-incoming-activities)** - Implementation
+- **[Delivery at scale](/docs/guides/delivery-at-scale)** - Retries, unavailable domains, circuit breakers

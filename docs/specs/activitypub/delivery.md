@@ -261,6 +261,8 @@ function signRequest(privateKey, keyId, method, url, body) {
 
 ### Single Delivery
 
+Inbox URLs come from remote actor documents, so treat them as untrusted: require `https` and refuse hosts that resolve to private or loopback addresses before you POST (see `assertDeliverable` in [Delivery at scale](/docs/guides/delivery-at-scale#a-delivery-job)).
+
 ```javascript
 async function deliverToInbox(inbox, activity, privateKey, keyId) {
   const body = JSON.stringify(activity);
@@ -310,11 +312,12 @@ async function deliverActivity(activity, actor) {
     .filter(({ result }) => result.status === 'rejected');
 
   for (const { result, inbox } of failures) {
-    // 4xx (other than 429) won't succeed on retry; 410 Gone means the
-    // inbox is gone for good
+    // Most 4xx won't succeed on retry, but 401 (key not fetched yet,
+    // wrong signature scheme), 408 and 429 can. This mirrors Mastodon;
+    // see the Delivery at scale guide.
     const status = result.reason?.status;
-    if (status && status >= 400 && status < 500 && status !== 429) {
-      if (status === 410) await markServerDead(inbox);
+    if (status === 501 || (status >= 400 && status < 500 && ![401, 408, 429].includes(status))) {
+      if (status === 410) await removeFollowersBehind(inbox); // that inbox is gone
       continue;
     }
     await queueRetry(inbox, activity, actor, 0);
@@ -324,95 +327,33 @@ async function deliverActivity(activity, actor) {
 
 ## Step 5: Handle Failures
 
-### Retry Strategy
+The spec leaves retries to implementations. What matters for interoperability:
 
-Use exponential backoff for failed deliveries:
+- **Retry transient failures with growing delays, for days, not minutes.** Servers go down for maintenance and come back. Mastodon retries one delivery 16 times with a delay of n⁴ + 15 seconds plus jitter, about 2–3 days in total ([delivery_worker.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/workers/activitypub/delivery_worker.rb)).
+- **Don't retry what can't succeed.** Mastodon gives up on 4xx other than 401, 408 and 429, and on 501; it retries 401, 408, 429, other 5xx and network errors ([json_ld_helper.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/helpers/json_ld_helper.rb)).
+- **Stop delivering to servers that are gone, and notice when they come back.** Mastodon marks a host unavailable after failures on 7 distinct days, and clears it on any successful delivery or any signed request from that host ([delivery_failure_tracker.rb](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/delivery_failure_tracker.rb)). A rule like "dead after one bad day" drops servers that were only briefly down.
 
 ```javascript
-const RETRY_DELAYS = [
-  1 * 60 * 1000,      // 1 minute
-  5 * 60 * 1000,      // 5 minutes
-  30 * 60 * 1000,     // 30 minutes
-  2 * 60 * 60 * 1000, // 2 hours
-  12 * 60 * 60 * 1000, // 12 hours
-  24 * 60 * 60 * 1000  // 24 hours
-];
+// Mastodon's schedule: n⁴ + 15 s plus up to 50% jitter, 16 retries
+const MAX_RETRIES = 16;
+const retryDelayMs = (n) => (n ** 4 + 15 + Math.random() * 0.5 * n ** 4) * 1000;
 
 async function queueRetry(inbox, activity, actor, attempt = 0) {
-  if (attempt >= RETRY_DELAYS.length) {
-    await markServerDead(inbox);
+  if (attempt >= MAX_RETRIES) {
+    await recordFailedDay(inbox); // feeds unavailable-domain tracking
     return;
   }
-
   await db.deliveryQueue.insert({
     inbox,
-    activity,
+    activityId: activity.id,
     actorId: actor.id,
     attempt,
-    scheduledAt: new Date(Date.now() + RETRY_DELAYS[attempt])
+    scheduledAt: new Date(Date.now() + retryDelayMs(attempt)),
   });
 }
 ```
 
-### Retry Worker
-
-```javascript
-async function processRetryQueue() {
-  const due = await db.deliveryQueue.find({
-    scheduledAt: { $lte: new Date() }
-  });
-
-  for (const job of due) {
-    const actor = await db.actors.findOne({ id: job.actorId });
-    try {
-      await deliverToInbox(job.inbox, job.activity, actor.privateKey, actor.keyId);
-
-      // Success - remove from queue
-      await db.deliveryQueue.remove({ _id: job._id });
-
-      // Server recovered
-      await markServerAlive(job.inbox);
-    } catch (error) {
-      // Reschedule with increased attempt
-      await db.deliveryQueue.remove({ _id: job._id });
-      await queueRetry(job.inbox, job.activity, actor, job.attempt + 1);
-    }
-  }
-}
-
-// Run every minute
-setInterval(processRetryQueue, 60 * 1000);
-```
-
-### Dead Server Tracking
-
-```javascript
-async function markServerDead(inbox) {
-  const domain = new URL(inbox).hostname;
-
-  await db.deadServers.updateOne(
-    { domain },
-    { $set: { deadSince: new Date() }, $inc: { failureCount: 1 } },
-    { upsert: true }
-  );
-}
-
-async function isServerDead(inbox) {
-  const domain = new URL(inbox).hostname;
-  const record = await db.deadServers.findOne({ domain });
-
-  if (!record) return false;
-
-  // Consider dead if failed in last 24 hours
-  const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  return record.deadSince > dayAgo;
-}
-
-async function markServerAlive(inbox) {
-  const domain = new URL(inbox).hostname;
-  await db.deadServers.remove({ domain });
-}
-```
+The full design — unavailable domains, circuit breakers, per-host concurrency, followers synchronization (FEP-8fcf) and why not to batch — is in **[Delivery at scale](/docs/guides/delivery-at-scale)**.
 
 ## Delivery Best Practices
 
@@ -546,10 +487,12 @@ Track these metrics:
 | Latency | Time to deliver |
 | Queue depth | Pending deliveries |
 | Retry rate | % requiring retries |
-| Dead servers | Servers not responding |
+| Unavailable domains | Hosts you've stopped delivering to |
 
 ## Next Steps
 
 - **[HTTP Signatures](/docs/specs/http-signatures/overview)** - Signing in detail
 - **[Server-to-Server](/docs/specs/activitypub/server-to-server)** - Receiving activities
 - **[Sending Activities](/docs/guides/sending-activities)** - Implementation guide
+- **[Delivery at scale](/docs/guides/delivery-at-scale)** - Retries, unavailable domains, circuit breakers
+- **[Deletion](/docs/guides/deletion)** - Delete fan-out and tombstones

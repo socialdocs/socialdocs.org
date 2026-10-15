@@ -524,3 +524,4 @@ async function handleActivityIdempotent(activity) {
 
 - **[Sending Activities](/docs/guides/sending-activities)** - Send activities out
 - **[Following and Followers](/docs/guides/following-and-followers)** - Manage relationships
+- **[Deletion](/docs/guides/deletion)** - Receiving Delete safely, tombstones and Delete-before-Create
