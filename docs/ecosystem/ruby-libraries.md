@@ -2,6 +2,8 @@
 sidebar_position: 15
 title: Ruby Libraries
 description: ActivityPub libraries for Ruby
+last_verified: 2026-10-15
+verified_against: "Package registries and forge APIs (npm, PyPI, crates.io, RubyGems, Packagist, Go proxy, GitHub, Codeberg) on 2026-10-15; @fedify/* 2.4.4"
 ---
 
 # Ruby Libraries

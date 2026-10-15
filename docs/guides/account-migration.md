@@ -2,6 +2,8 @@
 sidebar_position: 12
 title: Account Migration
 description: Implementing account migration using the ActivityPub Move activity
+last_verified: 2026-10-15
+verified_against: "Mastodon 4.7.3, Lemmy 0.19.20 / 1.0.0-beta.2, PeerTube 8.3.1, Pixelfed 0.14.4 source; FEP-7628 (Oct 2026 audit)"
 ---
 
 # Account Migration

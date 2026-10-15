@@ -2,6 +2,8 @@
 sidebar_position: 10
 title: Libraries & SDKs Overview
 description: ActivityPub libraries and SDKs for various programming languages
+last_verified: 2026-10-15
+verified_against: "Package registries and forge APIs (npm, PyPI, crates.io, RubyGems, Packagist, Go proxy, GitHub, Codeberg) on 2026-10-15; @fedify/* 2.4.4"
 ---
 
 # Libraries & SDKs Overview

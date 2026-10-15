@@ -2,6 +2,8 @@
 sidebar_position: 18
 title: Lemmy Compatibility
 description: Implementing federation with Lemmy, the link aggregator for the fediverse
+last_verified: 2026-10-15
+verified_against: "Mastodon 4.7.3, Lemmy 0.19.20 / 1.0.0-beta.2, PeerTube 8.3.1, Pixelfed 0.14.4 source; FEP-7628 (Oct 2026 audit)"
 ---
 
 # Lemmy Compatibility
