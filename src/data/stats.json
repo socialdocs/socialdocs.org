@@ -1,67 +1,67 @@
 {
-  "asOf": "2026-10-15",
+  "asOf": "2026-10-19",
   "sources": {
     "accounts": "https://api.fedidb.org/v1/stats and /v1/software/{slug} (FediDB)",
     "versions": "Latest non-prerelease release on GitHub, Codeberg or GitLab"
   },
   "fediverse": {
-    "accounts": 14007023,
-    "monthlyActive": 1343389,
-    "instances": 41098
+    "accounts": 13947446,
+    "monthlyActive": 1303645,
+    "instances": 41131
   },
   "platforms": {
     "Mastodon": {
-      "accounts": 8466403,
-      "instances": 8652,
+      "accounts": 8557740,
+      "instances": 8699,
       "version": "4.7.3",
       "released": "2026-10-01",
       "releaseUrl": "https://github.com/mastodon/mastodon/releases/tag/v4.7.3"
     },
     "Lemmy": {
-      "accounts": 368880,
-      "instances": 407,
+      "accounts": 516715,
+      "instances": 413,
       "version": "0.19.20",
       "released": "2026-07-21",
       "releaseUrl": "https://github.com/LemmyNet/lemmy/releases/tag/0.19.20"
     },
     "Pixelfed": {
-      "accounts": 1197544,
-      "instances": 659,
-      "version": "0.14.4",
-      "released": "2026-09-30",
-      "releaseUrl": "https://github.com/pixelfed/pixelfed/releases/tag/v0.14.4"
+      "accounts": 1200326,
+      "instances": 663,
+      "version": "0.15.1",
+      "released": "2026-10-18",
+      "releaseUrl": "https://github.com/pixelfed/pixelfed/releases/tag/v0.15.1"
     },
     "PeerTube": {
-      "accounts": 560473,
-      "instances": 1554,
+      "accounts": 594181,
+      "instances": 1563,
       "version": "8.3.1",
       "released": "2026-09-28",
       "releaseUrl": "https://github.com/Chocobozzz/PeerTube/releases/tag/v8.3.1"
     },
     "Misskey": {
-      "accounts": 1255911,
-      "instances": 1183,
+      "accounts": 1249784,
+      "instances": 1175,
       "version": "2026.10.0",
       "released": "2026-10-01",
       "releaseUrl": "https://github.com/misskey-dev/misskey/releases/tag/2026.10.0"
     },
     "Pleroma": {
-      "accounts": 53887,
-      "instances": 261,
+      "accounts": 55074,
+      "instances": 263,
       "version": null,
       "released": null,
       "releaseUrl": null
     },
     "GoToSocial": {
-      "accounts": 755,
-      "instances": 314,
+      "accounts": 784,
+      "instances": 320,
       "version": "0.22.2",
       "released": "2026-10-09",
       "releaseUrl": "https://codeberg.org/superseriousbusiness/gotosocial/releases/tag/v0.22.2"
     },
     "Friendica": {
-      "accounts": 18401,
-      "instances": 76,
+      "accounts": 18874,
+      "instances": 80,
       "version": "2026.05-1",
       "released": "2026-05-21",
       "releaseUrl": "https://github.com/friendica/friendica/releases/tag/2026.05-1"
