@@ -1,66 +1,66 @@
 {
-  "asOf": "2026-10-15",
+  "asOf": "2026-10-26",
   "sources": {
     "accounts": "https://api.fedidb.org/v1/stats and /v1/software/{slug} (FediDB)",
     "versions": "Latest non-prerelease release on GitHub, Codeberg or GitLab"
   },
   "fediverse": {
-    "accounts": 14007023,
-    "monthlyActive": 1343389,
-    "instances": 41098
+    "accounts": 14534131,
+    "monthlyActive": 1183694,
+    "instances": 37024
   },
   "platforms": {
     "Mastodon": {
-      "accounts": 8466403,
-      "instances": 8652,
+      "accounts": 8762278,
+      "instances": 8659,
       "version": "4.7.3",
       "released": "2026-10-01",
       "releaseUrl": "https://github.com/mastodon/mastodon/releases/tag/v4.7.3"
     },
     "Lemmy": {
-      "accounts": 368880,
-      "instances": 407,
+      "accounts": 454048,
+      "instances": 412,
       "version": "0.19.20",
       "released": "2026-07-21",
       "releaseUrl": "https://github.com/LemmyNet/lemmy/releases/tag/0.19.20"
     },
     "Pixelfed": {
-      "accounts": 1197544,
-      "instances": 659,
-      "version": "0.14.4",
-      "released": "2026-09-30",
-      "releaseUrl": "https://github.com/pixelfed/pixelfed/releases/tag/v0.14.4"
+      "accounts": 1201960,
+      "instances": 611,
+      "version": "0.15.2",
+      "released": "2026-10-21",
+      "releaseUrl": "https://github.com/pixelfed/pixelfed/releases/tag/v0.15.2"
     },
     "PeerTube": {
-      "accounts": 560473,
-      "instances": 1554,
+      "accounts": 626966,
+      "instances": 1565,
       "version": "8.3.1",
       "released": "2026-09-28",
       "releaseUrl": "https://github.com/Chocobozzz/PeerTube/releases/tag/v8.3.1"
     },
     "Misskey": {
-      "accounts": 1255911,
-      "instances": 1183,
-      "version": "2026.10.0",
-      "released": "2026-10-01",
-      "releaseUrl": "https://github.com/misskey-dev/misskey/releases/tag/2026.10.0"
+      "accounts": 1258221,
+      "instances": 1170,
+      "version": "2026.10.1",
+      "released": "2026-10-23",
+      "releaseUrl": "https://github.com/misskey-dev/misskey/releases/tag/2026.10.1"
     },
     "Pleroma": {
-      "accounts": 53887,
-      "instances": 261,
+      "accounts": 56315,
+      "instances": 259,
       "version": null,
       "released": null,
       "releaseUrl": null
     },
     "GoToSocial": {
-      "accounts": 755,
-      "instances": 314,
-      "version": "0.22.2",
-      "released": "2026-10-09",
-      "releaseUrl": "https://codeberg.org/superseriousbusiness/gotosocial/releases/tag/v0.22.2"
+      "accounts": 822,
+      "instances": 327,
+      "version": "0.22.3",
+      "released": "2026-10-21",
+      "releaseUrl": "https://codeberg.org/superseriousbusiness/gotosocial/releases/tag/v0.22.3"
     },
     "Friendica": {
-      "accounts": 18401,
+      "accounts": 18806,
       "instances": 76,
       "version": "2026.05-1",
       "released": "2026-05-21",
